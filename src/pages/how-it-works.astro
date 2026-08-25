@@ -17,19 +17,18 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
 
 <BaseLayout
   title="How it works — Functionary"
-  description="Sketch a rough pipeline, run it on real data, and refine it as the process reveals itself. Blocks declare their effects, files carry provenance, and humans hold the steps that aren't delegable."
+  description="Describe the work, let the Project Agent sketch and Test it visibly, then graduate repeated discretion into typed blocks, policies, and review."
 >
   <!-- HEADER -->
   <section class="section">
     <div class="container">
       <Eyebrow>How it works</Eyebrow>
-      <h1>You build the flow by running it.</h1>
+      <h1>Start with a result. Learn the process by running it.</h1>
       <p class="lead measure">
-        A flow starts as a sketch and matures into an audited workflow. Blocks
-        declare what they consume, emit, and change; every file carries a
-        provenance chain back to source; and the steps a person must own pause
-        for that person. The same tool runs a first draft and the mature
-        version it becomes.
+        Tell the Project Agent what useful work looks like. It creates visible
+        canvas state and Tests the result while you watch. Captured runs show
+        where discretion helped and where it repeated, giving you evidence to
+        add types, policies, deterministic blocks, and deliberate human review.
       </p>
     </div>
   </section>
@@ -40,26 +39,26 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
       <Eyebrow>Sketch · Refine · Formalize</Eyebrow>
       <h2>Formalization is a journey, not a prerequisite.</h2>
       <p class="stack-p">
-        A sketch block declares the rough shape of a step and stands up a
-        working pipeline in minutes — good enough to run on real data and hand
-        to a teammate. You don't have to specify everything before you start.
+        A Sketch gives a durable name, instructions, tools, and ceilings to work
+        that is not formalized yet. In Agent mode it can execute that work and
+        produce a first result. You do not have to specify everything before
+        you start, and the discretionary part does not disappear into a chat.
       </p>
       <p class="stack-p">
-        You refine it incrementally, as the process reveals itself. Add schema
-        enforcement where you've learned the data's shape. Add a Gate where the
-        naive automation keeps getting it wrong. Replace a sketch block with a
-        fully typed, validated block once you know exactly what it should do.
+        Refine it incrementally as the process reveals itself. Add a schema once
+        you know the data's shape. Add a validator or human pause where mistakes
+        matter. Replace a repeated choice with one or several narrower blocks
+        once the evidence shows what the implementation should do.
       </p>
       <p class="stack-p">
-        What you are really doing is writing down a process that used to live
-        only in someone's head. The flow remembers it — even though the agent
-        that runs each step does not.
+        Functionary captures agent runs, including prompts, tool activity,
+        partial outputs, and typed results where possible. A transcript is not
+        the final process, but it is useful evidence for building one.
       </p>
       <p>
-        The same tool runs a first-pass pipeline for a two-person team and a
-        mature, audited, multi-stage workflow for an enterprise. The difference
-        between them is how much of the flow you've formalized — not which
-        product you bought.
+        The same project can hold the first agent-backed attempt and the mature,
+        audited workflow it becomes. Graduation is not automatic learning: you
+        narrow discretion deliberately when run and evaluation evidence support it.
       </p>
     </div>
   </section>
@@ -68,38 +67,43 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
   <section class="section">
     <div class="container">
       <Eyebrow>Blocks · Effects · Provenance</Eyebrow>
-      <h2>Two data types, declared effects, an unbroken chain.</h2>
+      <h2>Typed values, declared authority, recorded lineage.</h2>
       <p class="measure stack-p">
-        All data is one of two types. A Document is natural language — Markdown,
-        plain text, or HTML — and is the input to AI blocks. A Record is JSON
-        with addressable fields, and is the input to deterministic logic. Every
-        block declares which it accepts and which it emits; a type mismatch
-        renders as an unverified connection on the canvas, before it runs.
+        Flows exchange typed values and artifacts. Documents — including text,
+        Markdown, HTML, and PDF — and structured Records are common payload
+        forms; blocks can also declare more specific contracts. A type mismatch
+        renders as an unverified connection on the canvas before execution.
       </p>
       <div class="cards">
         <BlockCard
           category="extraction"
           name="Extract Insights"
-          effect="pure · deterministic"
+          effect="pure · nondeterministic · bounded"
         />
-        <BlockCard category="action" name="Send" effect="effect: Send" />
+        <BlockCard category="action" name="Send" effect="external write · mechanical" />
       </div>
       <p class="measure stack-p">
-        Every block declares its purity and determinism, and effects propagate
-        along the graph — so you can see, before a run, which steps reach out
-        and touch the world. Every file then carries an append-only provenance
-        chain: which block produced it, from which inputs, at what time, using
-        what configuration, including the prompt version. AI outputs additionally
-        reference the specific source passages supporting each claim. Provenance
-        is never stripped, and a block cannot modify it.
+        Block signatures describe effects, determinism, and discretion. That
+        makes a pure model call different from a mechanical external write, and
+        both different from an open-discretion Agent. Effects propagate through
+        the graph so authority is visible before a run.
+      </p>
+      <p class="measure stack-p">
+        Successful block outputs carry append-only execution lineage: block,
+        input IDs, time, configuration hash, and model or prompt hashes when
+        applicable. Extraction blocks can additionally attach source passages
+        to structured findings. Synthesized prose retains execution lineage,
+        but is not currently guaranteed to preserve claim-level citations.
       </p>
       <div class="prov measure">
-        <CodeBlock file="flow.json">{`"provenance": [
+        <CodeBlock file="provenance.json">{`"provenance": [
   {
-    "block": "summarize-3",
-    "inputs": ["report.md"],
-    "at": "2026-05-28T14:02:11Z",
-    "config": { "prompt_version": "summarize@4" }
+    "block_id": "extract-3",
+    "inputs": ["79aa04cc-…"],
+    "timestamp": "2026-08-25T14:02:11Z",
+    "config_hash": "sha256:…",
+    "model": "configured-provider-model",
+    "prompt_hash": "sha256:…"
   }
 ]`}</CodeBlock>
       </div>
@@ -113,10 +117,10 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
         <Eyebrow>Humans are first-class</Eyebrow>
         <h2>Some judgments are not delegable.</h2>
         <p class="stack-p">
-          A Gate or Manual Input block pauses execution, routes a structured
-          task to the right person, and resumes when they've acted. The flow
-          holds at that step — it does not guess, and it does not proceed
-          without the decision.
+          Human pauses cover different jobs: approval, schema-defined input,
+          inspection, review, and handoff. The flow holds at that step and
+          resumes only through the corresponding human action instead of
+          quietly inventing the missing decision.
         </p>
         <p>
           A waiting step carries the <Chip state="needs-input" /> chip on the
@@ -127,29 +131,47 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
       <div class="snippet-wrap">
         <FlowSnippet
           nodes={gateFlow}
-          caption="A Gate holds for human review between drafting and sending."
+          caption="A Gate holds for approval between summarizing and sending."
         />
       </div>
     </div>
   </section>
 
-  <!-- 4. ERRORS PRODUCE DURABLE FIXES -->
+  <!-- 4. TEST BEFORE PRODUCTION -->
+  <section class="section">
+    <div class="container measure">
+      <Eyebrow>Test before Production</Eyebrow>
+      <h2>External effects require a deliberate handoff.</h2>
+      <p class="stack-p">
+        Test is the default run mode. Use representative or real inputs while
+        durable external writes are stubbed, and inspect the graph, results,
+        effects, and review points before granting authority.
+      </p>
+      <p>
+        Production approval is pinned to the exact flow snapshot you reviewed
+        and is valid for that run. The Project Agent can build and Test, but it
+        cannot approve a Production run on your behalf.
+      </p>
+    </div>
+  </section>
+
+  <!-- 5. ERRORS PRODUCE DURABLE FIXES -->
   <section class="section">
     <div class="container measure">
       <Eyebrow>Errors produce durable fixes</Eyebrow>
-      <h2>A mistake becomes a change, not a recurrence.</h2>
+      <h2>A mistake becomes evidence for a change.</h2>
       <p class="stack-p">
-        When a flow makes a mistake, the error surfaces with full context: the
-        exact block that failed, the input it received, the output it produced,
-        and the provenance chain back to source. You're debugging a step, not
-        re-reading a transcript.
+        When a flow fails, the run identifies the block and reason. Debug
+        tracing can retain richer input and output envelopes when configured,
+        while the run record and available provenance keep the investigation
+        attached to the process instead of a private chat.
       </p>
       <p>
-        You — or an agent working alongside you — identify the step that needs
-        to change, propose a targeted fix, verify it on the canvas, and deploy
-        it knowing it applies consistently to every future run. The change is
-        legible in the version history — what changed, when, and why. The model
-        never had to get better; the process did.
+        You or the Project Agent can make a targeted change and Test the new
+        snapshot. History records who changed what and when, with conversation
+        linkage for agent-authored edits. The graph and policy change
+        consistently; nondeterministic outputs can still vary and remain subject
+        to the evaluations and gates you chose.
       </p>
     </div>
   </section>
@@ -157,7 +179,7 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
   <!-- CLOSE -->
   <section class="section">
     <div class="container measure">
-      <Button href="/self-hosting" variant="ghost">Read about self-hosting</Button>
+      <Button href="/self-hosting" variant="ghost">Read the deployment posture</Button>
     </div>
   </section>
 </BaseLayout>

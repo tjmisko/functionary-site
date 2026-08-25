@@ -17,7 +17,7 @@ const blog = defineCollection({
     dek: z.string(),
     date: z.coerce.date(),
     draft: z.boolean().default(false),
-    /** Use Cases: the bundled template this post narrates. */
+    /** Use Cases: the starter topology this post examines. */
     template: z.string().optional(),
     /** Quiet link back to the relevant product page (spec §5.5.3). */
     relatedHref: z.string().optional(),

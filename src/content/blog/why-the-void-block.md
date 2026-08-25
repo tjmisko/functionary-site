@@ -1,14 +1,15 @@
 ---
 type: note
 title: "Why discarding data needs its own block"
-dek: "A flow should never drop data silently. Making 'discard' an explicit, named step keeps the audit trail honest."
+dek: "A design note for an explicit discard primitive; unpublished until the stock runtime and provenance behavior support it."
 date: 2026-05-26
+draft: true
 ---
 
-In a flow where every file carries provenance and every step is declared, silently dropping data is a hole in the record. Something enters the flow and disappears, and the audit trail can no longer answer the basic question: what happened to this?
+This note records a design intention, not a currently shipped runtime guarantee. The schema includes a `Void` sink, but the stock executor does not yet provide a corresponding runtime implementation.
 
-So discarding data is itself a step. A void block is the explicit, named destination for data the flow intentionally drops — filtered-out records, rejected items, branches that end. The discard is declared, visible on the canvas, and recorded in provenance like any other action. You can point at it and say: this is where these records went, and this is why.
+The intended design is to make deliberate discard a visible destination — filtered records, rejected items, and branches that end — so a reviewer can distinguish intentional termination from a missing edge. Visibility in the graph would be useful even before discard-specific provenance exists.
 
-The alternative looks simpler. Let a branch quietly terminate and write no extra block. But that is the thing that makes a process untrustworthy. The data went somewhere, and no one can say where. A reviewer reading the flow later has to guess whether the omission was intent or a bug. Naming the void closes that gap.
+Today, branches can terminate without executing a Void block, including through human cancellation. The stronger rule therefore cannot be claimed yet.
 
-The principle is narrow and absolute: nothing leaves a flow without a declared destination, even if that destination is nowhere.
+The future principle is narrow: when the runtime supports it, an explicit sink should make intended discard legible. This note should remain unpublished until the implementation and provenance behavior match that claim.

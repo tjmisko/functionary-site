@@ -13,7 +13,7 @@ export async function GET(context: APIContext) {
   return rss({
     title: "Functionary",
     description:
-      "Essays, use cases, and notes on building visible, bounded, auditable automation for knowledge work.",
+      "Essays, use cases, and notes on capturing agent work and progressively formalizing reliable processes.",
     site: context.site ?? "https://functionary.app",
     items: posts.map((post) => ({
       title: post.data.title,

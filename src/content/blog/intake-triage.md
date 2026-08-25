@@ -1,6 +1,6 @@
 ---
 type: usecase
-title: "Intake triage with a branch and an escalation"
+title: "Intake triage with routing and escalation"
 dek: "A branching pipeline that classifies incoming requests, routes by urgency, and escalates the hard cases to a person."
 date: 2026-05-18
 template: "Intake Triage"
@@ -14,36 +14,36 @@ A team receives a stream of incoming requests: support tickets, applications, re
 
 ## The flow
 
-The `Intake Triage` template runs seven blocks in order.
+The `Intake Triage` starter contains seven blocks across three routed paths.
 
 `Regularize` takes the raw incoming request and normalizes it into a consistent shape, so a terse one-line ticket and a long email arrive at the next block looking the same.
 
 `Classify` assigns a category and an urgency to the normalized request. This is the only block that judges the content.
 
-`Branch` routes on that classification. A billing request takes one path; a bug report takes another; an account question takes a third. The routes are separate edges on the canvas, not a hidden switch.
+`Router` reads the `category` field and maps `urgent`, `normal`, and `low-priority` to separate destinations. The mapping lives in the Router configuration and the paths are visible as separate canvas edges.
 
-On the high-urgency and low-confidence path, a `Gate` pauses. The clear, routine cases flow straight through. The consequential and uncertain ones wait.
+The urgent path reaches a `Gate` assigned to an operations lead. The normal path reaches `Manual Input`. Low-priority work goes directly to `Write` for archival.
 
-`Manual Input` captures the human's structured decision at the gated path: the final category, an action, a note.
+`Manual Input` represents a separate human-input path; it is not nested inside the Gate.
 
-`Write` records the outcome, including the classification and the route taken.
+`Write` records the low-priority path in the configured archive destination.
 
-`Send` delivers the response to the requester.
+`Send` follows the Gate and Manual Input paths, although the Manual Input → Send edge is currently unverified and must be resolved before that path is runnable.
 
 ## Key decisions
 
-Classification happens before routing. `Classify` decides what the request is; `Branch` decides where it goes. Splitting them keeps the routing logic readable and lets you change one without disturbing the other.
+Classification happens before routing. `Classify` emits the category; `Router` maps that field to a destination. Splitting them keeps the model-backed judgment separate from the mechanical route table.
 
-Only some paths hit a `Gate`. Escalating every request would defeat the point. The gate sits on the cases where being wrong is expensive or where `Classify` was unsure. The clear cases never wait on a person.
+Only the urgent path hits a `Gate`; normal items request manual input and low-priority items are archived. These are starter categories, not a claim that the template measures confidence or applies a configurable urgency threshold at the Gate.
 
-The routing logic is declared on the canvas. The conditions on each `Branch` edge are visible and editable. They are not buried inside a model prompt.
+The routing logic is declared in the `Router` block and visible through its outgoing edges. It is not buried inside the classification prompt.
 
-Every routed item carries its classification and the reason in its provenance. The category, the urgency, the path it took, and the human note when there was one all travel with the request. The answer to "why did this go here" is recorded.
+Successful blocks retain execution lineage, including their inputs and configurations. That supports reconstruction of the route, but the current starter does not promise that category, urgency, model rationale, and a human note are all embedded as exhaustive decision provenance.
 
 ## What it teaches
 
-This is the canonical branching shape: conditional routing, multiple output paths, selective human escalation. It generalizes to any sort-and-route intake, whatever the requests are.
+This is a useful routing pattern: model-backed classification, a mechanical route map, multiple output paths, and selective human participation. It generalizes to many sort-and-route intake processes.
 
 ## Start from this template
 
-Open `Intake Triage` and adapt the categories on `Classify` and the conditions on `Branch` to your own queues. Tune the urgency threshold on the `Gate`. When the naive routing keeps getting a particular case wrong, add a `Gate` on that path and let a person decide until the rule is right.
+Open `Intake Triage` and adapt the categories on `Classify` and mappings on `Router` to your own queues. Resolve the unverified Manual Input → Send contract and Test every path. When repeated evidence shows a category needs different handling, change the route or add the appropriate human pause.

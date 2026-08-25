@@ -1,14 +1,14 @@
 ---
 type: note
-title: "At-least-once, with idempotent steps"
-dek: "Exactly-once delivery is a promise distributed systems can't really keep. We chose the honest guarantee instead."
+title: "Retries should fail closed around side effects"
+dek: "Pure work can retry freely. External writes need an explicit replay protocol, because a crash can leave the truth unknowable."
 date: 2026-05-16
 ---
 
-"Exactly-once delivery" sounds like what everyone wants. Across a boundary that can fail — a network call, a crash between doing the work and recording that it was done — it is not something you can truly guarantee. A system that claims it usually means at-least-once plus deduplication, with the dedup hidden somewhere you don't see.
+"Exactly once" sounds like the obvious promise. Across a boundary that can fail — a network call, or a crash between doing the work and recording that it was done — the runtime may not be able to tell whether the effect happened. Retrying blindly can duplicate it. Refusing to retry can leave it unfinished.
 
-Functionary makes the honest choice. We deliver at-least-once, and we design steps to be idempotent: running a step twice with the same input produces the same result and no extra side effect. A retry is safe because the second run is indistinguishable from the first.
+Functionary does not turn that ambiguity into a blanket guarantee. Retry policies are explicit and bounded. Pure computation may be safe to repeat, but a model call can still vary and an external write can happen twice. When all configured attempts are exhausted, the step fails.
 
-The trade is deliberate. Rather than promise a guarantee the world cannot honor, we guarantee something true — the work will happen, at least once — and make repetition harmless. Provenance records each attempt, so a duplicate is visible rather than mysterious. You can see that a step ran twice, and you can see that the second run changed nothing.
+Crash replay is stricter. An effectful step is denied by default unless its adapter owns a protocol that can resolve the uncertainty — for example, a stable idempotency key or a durable journal. `Move File` currently provides such a journal. A normal retry acknowledgement is not enough to prove that an interrupted external effect is safe to repeat.
 
-The principle generalizes: prefer a guarantee you can actually keep. Then make the failure mode — a repeat — safe by design, instead of papering over it with a promise that breaks the first time the network does.
+The principle is narrower and more useful: make replay safety a property of a specific effect implementation, not a slogan attached to the whole runtime. Where the system cannot know, it should fail closed and ask for a deliberate recovery decision.

@@ -5,7 +5,7 @@ import Button from "../components/Button.astro";
 
 const title = "Philosophy — Functionary";
 const description =
-  "Why some judgments stay with a person, why declared process beats a runtime trace, and the gap Functionary exists to close.";
+  "Why discretion is a gradient, why captured runs are evidence, and why consequential judgment stays answerable to a person.";
 ---
 
 <BaseLayout title={title} description={description} editorial={true}>
@@ -68,50 +68,53 @@ const description =
         where it no longer does.
       </p>
       <p>
-        A declared flow lets you place it deliberately. You stop at a Gate where
-        a judgment is yours to make. You trace a wrong result back through
-        provenance to the step that produced it. And as each fix improves the
-        process, the checks you needed early fall away — you converge on
-        inspecting only what genuinely cannot be delegated. A runtime trace of
-        an agent's improvisation gives you none of this: it tells you what
-        happened once, not what will happen again, so it leaves you checking
-        everything, every time.
+        A visible flow lets you place checking deliberately. You pause where a
+        judgment is yours to make, inspect a wrong result in the context of the
+        step that produced it, and monitor nondeterministic work in proportion
+        to its risk. Captured agent runs matter here: they show what happened,
+        expose repeated choices, and provide evidence for what to formalize
+        next. They are an on-ramp to a durable process, not a substitute for one.
       </p>
 
-      <h2>Data control is architectural, not a policy</h2>
+      <h2>Data control begins with explicit boundaries</h2>
       <p>
-        A promise not to look at your data is weaker than a system where the
-        data never leaves infrastructure you control. Ownership that depends on
-        a vendor's good behavior is not ownership.
+        Local files and an operator-selected data root give the process a home
+        you control. They do not, by themselves, make every execution local.
+        Model providers and connectors are egress choices, and the interface
+        should make those choices visible before information crosses a boundary.
       </p>
       <p>
-        Sensitive fields can be redacted or blinded before anything reaches a
-        model. Low-stakes inference can run on local models. Where the data goes
-        is a property of how the system is built, not a clause you are asked to
-        trust.
+        Local models can keep inference on-device. Remote providers receive the
+        inputs sent to them. Configured PII checks can block a step, and output
+        policies can redact or hash matching fields, but automatic pre-model
+        redaction is not a promise the current system makes. Honest control
+        starts by naming the boundary precisely.
       </p>
 
       <h2>Errors should fix the process, not patch the case</h2>
       <p>
         Organizations that function well do not blame individuals. They fix the
-        process so the mistake cannot recur. The repair outlives the incident.
+        process so the same mistake is less likely and easier to catch. The
+        repair outlives the incident.
       </p>
       <p>
         When the process is a declared flow, the fix is a visible, testable,
-        versioned change — not an edit to a prompt you cannot fully see and
-        cannot reliably reproduce. The model does not have to get better for the
-        work to. The process does — and the process is the part you own.
+        versioned change — not an unversioned prompt edit with no shared record.
+        The model does not have to get better for the work to. The process does
+        — and the process is the part you own.
       </p>
 
-      <h2>Ad-hoc AI use is not organizational process</h2>
+      <h2>Ad-hoc AI can become organizational process</h2>
       <p>
-        Pasting content into a chat window encodes individual interactions, not
-        process. The history lives in one person's account and leaves when they
-        do. There is no artifact that says: this is how we do this.
+        Pasting content into a private chat encodes an individual interaction,
+        not a shared process. But freestyle itself is not the problem. The
+        problem is work that is never captured, compared, or turned into an
+        artifact the organization can improve.
       </p>
       <p>
-        Crossing from the first to the second — from a private habit to a stated
-        process the organization can read, test, and own — is the gap Functionary
+        Functionary captures that first discretionary attempt inside a project.
+        Crossing from repeated freestyle to a stated process the organization
+        can read, Test, evaluate, and gradually narrow is the gap Functionary
         exists to close.
       </p>
 

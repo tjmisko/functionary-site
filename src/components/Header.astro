@@ -4,7 +4,7 @@ import Button from "./Button.astro";
 const nav = [
   { href: "/how-it-works", label: "How it works" },
   { href: "/philosophy", label: "Philosophy" },
-  { href: "/self-hosting", label: "Self-hosting" },
+  { href: "/self-hosting", label: "Deployment" },
   { href: "/blog", label: "Blog" },
 ];
 
@@ -13,8 +13,6 @@ const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 const isActive = (href: string) =>
   href === "/" ? path === "/" : path === href || path.startsWith(href + "/");
 
-// TODO(O3/O4): point at the real GitHub repo once public.
-const repoUrl = "https://github.com/";
 ---
 
 <header>
@@ -36,7 +34,7 @@ const repoUrl = "https://github.com/";
         ))
       }
     </nav>
-    <Button href={repoUrl} variant="primary" size="sm">Get started</Button>
+    <Button href="/how-it-works" variant="primary" size="sm">How it works</Button>
   </div>
 </header>
 

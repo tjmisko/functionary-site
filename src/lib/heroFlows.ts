@@ -1,12 +1,9 @@
 /**
  * Hero flow data — the single source the rotating hero renderer reads.
  *
- * Six domain flows (+ one hidden Office Space easter egg) that all share the
- * same parallel skeleton: source(s) → ×N parallel branch carrying a small
- * `extraction` (the *minor* judgment) → Merge → a human Gate (where the
- * *consequential* judgment stays) → synthesis → action. Each domain uses the
- * parallel pattern native to its pain so a practitioner in that field reads it
- * as their own Monday.
+ * Three rotating examples lead with the product's sketch → Test → formalize
+ * journey and recurring information work. Additional illustrative domain
+ * diagrams remain available as data, plus one hidden Office Space easter egg.
  *
  * Layout model: every node carries an explicit (col, lane). `col` (stage index)
  * → x; `lane` (vertical slot, fractional centers between lanes) → y. The
@@ -47,9 +44,6 @@ export interface HeroFlow {
   pattern: string;
   /** One-line "hair on fire" pain, insider voice. Shown under the diagram. */
   pain: string;
-  /** Bundled template name if this mirrors a real one; else undefined. */
-  template?: string;
-  bundled: boolean;
   /** Hidden, comedic, never claimed as a shipped template. */
   easterEgg?: boolean;
   /** Highest lane index used — renderer sizes VH from this. */
@@ -67,50 +61,44 @@ export interface HeroFlow {
 /** Build the straight chain of edges/stages shared by the simple-tail flows. */
 
 export const FLOWS: HeroFlow[] = [
-  // 1 ── Competitive intel · what changed? ───────────────────────────────────
+  // 1 ── Product journey · observe and formalize ─────────────────────────────
   {
-    id: "competitive-intel",
-    domain: "Competitive intel",
-    who: "market / product analyst",
-    pattern: "what changed?",
-    pain: "Every Monday I open a dozen competitor pages and changelogs, eyeball what moved, and write it up before the 10am sync.",
-    bundled: false,
-    maxLane: 1,
-    gate: "gate",
+    id: "sketch-to-flow",
+    domain: "Sketch to flow",
+    who: "knowledge worker with a fuzzy specification",
+    pattern: "observe → formalize",
+    pain: "I know what a useful result looks like, but not every step. Start with the outcome, watch a Test run, then formalize what repeats.",
+    maxLane: 0,
+    gate: "approve",
     nodes: [
-      { id: "schedule", label: "Schedule", cat: "source", col: 0, lane: 0.5 },
-      { id: "scanA", label: "Extract Δ", cat: "extraction", col: 1, lane: 0 },
-      { id: "scanB", label: "Extract Δ", cat: "extraction", col: 1, lane: 1 },
-      { id: "merge", label: "Merge", cat: "control", col: 2, lane: 0.5 },
-      { id: "rank", label: "Rank", cat: "transformation", col: 3, lane: 0.5 },
-      { id: "gate", label: "Gate", cat: "control", col: 4, lane: 0.5 },
-      { id: "brief", label: "Brief", cat: "synthesis", col: 5, lane: 0.5 },
-      { id: "post", label: "Post", cat: "action", col: 6, lane: 0.5 },
+      { id: "describe", label: "Describe", cat: "source", col: 0, lane: 0 },
+      { id: "sketch", label: "Agent Sketch", cat: "extraction", col: 1, lane: 0 },
+      { id: "capture", label: "Capture run", cat: "state", col: 2, lane: 0 },
+      { id: "formalize", label: "Formalize", cat: "transformation", col: 3, lane: 0 },
+      { id: "test", label: "Test snapshot", cat: "control", col: 4, lane: 0 },
+      { id: "approve", label: "Approve", cat: "human", col: 5, lane: 0 },
+      { id: "production", label: "Production", cat: "action", col: 6, lane: 0 },
     ],
     edges: [
-      { from: "schedule", to: "scanA" },
-      { from: "schedule", to: "scanB" },
-      { from: "scanA", to: "merge" },
-      { from: "scanB", to: "merge" },
-      { from: "merge", to: "rank" },
-      { from: "rank", to: "gate" },
-      { from: "gate", to: "brief" },
-      { from: "brief", to: "post" },
+      { from: "describe", to: "sketch" },
+      { from: "sketch", to: "capture" },
+      { from: "capture", to: "formalize" },
+      { from: "formalize", to: "test" },
+      { from: "test", to: "approve" },
+      { from: "approve", to: "production" },
     ],
-    stages: [["schedule"], ["scanA", "scanB"], ["merge"], ["rank"], ["gate"], ["brief"], ["post"]],
+    stages: [["describe"], ["sketch"], ["capture"], ["formalize"], ["test"], ["approve"], ["production"]],
     aria:
-      "A competitive-intel flow: a scheduled trigger fans out to several sources extracted for changes in parallel, merged and ranked, reviewed at a human gate, then briefed and posted.",
+      "A process graduating from a described outcome to an executable Agent Sketch, a captured run, narrower formal blocks, a Test of the resulting snapshot, human Production approval, and execution.",
   },
 
-  // 2 ── Customer feedback · reconcile (bundled Feedback Synthesis) ───────────
+  // 2 ── Customer feedback · illustrative reconciliation flow ────────────────
   {
     id: "feedback-synthesis",
     domain: "Customer feedback",
     who: "Head of CS / PM",
     pattern: "reconcile",
     pain: "Churn signals are scattered across tickets, call recordings, NPS, and reviews — I sample a few by hand each month and hope I'm not missing a pattern.",
-    template: "Feedback Synthesis",
-    bundled: true,
     maxLane: 1,
     gate: "gate",
     nodes: [
@@ -146,7 +134,6 @@ export const FLOWS: HeroFlow[] = [
     who: "recruiter / hiring manager",
     pattern: "batch-extract",
     pain: "120 applicants by Friday; I skim each resume against the must-haves and try to be consistent, but applicant #5 and #95 get a different bar.",
-    bundled: false,
     maxLane: 1,
     gate: "gate",
     nodes: [
@@ -183,7 +170,6 @@ export const FLOWS: HeroFlow[] = [
     who: "AP clerk / controller",
     pattern: "three-way match",
     pain: "Month-end: match each invoice to its PO and receipt across two systems; the ones that don't tie out are buried in a 200-row sheet.",
-    bundled: false,
     maxLane: 1,
     gate: "gate",
     nodes: [
@@ -218,7 +204,6 @@ export const FLOWS: HeroFlow[] = [
     who: "SDR / RevOps",
     pattern: "triage",
     pain: "300 form-fills overnight; I enrich each, guess fit, and route — half are junk and the good ones go cold while I dig.",
-    bundled: false,
     maxLane: 1,
     gate: "gate",
     nodes: [
@@ -253,7 +238,6 @@ export const FLOWS: HeroFlow[] = [
     who: "contracts manager / counsel",
     pattern: "batch-check",
     pain: "A stack of inbound NDAs and vendor MSAs; the same dozen playbook checks each time — but a missed carve-out is a real problem.",
-    bundled: false,
     maxLane: 1,
     gate: "gate",
     nodes: [
@@ -293,7 +277,6 @@ export const FLOWS: HeroFlow[] = [
     who: "any Initech cubicle",
     pattern: "did you get the memo?",
     pain: "Yeahhh… I'm gonna need you to go ahead and get those TPS reports out. Did you get the memo about the new cover sheet?",
-    bundled: false,
     easterEgg: true,
     maxLane: 3,
     gate: "gate",
@@ -343,8 +326,9 @@ export const FLOWS: HeroFlow[] = [
   },
 ];
 
-/** The six real domains that auto-rotate, in order. */
-export const ROTATION: HeroFlow[] = FLOWS.filter((f) => !f.easterEgg);
+/** The focused launch examples that auto-rotate, in order. */
+const ROTATING_IDS = new Set(["sketch-to-flow", "feedback-synthesis", "inbound-leads"]);
+export const ROTATION: HeroFlow[] = FLOWS.filter((f) => ROTATING_IDS.has(f.id));
 
 /** Look up a flow by id (used by the hidden easter-egg dot). */
 export const flowById = (id: string): HeroFlow | undefined => FLOWS.find((f) => f.id === id);

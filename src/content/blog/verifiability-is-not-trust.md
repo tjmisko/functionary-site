@@ -7,28 +7,28 @@ relatedHref: /philosophy
 relatedLabel: "Philosophy"
 ---
 
-There is a comfortable idea, common in discussions of machine intelligence, that if you can check the work you can trust it. Show me the citations, show me the chain of reasoning, let me trace the output back to its source, and I will believe what you tell me. This idea is half right, and the half it gets right is the easier half.
+There is a comfortable idea, common in discussions of machine intelligence, that if you can inspect one run you can trust the system. Show me the citations, the tools it called, and the path it took, and I will believe what it does. This idea is half right.
 
-Verifiability — the ability to confirm, after the fact, that an output is correct and that you can trace where it came from — is not optional. Without it, you are accepting a result on faith. Faith is a poor foundation for anything an organization has to stand behind. So Functionary takes verifiability seriously, and concretely: every output carries provenance back to its source, and every claim an AI block makes references the specific passage that supports it. You can follow any conclusion back to the words it rests on. That is the floor. It is not the ceiling.
+Verifiability is not optional. Functionary records execution lineage for successful blocks: the block, its inputs, configuration, timing, and model or prompt hashes where applicable. Extraction blocks can also attach source passages to structured findings. That does not make every sentence of later synthesized prose claim-level grounded, and it does not prove the next run will be correct. It gives you evidence to inspect.
 
 ## What a trace cannot tell you
 
-Here is the problem with stopping at verifiability. A trace tells you that one particular run was sound. It says nothing about the next one.
+Here is the problem with stopping at verifiability. A captured run can tell you what happened once. By itself, it says little about the next input or the next nondeterministic choice.
 
-Consider a process you can audit perfectly but that changes shape every time it runs — that lives in one person's head, that no one formally owns, that produces a defensible result today by means you could not predict tomorrow. You can verify each individual output and still be unable to rely on the thing that produced it. Auditing the result is not the same as trusting the process, because in that situation there is no process in any durable sense. There is only a series of decisions made at runtime, each reasonable on its own, none of them committed to in advance.
+Consider work that changes shape every time it runs, lives in one person's private account, and produces a defensible result today by means no one can study tomorrow. You can approve each output and still be unable to improve the thing that produced it. The problem is not that discretion happened. The problem is that it was not captured as organizational evidence.
 
-Trust requires more than the ability to check. It requires stability: the thing does the same thing tomorrow that it did today. It requires ownership: someone is responsible for it, and can change it deliberately rather than having it drift. And it requires legibility: you can see what it does without having to run it and inspect the wreckage afterward. These are properties of a process, not of any single output a process happens to emit.
+Trust requires more than the ability to check. It requires ownership, legible authority, deliberate review, and evidence about where behavior is stable or variable. These are properties of a maintained process, not of any single output it happens to emit.
 
 ## Explaining an improvisation
 
-Much of what travels under the banner of explainable AI stops exactly at verifiability. Here is the trace. Here is why the model did what it did this time. This is genuinely useful, and I do not want to wave it away. But notice what is being explained: an improvisation. The trace describes what an agent happened to do on this occasion, given this input and this internal state. It is a faithful account of an event.
+Much of what travels under the banner of explainable AI stops at a trace. Here is what the model did this time. That is genuinely useful. A captured AgentRun preserves prompts, tool activity, partial output, and results so the event can be reviewed and compared with later runs.
 
-An event is not a program. A declared program is something you can read before it runs, test against cases it has not yet seen, and depend on because its behavior is specified rather than discovered. A trace of what an agent did once is a description of behavior; a declared program is a commitment to behavior. You can verify the trace down to the last token and still not trust the underlying process, because the process was never the artifact. The runtime decisions were the artifact, and they are gone the moment the run ends.
+An event is not yet a durable program, but it can reveal one. Repeated runs show which choices recur, where the agent needs more context, and which outputs deserve a schema or gate. Capturing improvisation is therefore the first step toward formalization, not something the product should dismiss.
 
 ## The declared flow
 
-This is the distinction that matters, and it is why Functionary is built around a declared flow rather than an inspectable run. A declared flow is specified before it executes. It is the same artifact every time. It is owned, and it is versioned, so that when it changes, someone changed it on purpose and you can see what changed and when.
+Functionary puts captured runs and a declared flow in the same project. An executable Sketch gives discretion a durable place, instructions, and ceilings. Typed blocks declare narrower inputs, outputs, effects, and discretion. Both remain visible on the canvas, and both can be changed deliberately.
 
-Verifiability tells you that a single run was sound. The declared flow tells you that every run will be — not because the outputs are identical, but because the process that produces them is fixed, visible, and accountable. Trust is built on the second thing. The first thing is a precondition for it, never a substitute.
+Verification can establish that a particular result or structure passed the checks you chose. It cannot certify every future output of a nondeterministic model or external system. The declared flow tells you where variation and authority live, which checks apply, and what has changed between versions.
 
-The practical consequence is simple, and it shapes the whole product. Functionary makes the process the artifact, not the trace. The canvas is not a window into a run you can squint at afterward. It is the program itself — the thing you inspect, the thing you own, the thing you can hand to someone else and expect to behave the same way in your absence. You can verify a run. You trust a flow.
+The practical consequence shapes the whole product: capture the freestyle work, study it, and progressively replace opaque in-the-moment choices where evidence supports a narrower implementation. Trust is not a switch thrown after one verification. It is a gradient made legible by the flow, the run record, and the review policy together.

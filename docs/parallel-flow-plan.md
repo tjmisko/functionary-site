@@ -1,4 +1,11 @@
-# Rotating hero — six domain flows — spec
+# Rotating hero — six domain flows — historical spec
+
+> **Superseded 2026-08-25.** The launch hero now leads with the product's
+> Sketch → captured run → formalize → Test → Production-approval journey and
+> rotates only three focused examples. Universal step isolation and exact
+> template-mirroring claims were removed. See `docs/DESIGN.md` and
+> `src/lib/heroFlows.ts` for the current decisions. The remainder of this file
+> preserves the implementation history.
 
 *Rewritten 2026-06-01 after the hero-flow workshop. Supersedes the earlier
 single-flow "parallelize the Analyst Memo" draft. Scope: `src/components/Hero.astro`

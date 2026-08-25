@@ -3,12 +3,9 @@ import { categoryVar } from "../lib/flow";
 import { FLOWS, ROTATION, type HeroFlow } from "../lib/heroFlows";
 
 /**
- * Rotating execution hero. Each of six domain flows runs a fan-out → fan-in →
- * human-gate pipeline; the timeline holds several branch nodes in RUNNING at
- * once (`Promise.all` over a stage). Clickable domain dots let a visitor jump to
- * their field; a hidden seventh dot reveals the TPS-report easter egg.
- * `prefers-reduced-motion` freezes on the bundled Feedback Synthesis flow — a
- * clean, fully-completed static diagram. Spec: docs/parallel-flow-plan.md.
+ * Rotating product hero. The primary example shows Sketch → Test → formalize;
+ * recurring information-work examples demonstrate staged execution. A hidden
+ * dot reveals the TPS-report easter egg. Spec: docs/parallel-flow-plan.md.
  */
 
 // Geometry
@@ -46,10 +43,11 @@ function layout(flow: HeroFlow) {
   return { vw, vh, nodes, edges };
 }
 
-const LAYOUTS = FLOWS.map((flow) => ({ flow, ...layout(flow) }));
+const DISPLAYED_FLOWS = [...ROTATION, ...FLOWS.filter((flow) => flow.easterEgg)];
+const LAYOUTS = DISPLAYED_FLOWS.map((flow) => ({ flow, ...layout(flow) }));
 
 // Client timeline data (kept minimal — markup carries the rest).
-const TIMELINES = FLOWS.map((f) => ({
+const TIMELINES = DISPLAYED_FLOWS.map((f) => ({
   id: f.id,
   domain: f.domain,
   pattern: f.pattern,
@@ -126,7 +124,7 @@ const firstId = ROTATION[0].id;
       }
       <button class="hero-dot hero-dot--egg" type="button" data-dot="tps-reports" aria-label="TPS reports (easter egg)">🖇</button>
     </div>
-    <p class="hero-caption">Independent steps run in parallel — each isolated.</p>
+    <p class="hero-caption">Test first. Approve one exact snapshot for Production.</p>
   </div>
 
   <p class="sr-only" aria-live="polite" data-live></p>
@@ -609,7 +607,7 @@ const firstId = ROTATION[0].id;
     };
 
     if (reduce) {
-      // Static freeze on the bundled Feedback Synthesis; dots browse statically.
+      // Static freeze on the customer-feedback example; dots browse statically.
       const frozen = byId.has("feedback-synthesis") ? "feedback-synthesis" : rotation[0].id;
       showFlow(frozen);
       paintComplete(stageEl(frozen));

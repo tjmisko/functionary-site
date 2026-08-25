@@ -11,34 +11,35 @@ const pillars = [
   {
     eyebrow: "Files",
     title: "Flows are files",
-    body: "A flow is a JSON file you own, version, and deploy where you choose. Read it, diff it, commit it. There is no proprietary store to escape from later.",
+    body: "A flow is readable, pretty-printed JSON. Read it, diff it, commit it, and edit it outside the canvas without converting from a proprietary project format.",
   },
   {
-    eyebrow: "Infrastructure",
-    title: "Runs where you run it",
-    body: "Functionary runs on infrastructure you control, from day one. Hosted infrastructure is available as a convenience, not a dependency.",
+    eyebrow: "State",
+    title: "A data root you choose",
+    body: "Flow files, artifacts, execution history, and other runtime state live beneath an operator-selected local data root, using JSON files and local databases.",
   },
   {
-    eyebrow: "Design",
-    title: "Control by design",
-    body: "Sensitive fields are redacted or blinded before anything reaches a model. Low-stakes inference can run on local models. The data never leaves infrastructure you control.",
+    eyebrow: "Egress",
+    title: "Connections are choices",
+    body: "Model providers and connectors determine what leaves the machine. Ollama provides a local inference path; remote models and external connectors transmit the inputs they need.",
   },
 ];
 ---
 
 <BaseLayout
-  title="Self-hosting — Functionary"
-  description="Flows are JSON files you own, version, and deploy where you choose. Functionary runs on infrastructure you control. The flows are yours, the data is yours, the execution history is yours."
+  title="Deployment — Functionary"
+  description="Functionary keeps flows readable and runtime state under an operator-selected data root, with explicit choices for model and connector egress."
 >
   <!-- HEADER -->
   <section class="section">
     <div class="container measure">
-      <Eyebrow>Self-hosting</Eyebrow>
-      <h1>The flows are yours. The data is yours. The history is yours.</h1>
+      <Eyebrow>Deployment</Eyebrow>
+      <h1>Own the process. Choose the data boundary.</h1>
       <p class="lead measure">
-        Functionary runs on infrastructure you control, from day one. The ownership
-        model is identical regardless of where compute runs: a flow is a file,
-        the data is yours, and the execution history stays where you put it.
+        Functionary is being built for operator-controlled deployment. Today the
+        repository supports local development; packaged self-hosting and a
+        hosted service are not yet available. The underlying ownership model is
+        already concrete: readable flow files and local runtime state.
       </p>
     </div>
   </section>
@@ -47,23 +48,46 @@ const pillars = [
   <section class="section">
     <div class="container measure">
       <Eyebrow>It's just a file</Eyebrow>
-      <h2>A flow is a JSON file you own, version, and deploy.</h2>
+      <h2>A flow is readable JSON, not an opaque project format.</h2>
       <p class="stack-p">
         There is no opaque project format and no vendor database holding your
-        process hostage. A flow is blocks and edges in plain JSON. Read it,
-        diff it in review, commit it alongside the rest of your code, and
-        deploy it wherever you choose to run it.
+        process hostage. A flow is nodes and edges in pretty-printed JSON. Read
+        it, diff it in review, commit it alongside the rest of your code, and
+        edit it with ordinary file tools.
       </p>
       <CodeBlock file="flow.json">{`{
-  "blocks": [
-    { "id": "ingest", "type": "Source", "source": "Webpage" },
-    { "id": "extract", "type": "ExtractInsights" },
-    { "id": "review", "type": "Gate" }
+  "id": "00000000-0000-0000-0000-000000000001",
+  "name": "Research brief",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "regularize-1",
+      "block_type": {
+        "block_type": "regularize",
+        "accepted_formats": ["pdf", "html", "txt"]
+      },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "extract-1",
+      "block_type": {
+        "block_type": "extract_insights",
+        "topics": ["changes", "risks"]
+      },
+      "position": { "x": 240, "y": 0 }
+    }
   ],
   "edges": [
-    { "from": "ingest", "to": "extract" },
-    { "from": "extract", "to": "review" }
-  ]
+    {
+      "id": "e1",
+      "source": "regularize-1",
+      "target": "extract-1",
+      "verified": true
+    }
+  ],
+  "metadata": {},
+  "sketches": [],
+  "horizons": []
 }`}</CodeBlock>
     </div>
   </section>
@@ -71,7 +95,7 @@ const pillars = [
   <!-- PILLARS -->
   <section class="section">
     <div class="container">
-      <Eyebrow>Files · Infrastructure · Design</Eyebrow>
+      <Eyebrow>Files · State · Egress</Eyebrow>
       <h2>Ownership is a property of the architecture, not a clause.</h2>
       <div class="grid-3">
         {pillars.map((p) => <Pillar eyebrow={p.eyebrow} title={p.title}>{p.body}</Pillar>)}
@@ -79,17 +103,16 @@ const pillars = [
     </div>
   </section>
 
-  <!-- SAME MODEL EVERYWHERE -->
+  <!-- DEPLOYMENT POSTURE -->
   <section class="section">
     <div class="container measure">
-      <Eyebrow>Same model everywhere</Eyebrow>
-      <h2>Where compute runs does not change who owns the output.</h2>
+      <Eyebrow>Deployment posture</Eyebrow>
+      <h2>Local development now. Packaged deployment next.</h2>
       <p class="stack-p">
-        Hosted infrastructure is a convenience. Run the same flow on your own
-        servers and nothing about ownership changes: the flow is the same JSON
-        file, the data lands in storage you control, and the execution history
-        is recorded where you direct it. Moving compute is an operational
-        choice, not a migration off a platform.
+        The current repository runs the application locally for development.
+        It does not yet ship a supported self-hosting package or hosted service.
+        The deployment goal is to preserve the same portable flow format and
+        operator-selected data root wherever the runtime is installed.
       </p>
     </div>
   </section>
@@ -98,12 +121,20 @@ const pillars = [
   <section class="section">
     <div class="container measure">
       <Eyebrow>Control by design</Eyebrow>
-      <h2>Data control is enforced by the system, not promised in a policy.</h2>
+      <h2>Local state does not mean automatic no-egress operation.</h2>
       <p class="stack-p">
-        Sensitive fields are redacted or blinded before anything reaches a
-        model. Low-stakes inference can run on local models, so the data never
-        leaves infrastructure you control. A promise not to look at your data
-        is weaker than a system in which the data never arrives to be looked at.
+        Flow and run state can stay local while a configured model provider or
+        connector still uses the network. Choose Ollama or model-free blocks
+        when inference must remain local. PII detectors can block execution when
+        configured checks fail; post-output policies can redact or hash matching
+        fields. Functionary does not currently promise automatic pre-model
+        redaction.
+      </p>
+      <p>
+        Connector credentials are encrypted at rest only when KMS is configured.
+        Without it, the local server warns that credentials are stored in
+        plaintext. The boundary is explicit so operators can configure it on
+        purpose.
       </p>
     </div>
   </section>
@@ -111,13 +142,14 @@ const pillars = [
   <!-- OFFLINE / LOCAL-FIRST -->
   <section class="section">
     <div class="container measure">
-      <Eyebrow>Offline by default</Eyebrow>
-      <h2>The backing files work with no network at all.</h2>
+      <Eyebrow>Local-first foundations</Eyebrow>
+      <h2>Local state works offline; connected capabilities do not.</h2>
       <p class="stack-p">
-        The JSON and every intermediate state work fully offline. Cloud
-        features — AI blocks and connectors — degrade gracefully when there is
-        no network, rather than blocking the parts of the flow that don't need
-        one. Local use needs no account.
+        Flow files and local databases remain on disk without a network.
+        Telemetry export is off by default. Remote AI providers and external
+        connectors require their configured services; Ollama offers local
+        inference. The development build has a no-auth shortcut, while deployed
+        builds currently require a local application account and session.
       </p>
     </div>
   </section>
@@ -139,14 +171,15 @@ const pillars = [
   <!-- CTA -->
   <section class="section cta">
     <div class="container measure">
-      <h2>Leave with the tool, not a credential.</h2>
+      <h2>Portability starts with a process you can read.</h2>
       <p class="stack-p">
-        The flows are yours, the data is yours, the execution history is yours —
-        wherever you choose to run it.
+        Flows live outside a proprietary project format, and runtime state stays
+        under a path the operator selects. Distribution and licensing terms are
+        still being settled, so portability claims stop there for now.
       </p>
       <div class="actions">
-        <Button href={repoUrl} variant="primary">Get started</Button>
-        <Button href="/how-it-works" variant="ghost">See how it works</Button>
+        <Button href="/how-it-works" variant="primary">See how it works</Button>
+        <Button href={repoUrl} variant="ghost">View the project</Button>
       </div>
     </div>
   </section>

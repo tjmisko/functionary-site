@@ -1,7 +1,8 @@
 # functionary-site
 
-Public marketing site for **Functionary** — a visual canvas for building, running,
-and auditing information-processing pipelines.
+Public marketing site for **Functionary** — a project workspace for capturing
+agent work and progressively formalizing recurring processes into typed,
+auditable flows.
 
 Separate from the main Functionary application repo on purpose: this is
 human/design-maintained, statically built, and deployed independently to
@@ -40,7 +41,7 @@ src/
     index.astro               # Home (animated hero + the argument)
     how-it-works.astro
     philosophy.astro          # editorial column
-    ownership.astro
+    self-hosting.astro
     blog/index.astro          # type-filtered index
     blog/[...slug].astro       # per-type post layout
     rss.xml.ts                # RSS feed

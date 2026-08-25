@@ -15,7 +15,7 @@ A model is not a party to that relationship. It can produce the text of a decisi
 
 The error worth naming is the belief that "the AI decided" discharges anything. It is a comfortable sentence because it sounds like a transfer of liability, the way "the committee decided" or "legal signed off" distributes weight across people who can each account for their part. But the model cannot account for its part. It will not be asked to explain itself in a deposition, will not lose its license, will not answer to a regulator or a board or a grieving family. The accountability stays exactly where it was before you automated anything.
 
-What you have actually changed is visibility. Before, a person made the call and, in any halfway-serious organization, left some trace of having made it — an initial, an email, a line in a log. After, the call was made somewhere inside an opaque process, and the trace is gone. You have kept all of the liability and thrown away the record of how the decision was reached. This is the worst of both arrangements, and it is the default outcome of most automation that touches real judgment.
+What you may have changed is visibility. Before, a person made the call and, in any halfway-serious organization, left some trace of having made it — an initial, an email, a line in a log. In opaque automation, the call happens inside a process that does not expose its authority or preserve useful evidence. You keep the liability while weakening the record of how the decision was reached.
 
 ## Organizations already know how to do this
 
@@ -25,7 +25,7 @@ The failure of most "AI automation" is not that it is too ambitious. It is that 
 
 ## Drawing the line, and keeping it visible
 
-Functionary's answer to this is deliberately unglamorous. A flow can pause. A Gate or a Manual Input block stops the process at the point where a non-delegable judgment lives, assembles the relevant context into a structured task, and routes it to the right person. They decide. The decision is recorded with the actor, the timestamp, and the inputs they were looking at, and then the flow resumes. The judgment stays with a human, and the fact that a particular human made it — when, on what basis — becomes part of the permanent record rather than a thing that has to be reconstructed after the fact.
+Functionary's answer to this is deliberately unglamorous. A flow can pause. Approval Gates, schema-defined Manual Input, Human Review, inspection, and handoff are distinct ways to stop at work a person must own. The available run and decision record remains attached to the process, and execution resumes through an explicit human action rather than an invented machine answer.
 
 The point of this is not the mechanism. The point is the discipline it enforces. Every real process is a mix of two kinds of work: the mechanical parts that should be written down as rules and run the same way every time, and the judgments that should be sent to a person who will answer for them. The skill is in drawing that line in the right place — not too high, so that humans are not buried in decisions a rule could make, and not too low, so that no consequential call is made by something that cannot be held to it. And because you learn where the line really belongs only by running the process, the line has to be movable. What you formalize this quarter, you may decide to route to a person next quarter, or the reverse.
 

@@ -7,47 +7,45 @@ import Pillar from "../components/Pillar.astro";
 import FlowSnippet from "../components/FlowSnippet.astro";
 import { type BlockCategory } from "../lib/flow";
 
-const repoUrl = "https://github.com/";
-
 const pillars = [
   {
     eyebrow: "Visible",
-    title: "The process is the artifact",
-    body: "Every step declared, every connection explicit, the whole flow specified before it runs. You read a map, not a transcript.",
+    title: "See the work take shape",
+    body: "The Project Agent works on the same canvas you do. Sketches, typed blocks, connections, and revisions remain visible while a fuzzy request becomes an executable process.",
   },
   {
     eyebrow: "Bounded",
-    title: "Hard to run off the road",
-    body: "Each step runs isolated, with a narrow job and only the information you hand it — so a run has few places it can go wrong. Run it on real data, watch execution move through the graph, and keep a human in the loop wherever a judgment isn't delegable.",
+    title: "Put discretion in its place",
+    body: "A Sketch may begin with open-ended agent work. Tool ceilings, declared effects, human pauses, and Test mode make that discretion visible and constrain what it can change.",
   },
   {
     eyebrow: "Auditable",
-    title: "Always reconstructable",
-    body: "What ran, what it consumed, what it produced — recorded. Every AI claim traces to its source passage. Provenance is never stripped.",
+    title: "Turn runs into evidence",
+    body: "Captured runs record inputs, outputs, configuration, model activity, and execution lineage. Extraction blocks can also attach the passages behind structured findings.",
   },
 ];
 
 const verifyFlow: { label: string; category: BlockCategory }[] = [
-  { label: "Extract Insights", category: "extraction" },
-  { label: "Gate", category: "control" },
-  { label: "Draft", category: "synthesis" },
+  { label: "Agent Sketch", category: "extraction" },
+  { label: "Test Runs", category: "control" },
+  { label: "Typed Flow", category: "transformation" },
 ];
 
 const sectors = [
-  ["Professional & financial services", "Due diligence, underwriting, KYC review, research synthesis."],
-  ["Legal & compliance", "Regulatory submissions, contract review, policy monitoring."],
-  ["Healthcare administration", "Prior authorization, referral triage, records processing."],
-  ["Government & public sector", "Grant applications, permit review, benefits intake."],
-  ["Research & intelligence", "Source monitoring, structured findings, report synthesis."],
-  ["Operations & procurement", "Vendor onboarding, RFP processing, approval chains."],
+  ["Research and analysis", "Monitor sources, extract findings, compare evidence, draft recurring briefs."],
+  ["Customer operations", "Reconcile feedback, classify intake, route exceptions, prepare responses."],
+  ["Internal operations", "Triage files, assemble reports, coordinate reviews, publish artifacts."],
+  ["Project teams", "Turn a shared body of knowledge into repeatable, observable work."],
+  ["Process owners", "Start from the desired outcome and formalize the reliable parts as they emerge."],
+  ["Technical operations", "Combine typed blocks, reusable modules, connectors, and explicit human pauses."],
 ];
 
 const notList = [
-  ["Not a general-purpose AI agent", "No open-ended autonomous execution. Every step is declared, typed, and inspectable before it runs."],
+  ["Not an invisible general-purpose agent", "Discretion has a visible place in the flow, explicit instructions, and a path toward tighter constraints."],
+  ["Not one-click certainty", "A useful first run is the beginning. Reliability comes from testing, observing, and formalizing what works."],
   ["Not a low-code app builder", "Functionary builds automation flows, not user-facing applications."],
-  ["Not a storage system", "It processes and routes data; durable storage is a connector target."],
+  ["Not your external system of record", "It still persists flows, run state, artifacts, and project knowledge needed to do the work."],
   ["Not a replacement for judgment", "It routes judgment to the right person at the right time."],
-  ["Not code-first", "You wire together blocks that already do most of the work. Custom code is there when you want it — easy to reach, never required."],
 ];
 ---
 
@@ -57,19 +55,17 @@ const notList = [
     <div class="container">
       <Eyebrow>Automation for knowledge work</Eyebrow>
       <h1 class="display">
-        Delegate the by-the-book work to agents — and see exactly what they
-        do.
+        Turn fuzzy recurring work into a process you can see become reliable.
       </h1>
       <p class="lead measure">
-        Functionary is two things at once: a visual canvas you build on, and a
-        sandboxed runtime that executes it — independent steps running in
-        parallel, each one isolated. Hand routine knowledge work to agents and
-        see exactly what each one does. Trust the process, not the run: verify
-        it once, and you don't have to re-check every run.
+        Describe the outcome inside a project. The Project Agent sketches the
+        work on a visible canvas, runs it safely in Test, and records what
+        happened. Keep the discretionary parts that help; replace the repeated,
+        reliable parts with typed blocks, policies, and deliberate human review.
       </p>
       <div class="actions">
-        <Button href={repoUrl} variant="primary">Get started</Button>
-        <Button href="/how-it-works" variant="ghost">See how it works</Button>
+        <Button href="/how-it-works" variant="primary">See how it works</Button>
+        <Button href="/self-hosting" variant="ghost">Deployment posture</Button>
       </div>
     </div>
     <div class="container hero-canvas">
@@ -81,21 +77,19 @@ const notList = [
   <!-- THE GAP -->
   <section class="section">
     <div class="container measure">
-      <Eyebrow>Run agents you can't trust?</Eyebrow>
-      <h2>Trust the process, not the implementer.</h2>
+      <Eyebrow>Start with the work as it is</Eyebrow>
+      <h2>Freestyle is the on-ramp, not the destination.</h2>
       <p class="stack-p">
-        An agent run is a trace — a record of what the implementer happened to
-        do this time. Nothing to inspect before it runs, nothing to test after.
-        It isn't reproducible, it can't be checked systematically, and the data
-        and the logic are tangled together. You're left hoping it got it right.
+        Most useful processes do not arrive fully specified. You know the shape
+        of the result before you know every step. A Sketch gives the agent room
+        to produce that first result while Functionary captures the prompt,
+        tools, inputs, outputs, and decisions that made it possible.
       </p>
       <p>
-        So you don't trust the implementer. You bound it — a narrow job, only
-        the information it needs — and you trust the process it runs inside. The
-        canvas is where that process is specified and read: visible in the JSON,
-        testable before it touches real data, legible in the version history. No
-        single step has to carry the trust; the whole, laid out where you can
-        see it, does. You verify a run. You trust a flow.
+        Those captured runs are evidence. Watch what repeats, add the constraints
+        the agent needed, and graduate stable work into blocks with declared
+        inputs, outputs, effects, and discretion. Trust grows by removing
+        dependence on in-the-moment choices where the evidence says you can.
       </p>
     </div>
   </section>
@@ -111,46 +105,41 @@ const notList = [
     </div>
   </section>
 
-  <!-- AGENT BUILDS, HUMAN VERIFIES -->
+  <!-- SKETCH, TEST, GRADUATE -->
   <section class="section">
     <div class="container split">
       <div class="measure">
-        <Eyebrow>The inversion</Eyebrow>
-        <h2>The agent builds the flow. You verify it. Then it runs.</h2>
+        <Eyebrow>Sketch · Test · Graduate</Eyebrow>
+        <h2>The agent works in the process, and helps make the process better.</h2>
         <p class="stack-p">
-          Coding agents are genuinely good at one thing: building. The mistake
-          is handing an agent a hazily specified process and trusting it to
-          execute — asking it to be reliable exactly where it isn't. Functionary
-          flips the roles. The agent does what it's good at — it builds the
-          flow, the way you'd otherwise pay an engineer to — and you do what
-          only you can: decide whether the process is right. The agent
-          generates; you verify; the flow runs.
+          The Project Agent can create canvas state, connect blocks, use project
+          knowledge, and Test the result while you watch. Where the process is
+          still unclear, an executable Sketch can do the work with declared
+          instructions and tool ceilings. Where the process is understood, use
+          narrower typed blocks.
         </p>
         <p class="stack-p">
-          You rarely know the exact process up front, but you know it when you
-          see it. So the real loop is reactive: the agent proposes, you respond,
-          it adjusts. That loop is badly captured today — drive an agent from a
-          command line and all you get back is a transcript, a record of what it
-          happened to do, not a view of whether the process is right. The canvas
-          captures the loop instead: the agent's work is laid out where you can
-          read it, react to it, and change it — directly, or just by asking.
+          You rarely know the exact process up front, but you know useful work
+          when you see it. The canvas makes that reactive loop durable: ask,
+          watch, correct, and keep the result as project state rather than a
+          private prompt habit. Runs and transcripts remain available as
+          evidence for the next refinement.
         </p>
         <p class="stack-p">
-          Work however the task wants: delegate a whole flow and verify it, or
-          build it block by block alongside the agent. Either way you verify the
-          process, not the output of every run — checking on purpose where a
-          step needs a human, retrospectively when a result looks wrong and you
-          trace it to the block that produced it, and less over time as the
-          process learns and earns the trust to let it run unwatched.
+          Test mode lets you exercise representative inputs without committing
+          external writes. Review each step according to its declared
+          determinism and discretion. When the evidence supports it, narrow the
+          Sketch, add a validator, insert a human pause, or replace agent work
+          with a deterministic implementation.
         </p>
         <p>
-          Humans are first-class participants, not edge cases. A Gate pauses
-          execution, routes a structured task to the right person, and resumes
-          when they've acted.
+          Humans are first-class participants, not edge cases. Approval, manual
+          input, inspection, and review stay explicit wherever accountability
+          cannot be delegated.
         </p>
       </div>
       <div class="snippet-wrap">
-        <FlowSnippet nodes={verifyFlow} caption="A Gate holds for human review between extraction and drafting." />
+        <FlowSnippet nodes={verifyFlow} caption="Repeated agent work can graduate into a narrower, typed flow." />
       </div>
     </div>
   </section>
@@ -164,10 +153,11 @@ const notList = [
         A visual canvas is table stakes — every automation tool has one, and
         they all show you the same thing: the plumbing, what connects to what.
         What they leave as a black box is the step where an agent made a call.
-        Functionary makes that step legible — what it saw, what it claimed, and the
-        source behind every claim — so the canvas reads as an audit trail for
-        the person accountable for the outcome, not just a wiring diagram for
-        whoever built it.
+        Functionary gives discretion a visible place and captures what the run
+        consumed, produced, and invoked. Extraction blocks can attach supporting
+        passages to structured findings; every successful block records its
+        execution lineage. The canvas becomes a place to improve the work, not
+        only a wiring diagram.
       </p>
     </div>
   </section>
@@ -176,13 +166,12 @@ const notList = [
   <section class="section">
     <div class="container">
       <Eyebrow>Who it's for</Eyebrow>
-      <h2>If a person is following a script to move information, that should run itself.</h2>
+      <h2>Start with recurring work whose shape is clearer than its implementation.</h2>
       <p class="measure stack-p">
-        By-the-book work — the same steps, the same rules, applied again and
-        again. Automatable in principle, but never quite worth an engineer's
-        time to build and maintain, so it stays manual. That's the work Functionary
-        is for: consistent enough to formalize, high-volume enough to automate,
-        and finally cheap enough to bother.
+        Functionary is for knowledge workers who can describe a useful outcome
+        but should not need to specify a complete program before they begin.
+        Start with an agent-backed sketch, learn from real Test runs, and invest
+        in formalization only where the work repeats and the evidence warrants it.
       </p>
       <dl class="grid-3 sectors">
         {sectors.map(([term, desc]) => (
@@ -213,14 +202,15 @@ const notList = [
   <!-- CTA -->
   <section class="section cta">
     <div class="container measure">
-      <h2>Leave with the tool, not a credential.</h2>
+      <h2>Your process should outlive the prompt that started it.</h2>
       <p class="stack-p">
-        Functionary is local-first and needs no account for local use. The flows are
-        yours, the data is yours, the execution history is yours.
+        Flows are readable JSON. Project state and execution history live under
+        an operator-selected data root. Model providers and connectors are
+        explicit choices, so you can decide where information is allowed to go.
       </p>
       <div class="actions">
-        <Button href={repoUrl} variant="primary">Get started</Button>
-        <Button href={repoUrl} variant="ghost">View on GitHub</Button>
+        <Button href="/how-it-works" variant="primary">See how it works</Button>
+        <Button href="/philosophy" variant="ghost">Read the philosophy</Button>
       </div>
     </div>
   </section>

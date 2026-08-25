@@ -13,13 +13,13 @@ terse, declarative copy. The site should read like the product wrote it.
 | # | Decision | Choice |
 |---|---|---|
 | Aesthetic | Fidelity to the product | **Bend it** — softer, more open layout; same palette and voice. |
-| Hero | The centerpiece | **Animated execution** — a rotating set of six domain flows, each fanning out into parallel steps that converge on a human gate. The diagram is non-interactive; only the domain dots that switch flows take input. Freezes under `prefers-reduced-motion`. |
+| Hero | The centerpiece | **Visible graduation** — the primary animation moves from Agent Sketch through captured evidence, formalization, Test, and snapshot-bound Production approval. Two recurring information-work diagrams show staged execution. Domain dots switch examples; motion freezes under `prefers-reduced-motion`. |
 | Scope | Page count | **Small multi-page** — Home / How it works / Philosophy / Ownership + Blog. |
 | Voice | The hard constraint | **Does not bend.** Terse, declarative, specific. No marketing vocabulary. |
 | Mode | Default theme | **Dark.** A light marketing site would feel disowned by a dark product. |
 | Blog | Presence | **One quiet nav item.** No home feed, no popups, no email capture. RSS for those who want it. |
 | Blog | Post types | **Essay / Use Case / Note** — a spectrum from editorial prose to terse machine voice. |
-| CTA | Conversion | **Get the artifact.** Local-first needs no account; the honest action is "Get started / View on GitHub," not a signup funnel. |
+| CTA | Conversion | **See the artifact.** Use direct repository actions while distribution and licensing remain unsettled. Do not promise accountless production use or a packaged release. |
 
 ## How the design binds to the product
 
@@ -55,7 +55,7 @@ terse, declarative copy. The site should read like the product wrote it.
 | Readable face | Inter for all prose in V1; the editorial zone (Philosophy, Essays) references `--font-editorial` so a serif can swap in later with a one-line change. |
 | OSS / commercial | The Ownership page is built price-agnostic, with a marked drop-in slot for a pricing/licensing block. |
 | Docs site | Doesn't exist yet; "Read the docs" points at the repo until it does. |
-| Hero flow | A rotating set of six domain flows (Competitive intel, Customer feedback, Recruiting, AP, Inbound leads, Contract review) + a hidden TPS easter egg; each fans out into parallel steps converging on a human gate. **Open thread:** three of the six (Recruiting, AP, Contract) must ship as bundled templates in the product repo to keep the "mirrors a real template" promise — tracked in Functionary's `Hero Template Set` planning doc. |
+| Hero flow | Three launch examples rotate: Sketch to flow, Customer feedback, and Inbound leads, plus the hidden TPS easter egg. The domain diagrams are illustrative and carry no bundled-template metadata. |
 | Mobile | **Shipped** (`docs/mobile-plan.md`, branch `hero-mobile-scroll`). Canvas is desktop-first, so mobile lands the pitch + routes to desktop rather than demoing the canvas. At ≤860px the hero is a **horizontal scroll-follow window** (LTR is load-bearing grammar — never rotate flows vertical): nodes at a legible fixed scale (`--node-scale: 0.9`), the SVG overflowing its viewport, auto-panning to keep the running stage centered (a user swipe pauses the pan ~4s), with edge fades. Plus a mobile-only "best on desktop" line under the hero canvas, no funnel; `FlowSnippet` scrolls instead of wrapping; the display headline no longer right-cuts on small phones. |
 
 ## Pre-launch checklist

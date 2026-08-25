@@ -10,14 +10,14 @@ relatedLabel: "How it works"
 
 ## Situation
 
-An analyst writes a weekly memo from a recurring pile of source material: reports, feeds, meeting notes. Done by hand, it is slow and the output varies week to week — what gets cited, how findings are framed, which sources made the cut. Done by pasting everything into a chat window, it is faster but leaves no artifact: no record of which sources fed which claim, no version to review, nothing to rerun next week. The work is mechanical enough to formalize and consequential enough to need a checkpoint.
+An analyst writes a weekly memo from a recurring pile of source material: reports, feeds, meeting notes. Done by hand, it is slow and the output varies week to week — what gets cited, how findings are framed, which sources made the cut. A private chat may accelerate one memo, but it does not create a shared, repeatable process. The useful first run should become evidence for the next one.
 
 ## The flow
 
-Six blocks, in order, fired by a scheduled trigger once a week:
+The bundled starter contains six blocks in order. It does not currently include a scheduled trigger; add one when the flow is ready to recur:
 
 - `Regularize` — takes the incoming material and normalizes it into a consistent shape, so the downstream blocks see one format instead of five.
-- `Extract Insights` — reads the normalized material and emits structured findings. Each finding traces back to the source passage that supports it.
+- `Extract Insights` — reads the normalized material and emits structured findings that can carry model-supplied supporting passages.
 - `Gate` — pauses the run. The analyst reviews the extracted findings before any prose exists. Nothing past this point runs until they approve.
 - `Summarize` — condenses the approved findings.
 - `Draft` — writes the memo from the summary and findings.
@@ -27,14 +27,14 @@ Six blocks, in order, fired by a scheduled trigger once a week:
 
 The `Gate` sits before `Summarize` and `Draft`, not after. The analyst reviews the findings — the claims and their sources — while they are still cheap to correct, before the model spends effort turning them into prose. Catching a bad finding here is one edit; catching it after the memo is written is a rewrite.
 
-Provenance carries through the whole flow. Every claim in the drafted memo traces back through `Extract Insights` to a specific source passage. When the analyst reviews at the `Gate`, or when a reader questions a line in the sent memo, the supporting passage is attached, not reconstructed from memory.
+`Extract Insights` can attach source passages to the structured findings reviewed at the `Gate`. Downstream `Summarize` and `Draft` outputs retain execution lineage — their inputs, configuration, prompt, and model — but the finished prose is not currently guaranteed to retain a passage for every claim. Review source-grounded findings before synthesis when that distinction matters.
 
-The scheduled trigger makes it repeatable. The same flow runs every week against that week's inputs and produces a memo built the same way each time.
+After the contracts are validated and a trigger is added, the same graph can run against each week's inputs. Its declared structure stays legible; model-backed extraction and synthesis remain nondeterministic and should keep the evaluations and review appropriate to the memo's stakes.
 
 ## What it teaches
 
-This is the canonical shape: a sequential flow with a human-in-the-loop checkpoint, AI blocks bounded by typed inputs and outputs, and an output action at the end. The AI blocks do synthesis and extraction, but they operate on declared schemas and emit traceable findings — they do not freestyle through the data. The same shape fits any recurring synthesis task: a research digest, a compliance summary, a status report.
+This is a useful sequential pattern: normalize, extract structured findings, review them, synthesize, and deliver. It can begin with an agent-backed Sketch and graduate toward these narrower blocks as repeated runs reveal the stable process. The same pattern fits a research digest, market brief, or internal status report.
 
 ## Start from this template
 
-Open the **Analyst Weekly Memo** template and point it at your own sources. You can refine it incrementally: tighten the schema on `Extract Insights`, add a second `Gate` before `Send`, or swap the output action for your channel of choice.
+Open the **Analyst Weekly Memo** starter and point it at your own sources. Resolve the currently unverified `Summarize` → `Draft` contract and Test the flow before adding a schedule or approving an external `Send`. Then refine it incrementally: tighten the extraction schema, add another human pause, or change the output action.
