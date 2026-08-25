@@ -22,7 +22,7 @@ A flow is the same kind of constraint. Each step has a narrow job and only the i
 
 Road markings don't physically stop you crossing them. They make the intended path obvious, and they make a deviation visible.
 
-Arachne's markings are its types. A connection that doesn't typecheck shows up as an unverified edge on the canvas *before* anything runs — a painted line you can see you're about to cross. The lane is legible, which means wandering out of it is legible too. You are not trusting the agent to stay between the lines on faith; you can see where the lines are, and so can it.
+Functionary's markings are its types. A connection that doesn't typecheck shows up as an unverified edge on the canvas *before* anything runs — a painted line you can see you're about to cross. The lane is legible, which means wandering out of it is legible too. You are not trusting the agent to stay between the lines on faith; you can see where the lines are, and so can it.
 
 ## The signs
 

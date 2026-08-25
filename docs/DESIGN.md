@@ -1,6 +1,6 @@
-# Arachne site — design decisions
+# Functionary site — design decisions
 
-The public site is the first Arachne surface that lives outside the product
+The public site is the first Functionary surface that lives outside the product
 canvas. The governing risk is that a marketing page drifts toward consumer-SaaS
 gloss and disowns the product it describes. The whole approach is a response to
 that: **bend the layout, hold the voice.** Open up the type, whitespace, and
@@ -55,12 +55,12 @@ terse, declarative copy. The site should read like the product wrote it.
 | Readable face | Inter for all prose in V1; the editorial zone (Philosophy, Essays) references `--font-editorial` so a serif can swap in later with a one-line change. |
 | OSS / commercial | The Ownership page is built price-agnostic, with a marked drop-in slot for a pricing/licensing block. |
 | Docs site | Doesn't exist yet; "Read the docs" points at the repo until it does. |
-| Hero flow | A rotating set of six domain flows (Competitive intel, Customer feedback, Recruiting, AP, Inbound leads, Contract review) + a hidden TPS easter egg; each fans out into parallel steps converging on a human gate. **Open thread:** three of the six (Recruiting, AP, Contract) must ship as bundled templates in the product repo to keep the "mirrors a real template" promise — tracked in Arachne's `Hero Template Set` planning doc. |
+| Hero flow | A rotating set of six domain flows (Competitive intel, Customer feedback, Recruiting, AP, Inbound leads, Contract review) + a hidden TPS easter egg; each fans out into parallel steps converging on a human gate. **Open thread:** three of the six (Recruiting, AP, Contract) must ship as bundled templates in the product repo to keep the "mirrors a real template" promise — tracked in Functionary's `Hero Template Set` planning doc. |
 | Mobile | **Shipped** (`docs/mobile-plan.md`, branch `hero-mobile-scroll`). Canvas is desktop-first, so mobile lands the pitch + routes to desktop rather than demoing the canvas. At ≤860px the hero is a **horizontal scroll-follow window** (LTR is load-bearing grammar — never rotate flows vertical): nodes at a legible fixed scale (`--node-scale: 0.9`), the SVG overflowing its viewport, auto-panning to keep the running stage centered (a user swipe pauses the pan ~4s), with edge fades. Plus a mobile-only "best on desktop" line under the hero canvas, no funnel; `FlowSnippet` scrolls instead of wrapping; the display headline no longer right-cuts on small phones. |
 
 ## Pre-launch checklist
 
-- Replace the placeholder domain `arachne.example.com` (in `astro.config.mjs`,
+- Production domain set to `functionary.app` (in `astro.config.mjs`,
   `public/robots.txt`, `deploy/nginx.conf`).
 - Add `public/og.png` (1200×630) for social previews.
 - Set the real GitHub / docs URLs (currently `https://github.com/` placeholders

@@ -1,8 +1,8 @@
 # Site refresh audit — 2026-07-22
 
 The site's copy was frozen 2026-06-01 against the **trust thesis**
-(`Arachne/ops/planning/2026-06-01 - Trust Thesis and Messaging Synthesis.md`).
-Since then the Arachne repo has taken **530 commits**, a **direction refresh**
+(`Functionary/ops/planning/2026-06-01 - Trust Thesis and Messaging Synthesis.md`).
+Since then the Functionary repo has taken **530 commits**, a **direction refresh**
 (2026-06-19) that repositions the wedge, and essentially **no movement at all**
 on distribution. This document audits the site section by section, separates
 *wrong* from *stale* from *missing*, and collects the questions that gate a
@@ -10,7 +10,7 @@ rewrite.
 
 **Read §0 first.** The most important finding is not about copy.
 
-**Method.** Five parallel read-only sweeps of `~/Projects/Arachne` — ops corpus,
+**Method.** Five parallel read-only sweeps of `~/Projects/Functionary` — ops corpus,
 code since 2026-06-01, vocabulary/register, positioning docs, and
 build/run/distribute. Conflicts between sweeps were resolved against the source
 (noted inline where they mattered).
@@ -30,12 +30,12 @@ page — points at `https://github.com/`. Behind that placeholder:
 | `cargo install` | nothing published; workspace version `0.1.0` |
 | Product container | **none.** The root `Dockerfile` is the *unattended-agent development sandbox* — it installs Claude Code, MCP servers and Playwright, and its `CMD` is the agent loop driver |
 | Backend production build | **none.** `scripts/build.sh:7` builds only `web/dist` |
-| Static serving | **none.** `arachne-server` never mounts `ServeDir`/`ServeFile`; the frontend is served by Vite proxying `/api` to `:3001` |
+| Static serving | **none.** `functionary-server` never mounts `ServeDir`/`ServeFile`; the frontend is served by Vite proxying `/api` to `:3001` |
 | Docker Compose / K8s / systemd unit | **none.** The one `.service` file is for the agent pump |
 | Hosted option | **does not exist in any form** — no code, no infra, no planning doc |
 | Build/test CI | one workflow, `bench.yml`, gated on bench paths |
 
-The only path to a running Arachne is **clone → `git submodule update` →
+The only path to a running Functionary is **clone → `git submodule update` →
 `./scripts/run.sh`**, which needs a Rust toolchain *and* Node, runs three
 processes, and has a ~38s backend recompile loop. That is a developer setup, not
 an install.
@@ -56,7 +56,7 @@ anywhere in ops.
 written.** `git log` since 2026-06-01 on `README.md`, `Makefile`, `scripts/`,
 `Dockerfile` and `.github/` is ~40 commits, essentially all agent-harness work.
 On the product's own runtime paths (`main.rs`, `persistence.rs`,
-`arachne-sandbox/`, `arachne-kms/`, `auth/`, `middleware/`): **five commits, two
+`functionary-sandbox/`, `functionary-kms/`, `auth/`, `middleware/`): **five commits, two
 substantive.** The sandbox and KMS crates are untouched.
 
 **This changes what the site is for.** A page headed "The flows are yours. The
@@ -82,7 +82,7 @@ supersedes_emphasis_of:
 > agent can already build you a formalized pipeline. The problem is the
 > *artifact*: an illegible codebase you can't read from above without
 > understanding it yourself, and that isn't conducive to rapid iteration.
-> **Arachne makes the formalized process legible (the canvas) and iterable …
+> **Functionary makes the formalized process legible (the canvas) and iterable …
 > and keeps a human in command of a tool rather than supervising an agent.**
 >
 > Auditability and compliance are the **reward of formalization** (they kick in
@@ -117,7 +117,7 @@ A **third axis** joins purity and determinism:
 
 | Axis | Range | Where |
 |---|---|---|
-| Purity | `Pure < ReadsExternal < WritesExternal < FullIo` | `crates/arachne-schema/src/effect.rs` |
+| Purity | `Pure < ReadsExternal < WritesExternal < FullIo` | `crates/functionary-schema/src/effect.rs` |
 | Determinism | `Deterministic < ModelDependent < NonDeterministic` | same |
 | **Discretion** | `Mechanical < Bounded < Open` | **new**, `effect.rs:47-60` |
 
@@ -192,8 +192,8 @@ second one.
 | **Discretionary** vs **enframed** | data/results from a node that had shaping power, vs. a node penned in to one narrow job | pervasive; *Discretionary* formally **replaces the rejected "Freestyle"** |
 | **Jig** | reusable, visually-obvious known-good composite — *"a fixture guaranteeing a repeatable result"* | backend identity landed in F72 (`jig_kind` persists in flow JSON; a `jig_membership` map attributes provenance/cost/errors to the jig). Three ship: **best-of-N, checklist, Curator**. UI header is literally "Jig Library" |
 | **Graduation** | narrowing a step down the discretion dial | `AgentGraduationSection.tsx` |
-| **Distillation** | training a cheap classifier from captured LLM judgment. **Reserved word** — never use it for fan-in aggregation (use *aggregate / synthesize / converge*) | `arachne-distill`, `BlockType::DistilledClassifier` |
-| **Divergence study** | run a formal flow beside an agent; the edge case the agent finds becomes a one-click flow addition | `arachne-eval`, `DivergenceInspector.tsx` |
+| **Distillation** | training a cheap classifier from captured LLM judgment. **Reserved word** — never use it for fan-in aggregation (use *aggregate / synthesize / converge*) | `functionary-distill`, `BlockType::DistilledClassifier` |
+| **Divergence study** | run a formal flow beside an agent; the edge case the agent finds becomes a one-click flow addition | `functionary-eval`, `DivergenceInspector.tsx` |
 
 **Renames:** Superblock → **Jig**; Freestyle → **Discretionary** (incomplete —
 "freestyle" still ships in UI strings, §2.15); `formalization_stage` →
@@ -202,10 +202,10 @@ may be reintroduced and a grep regression guard enforcing it.
 
 ### 1.5 What shipped in the code
 
-22 crates, **nine net-new since June 1**: `arachne-silk` (the LLM-facing flow
-DSL + typed diff protocol), `arachne-judge`, `arachne-distill`,
-`arachne-retrieval`, `arachne-artifact`, `arachne-knowledge`, `arachne-synth`,
-`arachne-bench`, `arachne-telemetry`.
+22 crates, **nine net-new since June 1**: `functionary-silk` (the LLM-facing flow
+DSL + typed diff protocol), `functionary-judge`, `functionary-distill`,
+`functionary-retrieval`, `functionary-artifact`, `functionary-knowledge`, `functionary-synth`,
+`functionary-bench`, `functionary-telemetry`.
 
 > **Do not source copy from the repo's own docs.** `docs/REPO_MAP.md:31-40`
 > lists 6 crates. `CLAUDE.md` says "Block-type count is now 99" and "25+ types
@@ -231,10 +231,10 @@ Ledger: **582 done / 27 open / 7 blocked** across F0–F75. `main` now contains
 
 ### 1.6 Ops
 
-`ops/` is a separate repo (`tjmisko/arachne-ops`), submodule-mounted, 920 files.
+`ops/` is a separate repo (`tjmisko/functionary-ops`), submodule-mounted, 920 files.
 Three layers: **dated append-only docs** indexed by `STATUS.md`; a **task DAG**
 of 616 one-file-per-task markdown files whose frontmatter only
-`scripts/arachne-task` may write; and **the pump** — a host-level supervisor
+`scripts/functionary-task` may write; and **the pump** — a host-level supervisor
 that recomputes the ready frontier each tick, launches one Docker container per
 phase-worktree, and pauses feeding at ~95% plan utilization, so you can *"point
 the loop at a range of phases, start it, and walk away for days."*
@@ -242,7 +242,7 @@ the loop at a range of phases, start it, and walk away for days."*
 Two things in ops are directly useful here:
 
 - **A brand-voice guide already exists** (`ops/design/2026-04-27/README.md`):
-  *"Arachne's voice is **terse, technical, second-person-implicit**. It reads
+  *"Functionary's voice is **terse, technical, second-person-implicit**. It reads
   like high-quality dev tooling — Vim, tmux, k9s — not like consumer SaaS."* …
   *"No marketing words ('supercharge', 'magic', 'AI-powered')."* … *"Mood. Late-
   night coding tool… closer to a debugger or a node-graph shader editor than to
@@ -278,7 +278,7 @@ Legend: **WRONG** = factually inaccurate today · **STALE** = true but off-thesi
   parallel, each one isolated"* — **WRONG, and worse than it first looks.**
   - The Starlark sandbox is **opt-in and defaults OFF** (`blocks.rs:232`). The
     default `Code` path spawns an unsandboxed host subprocess — `python3 -c` /
-    `bash -c` (`crates/arachne-blocks/src/code.rs:46-47,462`).
+    `bash -c` (`crates/functionary-blocks/src/code.rs:46-47,462`).
   - The `Command` block **is not sandboxed at all**, by its own admission at the
     spawn site: *"SPEC_GAP: sandbox-not-applied. Spec §8 mandates seccomp/
     landlock parity with the Code block. Code itself runs unsandboxed today"*
@@ -335,7 +335,7 @@ lacks. See Q5.
   **factual error**: *"Every AI claim traces to its source passage."* True for
   **extraction** (`ExtractInsights`/`ExtractEntities` populate
   `source_references`, with a test asserting it —
-  `crates/arachne-blocks/src/extraction.rs:155,287,806-807`) and **false for
+  `crates/functionary-blocks/src/extraction.rs:155,287,806-807`) and **false for
   synthesis** — `synthesis.rs:882-883` asserts the opposite of our marketing
   claim: *synthesis blocks must leave grounding empty*. Summarize / Compare /
   Draft carry no passage-level citations. Same sentence on How-it-works and in
@@ -351,7 +351,7 @@ diff protocol, and F68 live-build **is merged to main** (`205d744d`; a STATUS.md
 row still says otherwise, and is stale). But it is now **one mode, not the
 story**:
 
-> Data **may** flow through an Arachne flow by passing to a freestyle agent —
+> Data **may** flow through a Functionary flow by passing to a freestyle agent —
 > that is a legitimate, often the *first*, way to get a result… **freestyle is
 > neither the destination nor contraband: it is the on-ramp**… an un-captured
 > freestyle is the real anti-pattern.
@@ -418,7 +418,7 @@ for local use."* Splitting these, because they fare very differently:
   best claim on the site.** No license keys, no entitlements, no billing, and —
   verified — **no telemetry of any kind**: no PostHog, Mixpanel, Amplitude,
   Segment, GA, Sentry or Datadog anywhere in `crates/` or `web/src/`.
-  `arachne-telemetry` is the *opposite* of a phone-home: its `aggregate_metric!`
+  `functionary-telemetry` is the *opposite* of a phone-home: its `aggregate_metric!`
   macro is type-gated so passing a `String`/`Uuid`/flow id is a **compile
   error**, backed by a repo-root `clippy.toml` lint blocking raw `metrics::*`
   calls from every other crate. Metrics never leave the process. Connectors are
@@ -431,7 +431,7 @@ for local use."* Splitting these, because they fare very differently:
   **tree-shaken out of production builds and can never ship**. The local
   experience exists only because `run.sh` exports four dev escape hatches,
   including a signing key literally named
-  `arachne-dev-signing-key-do-not-use-in-prod`. `web/src/features/tenants/` also
+  `functionary-dev-signing-key-do-not-use-in-prod`. `web/src/features/tenants/` also
   ships a `TenantSwitcher` — the product is multi-tenant by construction.
 
   See Q4 — one option is a small server change that would make the claim true.
@@ -528,7 +528,7 @@ slot.
 **One caveat that argues against over-promising on security:** credentials are
 **plaintext at rest by default**. The server prints its own warning at boot —
 *"OAuth tokens and connector credentials will be stored AS PLAINTEXT at rest in
-`~/.arachne/state.db`"*. Real AES/KMS machinery exists but is opt-in, and
+`~/.functionary/state.db`"*. Real AES/KMS machinery exists but is opt-in, and
 `run.sh` deliberately leaves it off.
 
 ### 2.13 Blog
@@ -555,9 +555,9 @@ slot.
 - **Open design question:** should the hero show an Agent node with hazy edges
   graduating into typed blocks? That's the repositioning in one image, and the
   hero can't currently express it. See Q21.
-- **Pre-launch checklist entirely undone** — placeholder domain in
-  `astro.config.mjs` / `robots.txt` / `deploy/nginx.conf`; no `og.png`; bare
-  `https://github.com/` links.
+- **Pre-launch checklist mostly undone** — no `og.png`; bare
+  `https://github.com/` links. The production domain is now configured as
+  `functionary.app`.
 
 ### 2.15 Cross-cutting: the register problem
 
@@ -631,7 +631,7 @@ current copy doesn't know exists, roughly by how much it would improve the site.
    new wedge, rendered.
 8. **Real-time collaboration (F48).** Per-flow WS rooms, presence, a durable
    server-applied oplog, server-authoritative CRDT merge, and **agent edits
-   unified onto the same merge layer as human edits.** The site presents Arachne
+   unified onto the same merge layer as human edits.** The site presents Functionary
    as single-player.
 9. **The AAR agent (F73).** Reflects over run history, writes process knowledge,
    and *suggests* formalizations — but **never mutates a flow** (`aar.rs:1-21`).
@@ -648,7 +648,7 @@ current copy doesn't know exists, roughly by how much it would improve the site.
   harness runs an offline deterministic stub. The *methodology* is real,
   pre-registered and frozen — see Q20.
 - **Transcript→flow synthesis (F75).** `status: plan`, pending human decisions;
-  the end-to-end handler is `open`; in-Arachne capture is blocked. No front
+  the end-to-end handler is `open`; in-Functionary capture is blocked. No front
   door.
 - **The whole 2026-07-21 context/knowledge arc** (stack/heap, Project primitive,
   zettelkasten). Its own doc says *"almost none of this exists yet, and that is
@@ -662,7 +662,7 @@ current copy doesn't know exists, roughly by how much it would improve the site.
 ### First, and blocking everything
 
 **Q1 — Is the repo going public, and when?** Every ownership claim on this site
-is unverifiable while `tjmisko/Arachne` is private, unlicensed, and unreleased,
+is unverifiable while `tjmisko/Functionary` is private, unlicensed, and unreleased,
 and every CTA is a dead link. If the answer is "not soon," Self-hosting's job
 changes from *"here's how to self-host"* to *"here's the ownership model we
 commit to"* — a defensible page, but a different one. What does `Get started`

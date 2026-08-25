@@ -11,10 +11,10 @@ export async function GET(context: APIContext) {
   );
 
   return rss({
-    title: "Arachne",
+    title: "Functionary",
     description:
       "Essays, use cases, and notes on building visible, bounded, auditable automation for knowledge work.",
-    site: context.site ?? "https://arachne.example.com",
+    site: context.site ?? "https://functionary.app",
     items: posts.map((post) => ({
       title: post.data.title,
       description: post.data.dek,

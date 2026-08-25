@@ -9,7 +9,7 @@ relatedLabel: "Philosophy"
 
 There is a comfortable idea, common in discussions of machine intelligence, that if you can check the work you can trust it. Show me the citations, show me the chain of reasoning, let me trace the output back to its source, and I will believe what you tell me. This idea is half right, and the half it gets right is the easier half.
 
-Verifiability — the ability to confirm, after the fact, that an output is correct and that you can trace where it came from — is not optional. Without it, you are accepting a result on faith. Faith is a poor foundation for anything an organization has to stand behind. So Arachne takes verifiability seriously, and concretely: every output carries provenance back to its source, and every claim an AI block makes references the specific passage that supports it. You can follow any conclusion back to the words it rests on. That is the floor. It is not the ceiling.
+Verifiability — the ability to confirm, after the fact, that an output is correct and that you can trace where it came from — is not optional. Without it, you are accepting a result on faith. Faith is a poor foundation for anything an organization has to stand behind. So Functionary takes verifiability seriously, and concretely: every output carries provenance back to its source, and every claim an AI block makes references the specific passage that supports it. You can follow any conclusion back to the words it rests on. That is the floor. It is not the ceiling.
 
 ## What a trace cannot tell you
 
@@ -27,8 +27,8 @@ An event is not a program. A declared program is something you can read before i
 
 ## The declared flow
 
-This is the distinction that matters, and it is why Arachne is built around a declared flow rather than an inspectable run. A declared flow is specified before it executes. It is the same artifact every time. It is owned, and it is versioned, so that when it changes, someone changed it on purpose and you can see what changed and when.
+This is the distinction that matters, and it is why Functionary is built around a declared flow rather than an inspectable run. A declared flow is specified before it executes. It is the same artifact every time. It is owned, and it is versioned, so that when it changes, someone changed it on purpose and you can see what changed and when.
 
 Verifiability tells you that a single run was sound. The declared flow tells you that every run will be — not because the outputs are identical, but because the process that produces them is fixed, visible, and accountable. Trust is built on the second thing. The first thing is a precondition for it, never a substitute.
 
-The practical consequence is simple, and it shapes the whole product. Arachne makes the process the artifact, not the trace. The canvas is not a window into a run you can squint at afterward. It is the program itself — the thing you inspect, the thing you own, the thing you can hand to someone else and expect to behave the same way in your absence. You can verify a run. You trust a flow.
+The practical consequence is simple, and it shapes the whole product. Functionary makes the process the artifact, not the trace. The canvas is not a window into a run you can squint at afterward. It is the program itself — the thing you inspect, the thing you own, the thing you can hand to someone else and expect to behave the same way in your absence. You can verify a run. You trust a flow.

@@ -4,12 +4,12 @@
 # Usage:
 #   DEPLOY_HOST=deploy@vps.example.com ./deploy/deploy.sh
 #
-# Override the remote path with DEPLOY_PATH (default /var/www/arachne-site).
+# Override the remote path with DEPLOY_PATH (default /var/www/functionary-site).
 # Assumes SSH key auth to DEPLOY_HOST and that the remote dir is writable.
 set -euo pipefail
 
 DEPLOY_HOST="${DEPLOY_HOST:?set DEPLOY_HOST, e.g. deploy@vps.example.com}"
-DEPLOY_PATH="${DEPLOY_PATH:-/var/www/arachne-site}"
+DEPLOY_PATH="${DEPLOY_PATH:-/var/www/functionary-site}"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"

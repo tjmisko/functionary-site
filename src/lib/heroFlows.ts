@@ -16,7 +16,7 @@
  * run in sequence — so ≥2 branch nodes hold RUNNING at once and the Merge node
  * waits on all upstream branches.
  *
- * Vocabulary gate (arachne-positioning-vocabulary memory): public words are
+ * Vocabulary gate (functionary-positioning-vocabulary memory): public words are
  * delegation/trust; the pain copy is insider/by-the-book voice. No banned words.
  */
 

@@ -2,8 +2,8 @@
 
 *Rewritten 2026-06-01 after the hero-flow workshop. Supersedes the earlier
 single-flow "parallelize the Analyst Memo" draft. Scope: `src/components/Hero.astro`
-(+ a small flow-data module) in `arachne-site`, **and** three new bundled
-templates in the `~/Projects/Arachne` repo. Companion to `DESIGN.md`.*
+(+ a small flow-data module) in `functionary-site`, **and** three new bundled
+templates in the `~/Projects/Functionary` repo. Companion to `DESIGN.md`.*
 
 ## Why
 
@@ -18,9 +18,9 @@ shape is constant; the domain, vocabulary, and the *native* parallel pattern
 change per flow. A visitor in any of the six fields should think "that's my
 Monday."
 
-Messaging source-of-truth: `~/Projects/Arachne/ops/planning/2026-06-01 - Trust
+Messaging source-of-truth: `~/Projects/Functionary/ops/planning/2026-06-01 - Trust
 Thesis and Messaging Synthesis.md` (Move 1 — bounded, isolated steps). Vocabulary
-gate: the `arachne-positioning-vocabulary` memory.
+gate: the `functionary-positioning-vocabulary` memory.
 
 ## Locked decisions (2026-06-01)
 
@@ -37,7 +37,7 @@ gate: the `arachne-positioning-vocabulary` memory.
 4. **Honesty: the three non-bundled flows become real templates.** Recruiting, AP,
    and Contract review do not exist as bundled templates yet. `DESIGN.md` requires
    the hero to mirror a real template, not a contrived demo — so we stub all three
-   in the Arachne repo (`flows/` + a planning doc) as part of this work. Site and
+   in the Functionary repo (`flows/` + a planning doc) as part of this work. Site and
    product stay in sync.
 
 ## The six flows
@@ -120,13 +120,13 @@ One **data-driven DAG renderer** fed by a `FLOWS` array (six entries) in a new
   fact that several light at once is new. No new colors — `categoryVar` tints +
   existing run-state tokens only.
 
-## Cross-repo work (Arachne)
+## Cross-repo work (Functionary)
 
 Stub three new bundled templates so the hero's promise is honest:
 
 1. `flows/` JSON for **Recruiting screen**, **AP reconciliation**, **Contract
    review** — minimal but runnable, matching the block ontology.
-2. A planning doc `~/Projects/Arachne/ops/planning/YYYY-MM-DD - Hero Template
+2. A planning doc `~/Projects/Functionary/ops/planning/YYYY-MM-DD - Hero Template
    Set.md` recording the six as the canonical demo/template set, tracked in
    `STATUS.md`. Reconcile names with existing templates (Feedback Synthesis,
    Intake Triage) rather than inventing site-only names.
@@ -139,7 +139,7 @@ Stub three new bundled templates so the hero's promise is honest:
    timeline with `Promise.all`; rotation controller; domain label + caption;
    reduced-motion freeze on Feedback Synthesis; rewrite `aria-label` per flow.
 3. Mobile pass — verify 2-lane legibility at ≤860px via `preserveAspectRatio`.
-4. Arachne repo — three template stubs + planning doc (+ `STATUS.md` entry).
+4. Functionary repo — three template stubs + planning doc (+ `STATUS.md` entry).
 5. Refresh `DESIGN.md` open-items (Logo/wordmark + Hero flow rows are stale).
 
 ## Constraints (from `DESIGN.md`)
@@ -149,7 +149,7 @@ Stub three new bundled templates so the hero's promise is honest:
 - Plausible, not contrived — now enforced literally: every hero flow is a real
   (or to-be-shipped) bundled template.
 - Vocabulary gate before any copy lands: grep the changed files for the banned
-  words in the `arachne-positioning-vocabulary` memory.
+  words in the `functionary-positioning-vocabulary` memory.
 
 ## Acceptance criteria
 
@@ -158,7 +158,7 @@ Stub three new bundled templates so the hero's promise is honest:
   width **and** ≤860px.
 - Caption present, on-voice; vocabulary gate passes.
 - `prefers-reduced-motion` → one clean fully-`completed` static flow.
-- Three Arachne template stubs exist + planning doc tracked in `STATUS.md`.
+- Three Functionary template stubs exist + planning doc tracked in `STATUS.md`.
 - `astro check` 0 errors; `astro build` clean; visual check (normal + reduced).
 
 ## Settled build decisions (2026-06-01)
@@ -168,4 +168,4 @@ Stub three new bundled templates so the hero's promise is honest:
   This is a scoped exception to `DESIGN.md`'s "non-interactive (no pointer/input)"
   constraint — note it when refreshing DESIGN.md.
 - **Build sequencing:** **site hero first** (against the six specs), then the three
-  Arachne template stubs before launch.
+  Functionary template stubs before launch.

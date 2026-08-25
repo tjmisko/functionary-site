@@ -1,4 +1,4 @@
-# Mobile plan — arachne-site
+# Mobile plan — functionary-site
 
 *Drafted 2026-06-01. Governs how the desktop-first site degrades to phones.
 Companion to `DESIGN.md` and `parallel-flow-plan.md`.*
@@ -8,7 +8,7 @@ Companion to `DESIGN.md` and `parallel-flow-plan.md`.*
 1. **The product is desktop-first.** The canvas is spatial and basically
    unusable on a phone. So a mobile visitor is **evaluating, not building** —
    the mobile site's job is to land the pitch and route them back to desktop,
-   not to simulate the canvas. (Memory: `arachne-product-desktop-first`.)
+   not to simulate the canvas. (Memory: `functionary-product-desktop-first`.)
 2. **Left-to-right is load-bearing grammar.** A flow reads `source → … → action`
    left-to-right, like reading a sentence. **Do not rotate flows to vertical on
    mobile** — it breaks the grammar. (User, 2026-06-01.) This rules out the

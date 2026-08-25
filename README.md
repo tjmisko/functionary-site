@@ -1,9 +1,9 @@
-# arachne-site
+# functionary-site
 
-Public marketing site for **Arachne** — a visual canvas for building, running,
+Public marketing site for **Functionary** — a visual canvas for building, running,
 and auditing information-processing pipelines.
 
-Separate from the main Arachne application repo on purpose: this is
+Separate from the main Functionary application repo on purpose: this is
 human/design-maintained, statically built, and deployed independently to
 nginx. It has no dependency on the Rust backend or the app frontend.
 
