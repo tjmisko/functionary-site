@@ -40,30 +40,28 @@ const sectors = [
   ["Technical operations", "Combine typed blocks, reusable modules, connectors, and explicit human pauses."],
 ];
 
-const notList = [
-  ["Not an invisible general-purpose agent", "Discretion has a visible place in the flow and a path toward tighter constraints."],
-  ["Not one-click certainty", "A useful first run is the beginning. Reliability comes from testing, observing, and formalizing what works."],
-  ["Not a replacement for judgment", "It routes judgment to the right person at the right time."],
-];
 ---
 
 <BaseLayout>
   <!-- HERO -->
   <section class="hero">
     <div class="container">
-      <Eyebrow>Automation for knowledge work</Eyebrow>
+      <Eyebrow>Automation for Knowledge Work</Eyebrow>
       <h1 class="display">
-        Turn fuzzy recurring work into a process you can see become reliable.
+        Process information with agents without handing agents control
+        over the process.
       </h1>
       <p class="lead measure">
-        Describe the outcome inside a project. The agent sketches the work on a
-        visible canvas, runs it in Test, and records what happened. Keep the
-        discretion that helps; replace what repeats with typed blocks,
-        policies, and deliberate human review.
+        Lay out a workflow on the canvas, starting from a loose
+        sketch of the steps and iterating towards a detailed,
+        repeatable, and defensible process. Delegate low-stakes 
+        mechancial judgements to agents, drop-in adversarial 
+        multi-agent review when needed, and add human review 
+        gates for the most critical steps in the process.
       </p>
       <div class="actions">
         <Button href="/how-it-works" variant="primary">See how it works</Button>
-        <Button href="/self-hosting" variant="ghost">Deployment posture</Button>
+        <Button href="/self-hosting" variant="ghost">Deployment</Button>
       </div>
     </div>
     <div class="container hero-canvas">
@@ -134,21 +132,6 @@ const notList = [
     </div>
   </section>
 
-  <!-- WHAT IT IS NOT -->
-  <section class="section">
-    <div class="container measure">
-      <Eyebrow>What it is not</Eyebrow>
-      <h2>It earns trust by refusing scope.</h2>
-      <ul class="not-list">
-        {notList.map(([term, desc]) => (
-          <li>
-            <span class="not-term">{term}.</span> {desc}
-          </li>
-        ))}
-      </ul>
-    </div>
-  </section>
-
   <!-- CTA -->
   <section class="section cta">
     <div class="container measure">
@@ -172,9 +155,12 @@ const notList = [
   }
   h1.display {
     margin-top: var(--s-16);
-    max-width: 20ch;
-    overflow-wrap: break-word;
-    hyphens: auto;
+    max-width: 26ch;
+    /* Break between words only — auto-hyphenation split "con-trol" across
+       lines at desktop widths. Balance keeps the last line from orphaning. */
+    hyphens: manual;
+    overflow-wrap: normal;
+    text-wrap: balance;
   }
   .lead {
     margin-top: var(--s-24);
@@ -241,29 +227,6 @@ const notList = [
     font-size: var(--ms-small);
   }
 
-  .not-list {
-    margin-top: var(--s-24);
-    padding: 0;
-    list-style: none;
-    display: grid;
-    gap: var(--s-16);
-  }
-  .not-list li {
-    padding-left: var(--s-20);
-    position: relative;
-    color: var(--fg-2);
-    font-size: var(--ms-small);
-  }
-  .not-list li::before {
-    content: "—";
-    position: absolute;
-    left: 0;
-    color: var(--accent);
-  }
-  .not-term {
-    color: var(--fg-0);
-    font-weight: 600;
-  }
 
   .cta {
     background: var(--bg-1);

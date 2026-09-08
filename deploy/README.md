@@ -16,11 +16,10 @@ CI), then `rsync` the output into the nginx web root.
    the method appropriate for its OS. On a server that already uses Certbot for
    other nginx sites, use the existing installation.
 
-3. Create the web root. Replace `deploy:deploy` with the SSH account that will
-   run `deploy/deploy.sh`:
+3. Create the web root owned by the nginx worker account:
 
    ```
-   sudo install -d -o deploy -g deploy -m 0755 /var/www/functionary-site
+   sudo install -d -o www-data -g www-data -m 0755 /var/www/functionary-site
    ```
 
 4. Copy `deploy/nginx.conf` from this repository to the VPS and enable it:
