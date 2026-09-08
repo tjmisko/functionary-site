@@ -3,8 +3,8 @@ type: essay
 title: "Not all judgment is delegable"
 dek: "Accountability cannot be transferred to a model. A tool for serious work has to be built around that fact."
 date: 2026-05-24
-relatedHref: /philosophy
-relatedLabel: "Philosophy"
+relatedHref: /how-it-works
+relatedLabel: "How it works"
 ---
 
 There is a category of decision that cannot be handed off, no matter how capable the thing you would hand it to. Approving a refund that exceeds a threshold. Signing a clinical note. Deciding that a contract clause is acceptable. Releasing a statement in a company's name. When one of these turns out wrong, someone is answerable for it — a specific person, or a specific institution acting through one. That answerability is not a feature of the decision-making process. It is a relationship between people and between institutions, and it persists whether or not anyone was paying attention when the choice was made.

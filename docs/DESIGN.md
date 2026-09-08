@@ -14,7 +14,7 @@ terse, declarative copy. The site should read like the product wrote it.
 |---|---|---|
 | Aesthetic | Fidelity to the product | **Bend it** — softer, more open layout; same palette and voice. |
 | Hero | The centerpiece | **Visible graduation** — the primary animation moves from Agent Sketch through captured evidence, formalization, Test, and snapshot-bound Production approval. Two recurring information-work diagrams show staged execution. Domain dots switch examples; motion freezes under `prefers-reduced-motion`. |
-| Scope | Page count | **Small multi-page** — Home / How it works / Philosophy / Ownership + Blog. |
+| Scope | Page count | **Small multi-page** — Home / How it works / Deployment + Blog. The Philosophy page was removed 2026-09-08; the arguments live in the blog essays. |
 | Voice | The hard constraint | **Does not bend.** Terse, declarative, specific. No marketing vocabulary. |
 | Mode | Default theme | **Dark.** A light marketing site would feel disowned by a dark product. |
 | Blog | Presence | **One quiet nav item.** No home feed, no popups, no email capture. RSS for those who want it. |
@@ -52,7 +52,7 @@ terse, declarative copy. The site should read like the product wrote it.
 
 | # | Item | Current default |
 |---|---|---|
-| Readable face | Inter for all prose in V1; the editorial zone (Philosophy, Essays) references `--font-editorial` so a serif can swap in later with a one-line change. |
+| Readable face | Inter for all prose in V1; the editorial zone (blog Essays) references `--font-editorial` so a serif can swap in later with a one-line change. |
 | OSS / commercial | The Ownership page is built price-agnostic, with a marked drop-in slot for a pricing/licensing block. |
 | Docs site | Doesn't exist yet; "Read the docs" points at the repo until it does. |
 | Hero flow | Three launch examples rotate: Sketch to flow, Customer feedback, and Inbound leads, plus the hidden TPS easter egg. The domain diagrams are illustrative and carry no bundled-template metadata. |
@@ -60,9 +60,12 @@ terse, declarative copy. The site should read like the product wrote it.
 
 ## Pre-launch checklist
 
-- Production domain set to `functionary.app` (in `astro.config.mjs`,
-  `public/robots.txt`, `deploy/nginx.conf`).
-- Add `public/og.png` (1200×630) for social previews.
-- Set the real GitHub / docs URLs (currently `https://github.com/` placeholders
-  in `Header.astro`, `Footer.astro`, page CTAs).
+- Production domain is set to `functionary.app` (in `astro.config.mjs`,
+  `public/robots.txt`, `deploy/nginx.conf`). Done.
+- Add `public/og.png` (1200×630) and restore the `og:image` / `twitter:image`
+  tags in `BaseLayout.astro` (removed 2026-09-08 because the file did not exist).
+- Add GitHub / Docs links to the footer's Build column once the repository is
+  public and a docs site exists (the placeholder links were removed 2026-09-08).
+- Licensing block on the Deployment page once the OSS / commercial split is
+  decided.
 - Seed posts are drafts pending an author pass.

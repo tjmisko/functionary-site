@@ -3,8 +3,8 @@ type: essay
 title: "Verifiability is necessary but not sufficient for trust"
 dek: "Being able to check an output after the fact is not the same as being able to trust the process that produced it."
 date: 2026-05-08
-relatedHref: /philosophy
-relatedLabel: "Philosophy"
+relatedHref: /how-it-works
+relatedLabel: "How it works"
 ---
 
 There is a comfortable idea, common in discussions of machine intelligence, that if you can inspect one run you can trust the system. Show me the citations, the tools it called, and the path it took, and I will believe what it does. This idea is half right.

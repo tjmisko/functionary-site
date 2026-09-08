@@ -12,7 +12,7 @@
      mono  = the machine / the artifact (wordmark, eyebrows, chips,
              block names, code, JSON, metrics) — inherited from tokens.css.
      ui    = us explaining (display, body, nav, captions).
-     editorial = the long-form reading zone (Philosophy, blog Essays).
+     editorial = the long-form reading zone (blog Essays).
                  V1 default: same as --font-ui (Inter). Swapping a serif in
                  later is a one-line change here — the "serif-ready" plan. */
   --font-ui: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -31,7 +31,7 @@
   /* ---------- Rhythm & measure (spec §3.3) ---------- */
   --section-pad: clamp(4.5rem, 3rem + 7vw, 8rem); /* 72–128px */
   --measure-prose: 42rem; /* ~680px reading column */
-  --measure-narrow: 36rem; /* editorial (Philosophy / posts) */
+  --measure-narrow: 36rem; /* editorial (posts) */
   --container: 1120px;
 }
 

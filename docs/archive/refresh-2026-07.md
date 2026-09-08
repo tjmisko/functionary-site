@@ -1,3 +1,5 @@
+> **Archived 2026-09-08.** This audit was written against the June 2026 copy, which `660d752` (2026-08-25) rewrote. Its WRONG/STALE verdicts describe text that no longer exists; the open questions Q1–Q2 (public repo, license) and the hero question Q21 are still open. Kept for history only.
+
 # Site refresh audit — 2026-07-22
 
 The site's copy was frozen 2026-06-01 against the **trust thesis**

@@ -5,8 +5,6 @@ import Button from "../components/Button.astro";
 import Pillar from "../components/Pillar.astro";
 import CodeBlock from "../components/CodeBlock.astro";
 
-const repoUrl = "https://github.com/";
-
 const pillars = [
   {
     eyebrow: "Files",
@@ -16,7 +14,7 @@ const pillars = [
   {
     eyebrow: "State",
     title: "A data root you choose",
-    body: "Flow files, artifacts, execution history, and other runtime state live beneath an operator-selected local data root, using JSON files and local databases.",
+    body: "Flow files, artifacts, execution history, and other runtime state live beneath an operator-selected local data root, as JSON files and local databases.",
   },
   {
     eyebrow: "Egress",
@@ -36,9 +34,9 @@ const pillars = [
       <Eyebrow>Deployment</Eyebrow>
       <h1>Own the process. Choose the data boundary.</h1>
       <p class="lead measure">
-        Functionary is being built for operator-controlled deployment. Today the
-        repository supports local development; packaged self-hosting and a
-        hosted service are not yet available. The underlying ownership model is
+        Functionary is built for operator-controlled deployment. Today the
+        repository runs locally for development; a packaged self-hosting build
+        and a hosted service are not yet available. The ownership model is
         already concrete: readable flow files and local runtime state.
       </p>
     </div>
@@ -50,13 +48,11 @@ const pillars = [
       <Eyebrow>It's just a file</Eyebrow>
       <h2>A flow is readable JSON, not an opaque project format.</h2>
       <p class="stack-p">
-        There is no opaque project format and no vendor database holding your
-        process hostage. A flow is nodes and edges in pretty-printed JSON. Read
-        it, diff it in review, commit it alongside the rest of your code, and
-        edit it with ordinary file tools.
+        No vendor database holds your process. A flow is nodes and edges in
+        pretty-printed JSON. Read it, diff it in review, commit it alongside the
+        rest of your code, and edit it with ordinary file tools.
       </p>
       <CodeBlock file="flow.json">{`{
-  "id": "00000000-0000-0000-0000-000000000001",
   "name": "Research brief",
   "version": "1.0.0",
   "nodes": [
@@ -84,10 +80,7 @@ const pillars = [
       "target": "extract-1",
       "verified": true
     }
-  ],
-  "metadata": {},
-  "sketches": [],
-  "horizons": []
+  ]
 }`}</CodeBlock>
     </div>
   </section>
@@ -103,67 +96,23 @@ const pillars = [
     </div>
   </section>
 
-  <!-- DEPLOYMENT POSTURE -->
-  <section class="section">
-    <div class="container measure">
-      <Eyebrow>Deployment posture</Eyebrow>
-      <h2>Local development now. Packaged deployment next.</h2>
-      <p class="stack-p">
-        The current repository runs the application locally for development.
-        It does not yet ship a supported self-hosting package or hosted service.
-        The deployment goal is to preserve the same portable flow format and
-        operator-selected data root wherever the runtime is installed.
-      </p>
-    </div>
-  </section>
-
   <!-- CONTROL BY DESIGN -->
   <section class="section">
     <div class="container measure">
       <Eyebrow>Control by design</Eyebrow>
-      <h2>Local state does not mean automatic no-egress operation.</h2>
+      <h2>Local state does not mean no egress. The boundary is explicit.</h2>
       <p class="stack-p">
-        Flow and run state can stay local while a configured model provider or
+        Flow files and local databases stay on disk without a network, and
+        telemetry export is off by default. A configured model provider or
         connector still uses the network. Choose Ollama or model-free blocks
-        when inference must remain local. PII detectors can block execution when
-        configured checks fail; post-output policies can redact or hash matching
-        fields. Functionary does not currently promise automatic pre-model
-        redaction.
+        when inference must stay local; PII checks can block a step, and
+        output policies can redact or hash matching fields.
       </p>
       <p>
-        Connector credentials are encrypted at rest only when KMS is configured.
-        Without it, the local server warns that credentials are stored in
-        plaintext. The boundary is explicit so operators can configure it on
-        purpose.
-      </p>
-    </div>
-  </section>
-
-  <!-- OFFLINE / LOCAL-FIRST -->
-  <section class="section">
-    <div class="container measure">
-      <Eyebrow>Local-first foundations</Eyebrow>
-      <h2>Local state works offline; connected capabilities do not.</h2>
-      <p class="stack-p">
-        Flow files and local databases remain on disk without a network.
-        Telemetry export is off by default. Remote AI providers and external
-        connectors require their configured services; Ollama offers local
-        inference. The development build has a no-auth shortcut, while deployed
-        builds currently require a local application account and session.
-      </p>
-    </div>
-  </section>
-
-  <!-- O2: PRICING PLACEHOLDER -->
-  <section class="section">
-    <div class="container measure">
-      <Eyebrow>Licensing</Eyebrow>
-      <h2>Licensing details are coming.</h2>
-      <!-- O2: OSS / commercial pricing block drops in here. Page is built price-agnostic. -->
-      <p class="stack-p">
-        The split between open-source and commercial licensing is still being
-        worked out. This page is written price-agnostic; the terms will land
-        here when they are settled.
+        Connector credentials are encrypted at rest when a key management
+        service is configured. Without one, the server warns at startup that
+        credentials are stored in plaintext. Deployed builds require a local
+        application account and session.
       </p>
     </div>
   </section>
@@ -173,13 +122,12 @@ const pillars = [
     <div class="container measure">
       <h2>Portability starts with a process you can read.</h2>
       <p class="stack-p">
-        Flows live outside a proprietary project format, and runtime state stays
-        under a path the operator selects. Distribution and licensing terms are
-        still being settled, so portability claims stop there for now.
+        Flows live outside a proprietary project format, and runtime state
+        stays under a path the operator selects. Distribution and licensing
+        terms are still being settled and will land here when they are.
       </p>
       <div class="actions">
         <Button href="/how-it-works" variant="primary">See how it works</Button>
-        <Button href={repoUrl} variant="ghost">View the project</Button>
       </div>
     </div>
   </section>

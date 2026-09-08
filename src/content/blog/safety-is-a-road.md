@@ -4,8 +4,8 @@ title: "Agents need roads — and real guardrails"
 dek: "Legible structure helps agents stay on course. Capability roots, Test-mode stubbing, and Production approval also enforce boundaries they cannot cross."
 date: 2026-06-01
 draft: false
-relatedHref: /philosophy
-relatedLabel: "Philosophy"
+relatedHref: /how-it-works
+relatedLabel: "How it works"
 ---
 
 It would be a lie to call an AI agent unconditionally safe. A capable model asked to do real work is nondeterministic, and on any given run it might do something no one intended. A trustworthy system has to expose that uncertainty and enforce meaningful limits around it.

@@ -40,7 +40,6 @@ src/
   pages/
     index.astro               # Home (animated hero + the argument)
     how-it-works.astro
-    philosophy.astro          # editorial column
     self-hosting.astro
     blog/index.astro          # type-filtered index
     blog/[...slug].astro       # per-type post layout
@@ -58,5 +57,6 @@ Static build → rsync to nginx on the VPS. See [`deploy/README.md`](deploy/READ
 
 ## Pre-launch
 
-See the checklist at the end of [`docs/DESIGN.md`](docs/DESIGN.md): real domain,
-`og.png`, real GitHub/docs URLs, and an author pass on the seed posts.
+See the checklist at the end of [`docs/DESIGN.md`](docs/DESIGN.md): `og.png`,
+GitHub/docs URLs once the repo is public, licensing block, and an author pass on
+the seed posts.

@@ -17,7 +17,7 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
 
 <BaseLayout
   title="How it works — Functionary"
-  description="Describe the work, let the Project Agent sketch and Test it visibly, then graduate repeated discretion into typed blocks, policies, and review."
+  description="Describe the work, let the agent sketch and Test it visibly, then graduate repeated discretion into typed blocks, policies, and review."
 >
   <!-- HEADER -->
   <section class="section">
@@ -25,10 +25,10 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
       <Eyebrow>How it works</Eyebrow>
       <h1>Start with a result. Learn the process by running it.</h1>
       <p class="lead measure">
-        Tell the Project Agent what useful work looks like. It creates visible
-        canvas state and Tests the result while you watch. Captured runs show
-        where discretion helped and where it repeated, giving you evidence to
-        add types, policies, deterministic blocks, and deliberate human review.
+        Tell the agent what useful work looks like. It builds visible canvas
+        state and Tests the result while you watch. Captured runs show where
+        discretion helped and where it repeated, which is the evidence you need
+        to add types, policies, deterministic blocks, and human review.
       </p>
     </div>
   </section>
@@ -45,20 +45,15 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
         you start, and the discretionary part does not disappear into a chat.
       </p>
       <p class="stack-p">
-        Refine it incrementally as the process reveals itself. Add a schema once
-        you know the data's shape. Add a validator or human pause where mistakes
-        matter. Replace a repeated choice with one or several narrower blocks
-        once the evidence shows what the implementation should do.
-      </p>
-      <p class="stack-p">
-        Functionary captures agent runs, including prompts, tool activity,
-        partial outputs, and typed results where possible. A transcript is not
-        the final process, but it is useful evidence for building one.
+        Refine it as the process reveals itself. Add a schema once you know the
+        data's shape. Add a validator or a human pause where mistakes matter.
+        Replace a repeated choice with narrower blocks once the evidence shows
+        what the implementation should do.
       </p>
       <p>
-        The same project can hold the first agent-backed attempt and the mature,
-        audited workflow it becomes. Graduation is not automatic learning: you
-        narrow discretion deliberately when run and evaluation evidence support it.
+        The same project holds the first agent-backed attempt and the audited
+        workflow it becomes. Graduation is deliberate: you narrow discretion
+        when run and evaluation evidence support it.
       </p>
     </div>
   </section>
@@ -69,10 +64,10 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
       <Eyebrow>Blocks · Effects · Provenance</Eyebrow>
       <h2>Typed values, declared authority, recorded lineage.</h2>
       <p class="measure stack-p">
-        Flows exchange typed values and artifacts. Documents — including text,
-        Markdown, HTML, and PDF — and structured Records are common payload
-        forms; blocks can also declare more specific contracts. A type mismatch
-        renders as an unverified connection on the canvas before execution.
+        Flows exchange typed values. Documents (text, Markdown, HTML, PDF) and
+        structured Records are the common payloads; blocks can declare more
+        specific contracts. A type mismatch renders as an unverified connection
+        on the canvas before anything runs.
       </p>
       <div class="cards">
         <BlockCard
@@ -83,17 +78,16 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
         <BlockCard category="action" name="Send" effect="external write · mechanical" />
       </div>
       <p class="measure stack-p">
-        Block signatures describe effects, determinism, and discretion. That
-        makes a pure model call different from a mechanical external write, and
-        both different from an open-discretion Agent. Effects propagate through
-        the graph so authority is visible before a run.
+        Block signatures declare effects, determinism, and discretion. A pure
+        model call is different from a mechanical external write, and both are
+        different from an open-discretion Agent. Effects propagate through the
+        graph, so authority is visible before a run.
       </p>
       <p class="measure stack-p">
-        Successful block outputs carry append-only execution lineage: block,
-        input IDs, time, configuration hash, and model or prompt hashes when
-        applicable. Extraction blocks can additionally attach source passages
-        to structured findings. Synthesized prose retains execution lineage,
-        but is not currently guaranteed to preserve claim-level citations.
+        Every successful block output carries append-only lineage: block, input
+        IDs, time, configuration hash, and model or prompt hashes where they
+        apply. Extraction blocks additionally attach source passages to their
+        structured findings.
       </p>
       <div class="prov measure">
         <CodeBlock file="provenance.json">{`"provenance": [
@@ -119,13 +113,12 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
         <p class="stack-p">
           Human pauses cover different jobs: approval, schema-defined input,
           inspection, review, and handoff. The flow holds at that step and
-          resumes only through the corresponding human action instead of
-          quietly inventing the missing decision.
+          resumes only through the corresponding human action, never by
+          inventing the missing decision.
         </p>
         <p>
           A waiting step carries the <Chip state="needs-input" /> chip on the
-          canvas, so the held decision is visible, not buried. Accountability is
-          not transferable; the tool routes it rather than absorbing it.
+          canvas, so the held decision is visible, not buried.
         </p>
       </div>
       <div class="snippet-wrap">
@@ -149,8 +142,8 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
       </p>
       <p>
         Production approval is pinned to the exact flow snapshot you reviewed
-        and is valid for that run. The Project Agent can build and Test, but it
-        cannot approve a Production run on your behalf.
+        and is valid for that run. The agent can build and Test, but it cannot
+        approve a Production run on your behalf.
       </p>
     </div>
   </section>
@@ -161,17 +154,14 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
       <Eyebrow>Errors produce durable fixes</Eyebrow>
       <h2>A mistake becomes evidence for a change.</h2>
       <p class="stack-p">
-        When a flow fails, the run identifies the block and reason. Debug
-        tracing can retain richer input and output envelopes when configured,
-        while the run record and available provenance keep the investigation
-        attached to the process instead of a private chat.
+        When a flow fails, the run identifies the block and the reason, and the
+        run record keeps the investigation attached to the process instead of a
+        private chat.
       </p>
       <p>
-        You or the Project Agent can make a targeted change and Test the new
-        snapshot. History records who changed what and when, with conversation
-        linkage for agent-authored edits. The graph and policy change
-        consistently; nondeterministic outputs can still vary and remain subject
-        to the evaluations and gates you chose.
+        You or the agent make a targeted change and Test the new snapshot.
+        History records who changed what and when, with conversation linkage
+        for agent-authored edits.
       </p>
     </div>
   </section>

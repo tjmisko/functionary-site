@@ -11,17 +11,17 @@ const pillars = [
   {
     eyebrow: "Visible",
     title: "See the work take shape",
-    body: "The Project Agent works on the same canvas you do. Sketches, typed blocks, connections, and revisions remain visible while a fuzzy request becomes an executable process.",
+    body: "The agent works on the same canvas you do. Sketches, typed blocks, connections, and revisions stay visible while a fuzzy request becomes an executable process.",
   },
   {
     eyebrow: "Bounded",
     title: "Put discretion in its place",
-    body: "A Sketch may begin with open-ended agent work. Tool ceilings, declared effects, human pauses, and Test mode make that discretion visible and constrain what it can change.",
+    body: "A sketch may begin as open-ended agent work. Tool ceilings, declared effects, human pauses, and Test mode make that discretion visible and limit what it can change.",
   },
   {
     eyebrow: "Auditable",
     title: "Turn runs into evidence",
-    body: "Captured runs record inputs, outputs, configuration, model activity, and execution lineage. Extraction blocks can also attach the passages behind structured findings.",
+    body: "Every run records inputs, outputs, configuration, model activity, and lineage. Extraction blocks attach the passages behind their findings.",
   },
 ];
 
@@ -41,10 +41,8 @@ const sectors = [
 ];
 
 const notList = [
-  ["Not an invisible general-purpose agent", "Discretion has a visible place in the flow, explicit instructions, and a path toward tighter constraints."],
+  ["Not an invisible general-purpose agent", "Discretion has a visible place in the flow and a path toward tighter constraints."],
   ["Not one-click certainty", "A useful first run is the beginning. Reliability comes from testing, observing, and formalizing what works."],
-  ["Not a low-code app builder", "Functionary builds automation flows, not user-facing applications."],
-  ["Not your external system of record", "It still persists flows, run state, artifacts, and project knowledge needed to do the work."],
   ["Not a replacement for judgment", "It routes judgment to the right person at the right time."],
 ];
 ---
@@ -58,10 +56,10 @@ const notList = [
         Turn fuzzy recurring work into a process you can see become reliable.
       </h1>
       <p class="lead measure">
-        Describe the outcome inside a project. The Project Agent sketches the
-        work on a visible canvas, runs it safely in Test, and records what
-        happened. Keep the discretionary parts that help; replace the repeated,
-        reliable parts with typed blocks, policies, and deliberate human review.
+        Describe the outcome inside a project. The agent sketches the work on a
+        visible canvas, runs it in Test, and records what happened. Keep the
+        discretion that helps; replace what repeats with typed blocks,
+        policies, and deliberate human review.
       </p>
       <div class="actions">
         <Button href="/how-it-works" variant="primary">See how it works</Button>
@@ -74,31 +72,16 @@ const notList = [
     </div>
   </section>
 
-  <!-- THE GAP -->
-  <section class="section">
-    <div class="container measure">
-      <Eyebrow>Start with the work as it is</Eyebrow>
-      <h2>Freestyle is the on-ramp, not the destination.</h2>
-      <p class="stack-p">
-        Most useful processes do not arrive fully specified. You know the shape
-        of the result before you know every step. A Sketch gives the agent room
-        to produce that first result while Functionary captures the prompt,
-        tools, inputs, outputs, and decisions that made it possible.
-      </p>
-      <p>
-        Those captured runs are evidence. Watch what repeats, add the constraints
-        the agent needed, and graduate stable work into blocks with declared
-        inputs, outputs, effects, and discretion. Trust grows by removing
-        dependence on in-the-moment choices where the evidence says you can.
-      </p>
-    </div>
-  </section>
-
   <!-- PILLARS -->
   <section class="section">
     <div class="container">
       <Eyebrow>Visible · Bounded · Auditable</Eyebrow>
-      <h2>Built around what automation gets dangerously wrong, quietly.</h2>
+      <h2>Built around what automation gets wrong, quietly.</h2>
+      <p class="measure stack-p">
+        Every automation tool draws the plumbing. What they leave as a black box
+        is the step where an agent made a call. Functionary shows the judgment
+        inside the pipeline.
+      </p>
       <div class="grid-3">
         {pillars.map((p) => <Pillar eyebrow={p.eyebrow} title={p.title}>{p.body}</Pillar>)}
       </div>
@@ -110,55 +93,24 @@ const notList = [
     <div class="container split">
       <div class="measure">
         <Eyebrow>Sketch · Test · Graduate</Eyebrow>
-        <h2>The agent works in the process, and helps make the process better.</h2>
-        <p class="stack-p">
-          The Project Agent can create canvas state, connect blocks, use project
-          knowledge, and Test the result while you watch. Where the process is
-          still unclear, an executable Sketch can do the work with declared
-          instructions and tool ceilings. Where the process is understood, use
-          narrower typed blocks.
-        </p>
+        <h2>Freestyle is the on-ramp, not the destination.</h2>
         <p class="stack-p">
           You rarely know the exact process up front, but you know useful work
-          when you see it. The canvas makes that reactive loop durable: ask,
-          watch, correct, and keep the result as project state rather than a
-          private prompt habit. Runs and transcripts remain available as
-          evidence for the next refinement.
-        </p>
-        <p class="stack-p">
-          Test mode lets you exercise representative inputs without committing
-          external writes. Review each step according to its declared
-          determinism and discretion. When the evidence supports it, narrow the
-          Sketch, add a validator, insert a human pause, or replace agent work
-          with a deterministic implementation.
+          when you see it. A sketch gives the agent room to produce that first
+          result while Functionary captures the prompt, tools, inputs, outputs,
+          and decisions behind it. Those captured runs are evidence.
         </p>
         <p>
-          Humans are first-class participants, not edge cases. Approval, manual
-          input, inspection, and review stay explicit wherever accountability
-          cannot be delegated.
+          Test mode exercises representative inputs without committing external
+          writes. When the evidence supports it, narrow the sketch: add a
+          schema, a validator, or a human pause, or replace agent work with a
+          deterministic block. Trust grows by removing dependence on
+          in-the-moment choices, not by banning the agent.
         </p>
       </div>
       <div class="snippet-wrap">
-        <FlowSnippet nodes={verifyFlow} caption="Repeated agent work can graduate into a narrower, typed flow." />
+        <FlowSnippet nodes={verifyFlow} caption="Repeated agent work graduates into a narrower, typed flow." />
       </div>
-    </div>
-  </section>
-
-  <!-- THE WEDGE -->
-  <section class="section">
-    <div class="container measure">
-      <Eyebrow>What's different</Eyebrow>
-      <h2>Plenty of tools draw the pipeline. Functionary shows the judgment inside it.</h2>
-      <p class="stack-p">
-        A visual canvas is table stakes — every automation tool has one, and
-        they all show you the same thing: the plumbing, what connects to what.
-        What they leave as a black box is the step where an agent made a call.
-        Functionary gives discretion a visible place and captures what the run
-        consumed, produced, and invoked. Extraction blocks can attach supporting
-        passages to structured findings; every successful block records its
-        execution lineage. The canvas becomes a place to improve the work, not
-        only a wiring diagram.
-      </p>
     </div>
   </section>
 
@@ -166,12 +118,10 @@ const notList = [
   <section class="section">
     <div class="container">
       <Eyebrow>Who it's for</Eyebrow>
-      <h2>Start with recurring work whose shape is clearer than its implementation.</h2>
+      <h2>Recurring work whose shape is clearer than its implementation.</h2>
       <p class="measure stack-p">
-        Functionary is for knowledge workers who can describe a useful outcome
-        but should not need to specify a complete program before they begin.
-        Start with an agent-backed sketch, learn from real Test runs, and invest
-        in formalization only where the work repeats and the evidence warrants it.
+        For knowledge workers who can describe a useful outcome but should not
+        have to specify a complete program before they begin.
       </p>
       <dl class="grid-3 sectors">
         {sectors.map(([term, desc]) => (
@@ -204,13 +154,13 @@ const notList = [
     <div class="container measure">
       <h2>Your process should outlive the prompt that started it.</h2>
       <p class="stack-p">
-        Flows are readable JSON. Project state and execution history live under
-        an operator-selected data root. Model providers and connectors are
-        explicit choices, so you can decide where information is allowed to go.
+        Flows are readable JSON. Project state and run history live under a
+        data root you choose. Model providers and connectors are explicit
+        choices, so you decide where information goes.
       </p>
       <div class="actions">
         <Button href="/how-it-works" variant="primary">See how it works</Button>
-        <Button href="/philosophy" variant="ghost">Read the philosophy</Button>
+        <Button href="/self-hosting" variant="ghost">Deployment posture</Button>
       </div>
     </div>
   </section>
@@ -223,8 +173,6 @@ const notList = [
   h1.display {
     margin-top: var(--s-16);
     max-width: 20ch;
-    /* Long tokens (e.g. "by-the-book") must never push past the viewport on
-       narrow phones — break + hyphenate before they overflow. */
     overflow-wrap: break-word;
     hyphens: auto;
   }
@@ -331,8 +279,6 @@ const notList = [
     }
   }
 
-  /* Small phones: ease the display down a touch so the headline never right-cuts
-     the lead and dots below it. */
   @media (max-width: 480px) {
     h1.display {
       font-size: clamp(2rem, 1rem + 6vw, 2.55rem);

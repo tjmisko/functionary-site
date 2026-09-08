@@ -6,7 +6,7 @@ import Footer from "../components/Footer.astro";
 interface Props {
   title?: string;
   description?: string;
-  /** Narrow editorial column (Philosophy, blog posts). */
+  /** Narrow editorial column (blog essays). */
   editorial?: boolean;
 }
 
@@ -16,7 +16,8 @@ const {
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
-const ogImage = new URL("/og.png", Astro.site).href;
+// No og.png exists yet; ship text-only social cards rather than a broken
+// image reference. Re-add og:image / twitter:image when the asset lands.
 ---
 
 <!doctype html>
@@ -44,11 +45,9 @@ const ogImage = new URL("/og.png", Astro.site).href;
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta property="og:image" content={ogImage} />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={ogImage} />
   </head>
   <body>
     <a href="#main" class="skip">Skip to content</a>
