@@ -34,9 +34,9 @@ export const siteScan: CanvasFlow = {
     { id: "map", kind: "jig", verb: "Map", mode: "one row at a time", foot: "12 rows · parallel · up to 4", col: 1, lane: 0, body: ["url", "fetch", "text", "issues"] },
     { id: "url", kind: "transform", verb: "Field", mode: "url", col: 1, lane: 0 },
     { id: "fetch", kind: "source", verb: "Source", title: "fetch the page", mode: "url", col: 2, lane: 0 },
-    { id: "text", kind: "transform", verb: "Format", mode: "html to text", col: 3, lane: 0 },
+    { id: "text", kind: "transform", verb: "Format", mode: "html → text", col: 3, lane: 0 },
     { id: "issues", kind: "block", verb: "Summarize", title: "issues on this page", col: 4, lane: 0 },
-    { id: "report", kind: "transform", verb: "Format", mode: "table to markdown", col: 5, lane: 0 },
+    { id: "report", kind: "transform", verb: "Format", mode: "table → markdown", col: 5, lane: 0 },
     { id: "digest", kind: "block", verb: "Summarize", title: "digest across sites", col: 6, lane: 0 },
     { id: "review", kind: "gate", verb: "Review", title: "read before sending", col: 7, lane: 0 },
     { id: "write", kind: "egress", verb: "Write", title: "weekly scan", mode: "knowledge", col: 8, lane: 0 },
@@ -61,7 +61,7 @@ export const scanBody: CanvasFlow = {
     { id: "map", kind: "jig", verb: "Map", mode: "scan", foot: "one row in, one row out", col: 0, lane: 0, body: ["url", "fetch", "text", "issues"] },
     { id: "url", kind: "transform", verb: "Field", mode: "url", col: 0, lane: 0 },
     { id: "fetch", kind: "source", verb: "Source", title: "fetch the page", mode: "url", col: 1, lane: 0 },
-    { id: "text", kind: "transform", verb: "Format", mode: "html to text", col: 2, lane: 0 },
+    { id: "text", kind: "transform", verb: "Format", mode: "html → text", col: 2, lane: 0 },
     { id: "issues", kind: "block", verb: "Summarize", title: "issues on this page", col: 3, lane: 0 },
   ],
   edges: [
@@ -78,7 +78,7 @@ export const unchecked: CanvasFlow = {
   nodes: [
     { id: "doc", kind: "source", verb: "Source", title: "the filing", mode: "file", col: 0, lane: 0 },
     { id: "model", kind: "block", verb: "Model", title: "figures with quotes", extraction: true, col: 1, lane: 0 },
-    { id: "fmt", kind: "transform", verb: "Format", mode: "table to markdown", col: 2, lane: 0 },
+    { id: "fmt", kind: "transform", verb: "Format", mode: "table → markdown", col: 2, lane: 0 },
     { id: "write", kind: "egress", verb: "Write", title: "the model", mode: "knowledge", col: 3, lane: 0 },
   ],
   edges: [
@@ -116,7 +116,7 @@ export const checkCitations: CanvasFlow = {
     { id: "edit", kind: "gate", verb: "Review", title: "fix the claim list", mode: "edit", col: 2, lane: 0 },
     { id: "map", kind: "jig", verb: "Map", mode: "each claim, each source", foot: "38 pairs · parallel", col: 3, lane: 0, body: ["fetch", "text", "stance", "quote"] },
     { id: "fetch", kind: "source", verb: "Source", title: "fetch the source", mode: "url", col: 3, lane: 0 },
-    { id: "text", kind: "transform", verb: "Format", mode: "html to text", col: 4, lane: 0 },
+    { id: "text", kind: "transform", verb: "Format", mode: "html → text", col: 4, lane: 0 },
     { id: "stance", kind: "block", verb: "Judge", title: "supports or contradicts", mode: "stance", col: 5, lane: 0 },
     { id: "quote", kind: "gate", verb: "Check", title: "quote is on the page", mode: "quote", col: 6, lane: 0 },
     { id: "agg", kind: "transform", verb: "Aggregate", mode: "per claim", col: 7, lane: 0 },
