@@ -1,0 +1,134 @@
+---
+import { originLabel, type Origin } from "../lib/flow";
+
+/**
+ * A run result as the product shows it: one row per item, every cell with its
+ * origin, and failures kept as rows rather than dropped.
+ */
+interface Cell {
+  text: string;
+  origin?: Origin;
+  /** A failed or missing cell: drawn as a status, not a blank. */
+  status?: "failed" | "missing";
+}
+interface Props {
+  columns: string[];
+  rows: Cell[][];
+  caption?: string;
+  /** Column index that carries the receipt hash, drawn in mono. */
+  mono?: number[];
+}
+const { columns, rows, caption, mono = [] } = Astro.props;
+---
+
+<figure class="run">
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>{columns.map((c) => <th>{c}</th>)}</tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr>
+            {r.map((cell, i) => (
+              <td class:list={[{ mono: mono.includes(i), failed: cell.status === "failed", missing: cell.status === "missing" }]}>
+                {cell.status === "failed" ? (
+                  <span class="st">failed</span>
+                ) : cell.status === "missing" ? (
+                  <span class="st">not found</span>
+                ) : (
+                  cell.text
+                )}
+                {cell.origin && <span class={`org org-${cell.origin}`} title={originLabel[cell.origin]} />}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+  .run {
+    margin: 0;
+  }
+  .scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border-0);
+    border-radius: var(--r-8);
+    background: var(--bg-1);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--fs-12);
+    min-width: 560px;
+  }
+  th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: var(--fs-10);
+    font-weight: 600;
+    color: var(--fg-2);
+    padding: var(--s-8) var(--s-12);
+    border-bottom: 1px solid var(--border-1);
+    background: var(--bg-1);
+    white-space: nowrap;
+  }
+  td {
+    padding: var(--s-8) var(--s-12);
+    border-bottom: 1px solid var(--border-0);
+    color: var(--fg-1);
+    vertical-align: top;
+    position: relative;
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  td.mono {
+    font-family: var(--font-mono);
+    font-size: var(--fs-11);
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+  .st {
+    font-family: var(--font-mono);
+    font-size: var(--fs-10);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  td.failed .st {
+    color: var(--danger);
+  }
+  td.missing .st {
+    color: var(--warn);
+  }
+  .org {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-left: 8px;
+    vertical-align: middle;
+    background: var(--border-1);
+  }
+  .org-sourced {
+    background: var(--cat-source);
+  }
+  .org-generated {
+    background: var(--cat-synthesis);
+  }
+  .org-verified {
+    background: var(--success);
+  }
+  .org-reviewed {
+    background: var(--cat-human);
+  }
+  figcaption {
+    margin-top: var(--s-12);
+    font-size: var(--ms-small);
+    color: var(--fg-2);
+  }
+</style>

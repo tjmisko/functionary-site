@@ -33,6 +33,11 @@
   --measure-prose: 42rem; /* ~680px reading column */
   --measure-narrow: 36rem; /* editorial (posts) */
   --container: 1120px;
+
+  /* The Agent kind (D135) has no token in the vendored canvas file yet; the
+     block-ontology reference rendering uses this value. Remove when tokens.css
+     is re-vendored with --cat-agent. */
+  --cat-agent: rgba(214, 92, 171, 0.9);
 }
 
 /* =========================================================
@@ -130,6 +135,10 @@ p,
   max-width: var(--container);
   margin-inline: auto;
   padding-inline: var(--s-24);
+}
+
+.container.wide {
+  max-width: 1400px;
 }
 
 .section {

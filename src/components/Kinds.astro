@@ -1,0 +1,176 @@
+---
+import { kindCategory, type Kind } from "../lib/flow";
+
+/**
+ * The seven kinds of step (D135) with the verbs under each. Verbs that run
+ * on the integration branch today are plain; the rest are decided and
+ * marked. The colour map is the decided one (F104.25); the canvas does not
+ * paint cards by kind yet, which the page says in the caption.
+ */
+interface Verb {
+  name: string;
+  built?: boolean;
+}
+const kinds: { kind: Kind; label: string; job: string; verbs: Verb[] }[] = [
+  { kind: "source", label: "Source", job: "data in", verbs: [{ name: "Source", built: true }] },
+  {
+    kind: "block",
+    label: "Block",
+    job: "a judgement a model makes",
+    verbs: [
+      { name: "Summarize", built: true },
+      { name: "Search", built: true },
+      { name: "Judge" },
+      { name: "Model" },
+      { name: "Quote" },
+      { name: "Compare" },
+      { name: "Draft" },
+    ],
+  },
+  { kind: "agent", label: "Agent", job: "the one free-form step", verbs: [{ name: "Sketch agent" }] },
+  {
+    kind: "transform",
+    label: "Transform",
+    job: "pure work, no model",
+    verbs: [
+      { name: "Format", built: true },
+      { name: "Template", built: true },
+      { name: "Select" },
+      { name: "Filter" },
+      { name: "Sort" },
+      { name: "Mutate" },
+      { name: "Aggregate" },
+      { name: "Join" },
+      { name: "Stack" },
+      { name: "Reshape" },
+      { name: "Coalesce" },
+    ],
+  },
+  {
+    kind: "jig",
+    label: "Jig",
+    job: "the visible loop or branch",
+    verbs: [
+      { name: "Map", built: true },
+      { name: "Repeat", built: true },
+      { name: "Refine", built: true },
+      { name: "Retry", built: true },
+      { name: "Branch", built: true },
+      { name: "Replicate" },
+    ],
+  },
+  {
+    kind: "gate",
+    label: "Gate",
+    job: "decides whether a value goes on",
+    verbs: [{ name: "Review", built: true }, { name: "Check" }, { name: "Declassify" }, { name: "Redact" }],
+  },
+  { kind: "egress", label: "Egress", job: "data out", verbs: [{ name: "Write", built: true }, { name: "Notify" }, { name: "Apply" }] },
+];
+---
+
+<div class="kinds">
+  {
+    kinds.map((k) => (
+      <div class="kind" style={`--tint: ${kindCategory[k.kind]}`}>
+        <div class="head">
+          <span class="swatch" aria-hidden="true" />
+          <span class="name">{k.label}</span>
+          <span class="job">{k.job}</span>
+        </div>
+        <ul>
+          {k.verbs.map((v) => (
+            <li class:list={{ designed: !v.built }}>{v.name}</li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
+</div>
+<p class="key">
+  <span class="k built">runs today</span>
+  <span class="k designed">decided, not yet built</span>
+</p>
+
+<style>
+  .kinds {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: var(--s-12);
+  }
+  .kind {
+    border: 1px solid var(--border-0);
+    border-top: 2px solid var(--tint);
+    border-radius: var(--r-8);
+    background: var(--bg-1);
+    padding: var(--s-12) var(--s-14) var(--s-14);
+  }
+  .head {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 8px;
+    align-items: center;
+  }
+  .swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tint);
+  }
+  .name {
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    font-weight: 700;
+    color: var(--fg-0);
+  }
+  .job {
+    grid-column: 2;
+    font-size: var(--fs-11);
+    color: var(--fg-2);
+  }
+  ul {
+    list-style: none;
+    margin: var(--s-12) 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  li {
+    font-family: var(--font-mono);
+    font-size: var(--fs-11);
+    color: var(--fg-0);
+    background: var(--bg-3);
+    border: 1px solid var(--border-1);
+    border-radius: var(--r-4);
+    padding: 2px 7px;
+  }
+  li.designed {
+    color: var(--fg-2);
+    background: transparent;
+    border-style: dashed;
+  }
+  .key {
+    margin-top: var(--s-12);
+    display: flex;
+    gap: var(--s-16);
+    font-family: var(--font-mono);
+    font-size: var(--fs-10);
+    color: var(--fg-2);
+  }
+  .k::before {
+    content: "";
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 6px;
+    vertical-align: -1px;
+    background: var(--bg-3);
+    border: 1px solid var(--border-1);
+  }
+  .k.designed::before {
+    background: transparent;
+    border-style: dashed;
+  }
+</style>
