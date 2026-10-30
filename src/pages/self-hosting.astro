@@ -1,141 +1,133 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Eyebrow from "../components/Eyebrow.astro";
 import Button from "../components/Button.astro";
-import Pillar from "../components/Pillar.astro";
-import CodeBlock from "../components/CodeBlock.astro";
 
-const pillars = [
-  {
-    eyebrow: "Files",
-    title: "Flows are files",
-    body: "A flow is readable, pretty-printed JSON. Read it, diff it, commit it, and edit it outside the canvas without converting from a proprietary project format.",
-  },
-  {
-    eyebrow: "State",
-    title: "A data root you choose",
-    body: "Flow files, artifacts, execution history, and other runtime state live beneath an operator-selected local data root, as JSON files and local databases.",
-  },
-  {
-    eyebrow: "Egress",
-    title: "Connections are choices",
-    body: "Model providers and connectors determine what leaves the machine. Ollama provides a local inference path; remote models and external connectors transmit the inputs they need.",
-  },
+const readers = [
+  ["Mail and calendar", "Gmail, Outlook, IMAP, Google Calendar"],
+  ["Files", "Google Drive, OneDrive"],
+  ["Chat and meetings", "Slack, Teams, Zoom"],
+  ["Project tools", "Jira, Asana, Linear, Notion"],
+  ["CRM and finance", "Salesforce, HubSpot, Stripe, QuickBooks, DocuSign"],
+  ["Databases", "Airtable; Postgres and MySQL are declared, with drivers still to wire"],
 ];
 ---
 
 <BaseLayout
-  title="Deployment — Functionary"
-  description="Functionary keeps flows readable and runtime state under an operator-selected data root, with explicit choices for model and connector egress."
+  title="Deployment. Functionary"
+  description="Where Functionary runs, what leaves the machine, and what is not yet available: no packaged build, no hosted service, licensing undecided."
 >
-  <!-- HEADER -->
-  <section class="section">
+  <section class="section first">
     <div class="container measure">
-      <Eyebrow>Deployment</Eyebrow>
-      <h1>Own the process. Choose the data boundary.</h1>
-      <p class="lead measure">
-        Functionary is built for operator-controlled deployment. Today the
-        repository runs locally for development; a packaged self-hosting build
-        and a hosted service are not yet available. The ownership model is
-        already concrete: readable flow files and local runtime state.
+      <h1>Where it runs, and what leaves.</h1>
+      <p class="lead">
+        Functionary is built to run on a machine you control. Today the
+        repository runs locally for development. There is no packaged build,
+        no hosted service, and the license is not yet decided. What follows is
+        the shape of the thing, not an install guide.
       </p>
     </div>
   </section>
 
-  <!-- IT'S JUST A FILE -->
   <section class="section">
     <div class="container measure">
-      <Eyebrow>It's just a file</Eyebrow>
-      <h2>A flow is readable JSON, not an opaque project format.</h2>
+      <h2>A flow is a source file in a project.</h2>
       <p class="stack-p">
-        No vendor database holds your process. A flow is nodes and edges in
-        pretty-printed JSON. Read it, diff it in review, commit it alongside the
-        rest of your code, and edit it with ordinary file tools.
-      </p>
-      <CodeBlock file="flow.json">{`{
-  "name": "Research brief",
-  "version": "1.0.0",
-  "nodes": [
-    {
-      "id": "regularize-1",
-      "block_type": {
-        "block_type": "regularize",
-        "accepted_formats": ["pdf", "html", "txt"]
-      },
-      "position": { "x": 0, "y": 0 }
-    },
-    {
-      "id": "extract-1",
-      "block_type": {
-        "block_type": "extract_insights",
-        "topics": ["changes", "risks"]
-      },
-      "position": { "x": 240, "y": 0 }
-    }
-  ],
-  "edges": [
-    {
-      "id": "e1",
-      "source": "regularize-1",
-      "target": "extract-1",
-      "verified": true
-    }
-  ]
-}`}</CodeBlock>
-    </div>
-  </section>
-
-  <!-- PILLARS -->
-  <section class="section">
-    <div class="container">
-      <Eyebrow>Files · State · Egress</Eyebrow>
-      <h2>Ownership is a property of the architecture, not a clause.</h2>
-      <div class="grid-3">
-        {pillars.map((p) => <Pillar eyebrow={p.eyebrow} title={p.title}>{p.body}</Pillar>)}
-      </div>
-    </div>
-  </section>
-
-  <!-- CONTROL BY DESIGN -->
-  <section class="section">
-    <div class="container measure">
-      <Eyebrow>Control by design</Eyebrow>
-      <h2>Local state does not mean no egress. The boundary is explicit.</h2>
-      <p class="stack-p">
-        Flow files and local databases stay on disk without a network, and
-        telemetry export is off by default. A configured model provider or
-        connector still uses the network. Choose Ollama or model-free blocks
-        when inference must stay local; PII checks can block a step, and
-        output policies can redact or hash matching fields.
+        Each flow is one file in a fixed subset of Rust, kept with its project.
+        The canvas is drawn from it and edits are written back to it. Every
+        save is an immutable revision with a content hash, and a run binds to
+        the exact revision it executed. You can read the source, but the
+        product is built so that you never have to.
       </p>
       <p>
-        Connector credentials are encrypted at rest when a key management
-        service is configured. Without one, the server warns at startup that
-        credentials are stored in plaintext. Deployed builds require a local
-        application account and session.
+        Run history, receipts, run tables and the knowledge base live under one
+        data directory. Canvas positions, titles and colours are layout, kept
+        separately from the flow's meaning.
       </p>
     </div>
   </section>
 
-  <!-- CTA -->
+  <section class="section">
+    <div class="container measure">
+      <h2>Egress is a list of steps you can read.</h2>
+      <p class="stack-p">
+        Nothing leaves the machine except through a step on the canvas. A
+        Source fetches a URL or reads from a connected system. A block calls
+        the model you connected to it. A Write puts a value somewhere. Each
+        of those is a card you can see before you run, and each leaves a
+        receipt after.
+      </p>
+      <p class="stack-p">
+        Test withholds the writes. It does not withhold the reads or the model
+        calls, because a dry run that skips them would not tell you anything.
+        If a step must not reach a remote model, it says so, and a value
+        labelled as local is refused at that step before it is sent.
+      </p>
+      <p>
+        The agents inside blocks run on one vetted model through a provider
+        configured to retain nothing. Telemetry export is off unless you
+        configure an endpoint.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="measure">
+        <h2>Read from the systems you already have.</h2>
+        <p class="stack-p">
+          A Source can read from twenty-one systems. The readers are read-only
+          and tested against recorded responses. Writing back to these systems
+          is decided and not yet built.
+        </p>
+      </div>
+      <dl class="readers">
+        {readers.map(([k, v]) => (
+          <div>
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container measure">
+      <h2>One person, or an organization.</h2>
+      <p class="stack-p">
+        A personal workspace has one person who creates, edits, runs and
+        reviews, with no roles. A governed workspace names editors, runners,
+        reviewers and administrators, decides whether agents may Run as well
+        as Test, and will be able to require an approved revision before an
+        unattended run once that gate is wired in. Organization rules only constrain a setting; they never supply
+        its value.
+      </p>
+      <p>
+        Agents hold their own credentials. An agent is never a flow's owner,
+        never deletes one, and never approves a revision.
+      </p>
+    </div>
+  </section>
+
   <section class="section cta">
     <div class="container measure">
-      <h2>Portability starts with a process you can read.</h2>
+      <h2>Not yet available.</h2>
       <p class="stack-p">
-        Flows live outside a proprietary project format, and runtime state
-        stays under a path the operator selects. Distribution and licensing
-        terms are still being settled and will land here when they are.
+        The new backend is on an integration branch and has not landed. When
+        it does, this page will say how to run it and under what terms.
       </p>
       <div class="actions">
-        <Button href="/how-it-works" variant="primary">See how it works</Button>
+        <Button href="/how-it-works" variant="primary">See one job end to end</Button>
       </div>
     </div>
   </section>
 </BaseLayout>
 
 <style>
+  .first {
+    border-top: none;
+  }
   h1 {
-    margin-top: var(--s-16);
     max-width: 22ch;
   }
   .lead {
@@ -150,27 +142,34 @@ const pillars = [
   .section p {
     margin-top: var(--s-16);
   }
-
-  .grid-3 {
-    margin-top: var(--s-40);
+  .readers {
+    margin-top: var(--s-32);
     display: grid;
-    gap: var(--s-20);
     grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-20);
   }
-
+  .readers dt {
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    font-weight: 700;
+    color: var(--fg-0);
+  }
+  .readers dd {
+    margin: var(--s-4) 0 0;
+    color: var(--fg-2);
+    font-size: var(--ms-small);
+  }
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: var(--s-12);
     margin-top: var(--s-32);
   }
-
   .cta {
     background: var(--bg-1);
   }
-
   @media (max-width: 860px) {
-    .grid-3 {
+    .readers {
       grid-template-columns: 1fr;
     }
   }

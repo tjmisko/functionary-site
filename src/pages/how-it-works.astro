@@ -1,186 +1,219 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Eyebrow from "../components/Eyebrow.astro";
 import Button from "../components/Button.astro";
-import FlowSnippet from "../components/FlowSnippet.astro";
-import BlockCard from "../components/BlockCard.astro";
-import CodeBlock from "../components/CodeBlock.astro";
-import Chip from "../components/Chip.astro";
-import { type BlockCategory } from "../lib/flow";
+import Canvas from "../components/Canvas.astro";
+import FlowSource from "../components/FlowSource.astro";
+import RunTable from "../components/RunTable.astro";
+import { siteScan, checkCitations, bestOfN } from "../lib/flows";
 
-const gateFlow: { label: string; category: BlockCategory }[] = [
-  { label: "Summarize", category: "synthesis" },
-  { label: "Gate", category: "control" },
-  { label: "Send", category: "action" },
+const steps = [
+  {
+    title: "Start from what you have.",
+    body: "A list of URLs in a table, a folder of documents, a file. There is no blank canvas to fill. You describe the job in plain terms to the agent and point it at the inputs.",
+  },
+  {
+    title: "The agent drafts the flow.",
+    body: "It can only place steps from the catalog and wire them. It cannot write a loop, read a file on the side, or hard-code a value. If it tries, the save is refused with a diagnostic naming the construct, and the canvas keeps the last accepted flow.",
+  },
+  {
+    title: "Read the canvas.",
+    body: "Every card is a step and every wire carries one typed value. The canvas is derived from the source, so what you see is the program. You rename a step, change a setting, delete one, or ask the agent for a change. You never need to open the source.",
+  },
+  {
+    title: "Run it as a Test.",
+    body: "Everything runs: the fetches, the model calls, the loops. The writes are withheld and come back as dry-run receipts. When the Test looks right, you escalate it to a Run without repeating the work.",
+  },
+  {
+    title: "Look at every row.",
+    body: "The run inspector lists each step's outcome, one per occurrence inside a loop. A page that refused the fetch is a failed row with its cause. A step that never ran says it did not run. Nothing is dropped to make the table look clean.",
+  },
+  {
+    title: "Review where you choose.",
+    body: "A Review card holds the run until a person answers. The run parks durably, for a minute or a week, and nothing else moves until the answer comes. The decision is a receipt, keyed to the inputs behind the output, so an approval cannot slide onto a different result.",
+  },
+  {
+    title: "Run it again next week.",
+    body: "Same flow, new inputs. A fix you made to one step is in the flow, not in your memory. When the flow starts to carry weight, pin the tables it reads and name who reviews it.",
+  },
 ];
+
+const reviewSource = `fn flow() {
+    let draft = Summarize::new(one_digest).input(report.text);
+    // Execution parks here until a person answers. The answer is a receipt.
+    let read  = Review::new(before_it_goes_out).input(draft.text);
+    let saved = Write::new(weekly_scan).input(read.text);
+}`;
 ---
 
 <BaseLayout
-  title="How it works — Functionary"
-  description="Describe the work, let the agent sketch and Test it visibly, then graduate repeated discretion into typed blocks, policies, and review."
+  title="How it works. Functionary"
+  description="One job end to end: an agent drafts a flow of trusted steps, you read the canvas, run it as a Test, inspect every row, review where you choose, and run it again."
 >
-  <!-- HEADER -->
-  <section class="section">
-    <div class="container">
-      <Eyebrow>How it works</Eyebrow>
-      <h1>Start with a result. Learn the process by running it.</h1>
-      <p class="lead measure">
-        Tell the agent what useful work looks like. It builds visible canvas
-        state and Tests the result while you watch. Captured runs show where
-        discretion helped and where it repeated, which is the evidence you need
-        to add types, policies, deterministic blocks, and human review.
-      </p>
-    </div>
-  </section>
-
-  <!-- 1. SKETCH → REFINE → FORMALIZE -->
-  <section class="section">
+  <section class="section first">
     <div class="container measure">
-      <Eyebrow>Sketch · Refine · Formalize</Eyebrow>
-      <h2>Formalization is a journey, not a prerequisite.</h2>
-      <p class="stack-p">
-        A Sketch gives a durable name, instructions, tools, and ceilings to work
-        that is not formalized yet. In Agent mode it can execute that work and
-        produce a first result. You do not have to specify everything before
-        you start, and the discretionary part does not disappear into a chat.
+      <h1>One job, end to end.</h1>
+      <p class="lead">
+        A weekly scan of a list of sites: fetch each page, summarize what
+        changed, roll the summaries into one digest, have a person read it,
+        write it down. Small enough to follow, and it runs today.
       </p>
-      <p class="stack-p">
-        Refine it as the process reveals itself. Add a schema once you know the
-        data's shape. Add a validator or a human pause where mistakes matter.
-        Replace a repeated choice with narrower blocks once the evidence shows
-        what the implementation should do.
-      </p>
-      <p>
-        The same project holds the first agent-backed attempt and the audited
-        workflow it becomes. Graduation is deliberate: you narrow discretion
-        when run and evaluation evidence support it.
-      </p>
+    </div>
+    <div class="container wide canvas-wrap">
+      <Canvas flow={siteScan} status="built" caption="Nine steps. One loop. One person." />
     </div>
   </section>
 
-  <!-- 2. BLOCKS, EFFECTS, PROVENANCE -->
   <section class="section">
     <div class="container">
-      <Eyebrow>Blocks · Effects · Provenance</Eyebrow>
-      <h2>Typed values, declared authority, recorded lineage.</h2>
-      <p class="measure stack-p">
-        Flows exchange typed values. Documents (text, Markdown, HTML, PDF) and
-        structured Records are the common payloads; blocks can declare more
-        specific contracts. A type mismatch renders as an unverified connection
-        on the canvas before anything runs.
-      </p>
-      <div class="cards">
-        <BlockCard
-          category="extraction"
-          name="Extract Insights"
-          effect="pure · nondeterministic · bounded"
-        />
-        <BlockCard category="action" name="Send" effect="external write · mechanical" />
-      </div>
-      <p class="measure stack-p">
-        Block signatures declare effects, determinism, and discretion. A pure
-        model call is different from a mechanical external write, and both are
-        different from an open-discretion Agent. Effects propagate through the
-        graph, so authority is visible before a run.
-      </p>
-      <p class="measure stack-p">
-        Every successful block output carries append-only lineage: block, input
-        IDs, time, configuration hash, and model or prompt hashes where they
-        apply. Extraction blocks additionally attach source passages to their
-        structured findings.
-      </p>
-      <div class="prov measure">
-        <CodeBlock file="provenance.json">{`"provenance": [
-  {
-    "block_id": "extract-3",
-    "inputs": ["79aa04cc-…"],
-    "timestamp": "2026-08-25T14:02:11Z",
-    "config_hash": "sha256:…",
-    "model": "configured-provider-model",
-    "prompt_hash": "sha256:…"
-  }
-]`}</CodeBlock>
-      </div>
+      <ol class="steps">
+        {steps.map((s) => (
+          <li>
+            <h2>{s.title}</h2>
+            <p>{s.body}</p>
+          </li>
+        ))}
+      </ol>
     </div>
   </section>
 
-  <!-- 3. HUMANS ARE FIRST-CLASS -->
   <section class="section">
     <div class="container split">
       <div class="measure">
-        <Eyebrow>Humans are first-class</Eyebrow>
-        <h2>Some judgments are not delegable.</h2>
+        <h2>What a run leaves behind.</h2>
         <p class="stack-p">
-          Human pauses cover different jobs: approval, schema-defined input,
-          inspection, review, and handoff. The flow holds at that step and
-          resumes only through the corresponding human action, never by
-          inventing the missing decision.
+          A run pins what it will execute when it starts: the flow revision,
+          every block version, the table revisions it reads. Each step's
+          result is recorded against its path, so a step inside a loop has one
+          result per row. If the server dies halfway, the run resumes from its
+          receipts and does not ask the model again.
         </p>
         <p>
-          A waiting step carries the <Chip state="needs-input" /> chip on the
-          canvas, so the held decision is visible, not buried.
+          Results sit in run tables you can read. Committing one to the
+          knowledge base makes an immutable revision that outlives the run,
+          with every outcome it depends on pinned, and marked partial if any
+          cell failed.
         </p>
       </div>
-      <div class="snippet-wrap">
-        <FlowSnippet
-          nodes={gateFlow}
-          caption="A Gate holds for approval between summarizing and sending."
+      <div>
+        <RunTable
+          columns={["path", "step", "status", "receipt"]}
+          mono={[0, 3]}
+          rows={[
+            [{ text: "/map/0/issues" }, { text: "Summarize" }, { text: "complete", origin: "generated" }, { text: "sha256:3c7e…" }],
+            [{ text: "/map/1/issues" }, { text: "Summarize" }, { text: "complete", origin: "generated" }, { text: "sha256:b219…" }],
+            [{ text: "/map/2/fetch" }, { text: "Source" }, { text: "", status: "failed" }, { text: "sha256:e04a…" }],
+            [{ text: "/map/2/issues" }, { text: "Summarize" }, { text: "did not run", origin: "computed" }, { text: "" }],
+            [{ text: "/review" }, { text: "Review" }, { text: "approved", origin: "reviewed" }, { text: "sha256:9d10…" }],
+            [{ text: "/write" }, { text: "Write" }, { text: "dry run", origin: "reviewed" }, { text: "sha256:51f2…" }],
+          ]}
+          caption="Outcomes by occurrence path from a Test. Row 2's fetch failed, so its summary did not run; the Write was withheld."
         />
       </div>
     </div>
   </section>
 
-  <!-- 4. TEST BEFORE PRODUCTION -->
   <section class="section">
-    <div class="container measure">
-      <Eyebrow>Test before Production</Eyebrow>
-      <h2>External effects require a deliberate handoff.</h2>
-      <p class="stack-p">
-        Test is the default run mode. Use representative or real inputs while
-        durable external writes are stubbed, and inspect the graph, results,
-        effects, and review points before granting authority.
-      </p>
-      <p>
-        Production approval is pinned to the exact flow snapshot you reviewed
-        and is valid for that run. The agent can build and Test, but it cannot
-        approve a Production run on your behalf.
-      </p>
+    <div class="container split">
+      <div class="measure">
+        <h2>A person is a step.</h2>
+        <p class="stack-p">
+          Review is a gate on the canvas like any other card. It takes a value
+          and either lets it through or stops it, and the flow cannot invent
+          the missing answer. You put one where the judgement is yours: before
+          a write leaves the machine, on a sample of merged records, on a
+          claim the model graded low.
+        </p>
+        <p>
+          An agent can draft and Test a flow in your name. By default it
+          cannot Run one, and it never approves on your behalf.
+        </p>
+      </div>
+      <div>
+        <FlowSource code={reviewSource} file="weekly-scan.rs" />
+      </div>
     </div>
   </section>
 
-  <!-- 5. ERRORS PRODUCE DURABLE FIXES -->
   <section class="section">
-    <div class="container measure">
-      <Eyebrow>Errors produce durable fixes</Eyebrow>
-      <h2>A mistake becomes evidence for a change.</h2>
-      <p class="stack-p">
-        When a flow fails, the run identifies the block and the reason, and the
-        run record keeps the investigation attached to the process instead of a
-        private chat.
-      </p>
-      <p>
-        You or the agent make a targeted change and Test the new snapshot.
-        History records who changed what and when, with conversation linkage
-        for agent-authored edits.
-      </p>
+    <div class="container">
+      <div class="measure">
+        <h2>Where this is going.</h2>
+        <p class="stack-p">
+          The block ontology decided on 29 October 2026 adds the steps that
+          carry the contamination argument all the way through: origin on
+          every wire, Check as a deterministic gate, Quote and Model as the
+          blocks that harvest from sources with an anchor back to the exact
+          passage, and named compositions you insert as one step. Two of them,
+          drawn as designed.
+        </p>
+      </div>
+      <div class="designed">
+        <Canvas
+          flow={checkCitations}
+          legend
+          status="designed"
+          caption="Check the citations in a pasted answer. Each quote is verified as a substring of the page it came from; the knowledge base will refuse anything that is not."
+        />
+        <Canvas
+          flow={bestOfN}
+          legend
+          status="designed"
+          caption="Best of N. Three drafts from different models, one chosen with a stated reason, one editor."
+        />
+      </div>
     </div>
   </section>
 
-  <!-- CLOSE -->
   <section class="section">
     <div class="container measure">
-      <Button href="/self-hosting" variant="ghost">Read the deployment posture</Button>
+      <Button href="/self-hosting" variant="ghost">Deployment</Button>
     </div>
   </section>
 </BaseLayout>
 
 <style>
+  .first {
+    border-top: none;
+  }
   h1 {
-    margin-top: var(--s-16);
     max-width: 22ch;
   }
   .lead {
     margin-top: var(--s-24);
+  }
+  .canvas-wrap {
+    margin-top: var(--s-40);
+  }
+
+  .steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+    display: grid;
+    gap: var(--s-32);
+    max-width: var(--measure-prose);
+  }
+  .steps li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 3ch 1fr;
+    column-gap: var(--s-16);
+  }
+  .steps li::before {
+    content: counter(step);
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    color: var(--fg-3);
+    padding-top: 0.35em;
+  }
+  .steps h2 {
+    grid-column: 2;
+    max-width: none;
+  }
+  .steps p {
+    grid-column: 2;
+    margin-top: var(--s-8);
   }
 
   h2 {
@@ -192,33 +225,25 @@ const gateFlow: { label: string; category: BlockCategory }[] = [
   .section p {
     margin-top: var(--s-16);
   }
-
-  .cards {
-    margin-top: var(--s-32);
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-16);
-  }
-  .prov {
-    margin-top: var(--s-24);
-  }
-
   .split {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
     gap: var(--s-40);
-    align-items: center;
+    align-items: start;
   }
-  .snippet-wrap {
-    background: var(--bg-1);
-    border: 1px solid var(--border-0);
-    border-radius: var(--r-10);
-    padding: var(--s-32) var(--s-24);
+  .designed {
+    margin-top: var(--s-40);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-40);
+  }
+  .split > div {
+    min-width: 0;
   }
 
   @media (max-width: 860px) {
     .split {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 </style>
