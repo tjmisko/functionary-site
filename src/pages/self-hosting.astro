@@ -21,8 +21,8 @@ const readers = [
       <h1>Deployment</h1>
       <p class="lead">
         Functionary runs on a machine you control. Flows, runs, receipts and
-        the knowledge base stay where you put them, and everything that leaves
-        is a step you can see on the canvas.
+        results stay where you put them. Everything that leaves is a step you
+        can see on the canvas.
       </p>
     </div>
   </section>
@@ -31,16 +31,14 @@ const readers = [
     <div class="container measure">
       <h2>Flows are source files</h2>
       <p class="stack-p">
-        Each flow is one file in a fixed subset of Rust, kept with its project.
-        The canvas is drawn from it and edits are written back to it. Every
-        save is an immutable revision with a content hash, and a run binds to
-        the exact revision it executed. You can read the source, but the
-        product is built so that you never have to.
+        Each flow is one file, kept with its project. The canvas is drawn
+        from it and edits are written back. Every save is a revision with a
+        content hash, and a run binds to the exact revision it executed. You
+        can read the file, but you never have to.
       </p>
       <p>
         Run history, receipts, run tables and the knowledge base live under one
-        data directory. Canvas positions, titles and colours are layout, kept
-        separately from the flow's meaning.
+        data directory.
       </p>
     </div>
   </section>
@@ -49,22 +47,20 @@ const readers = [
     <div class="container measure">
       <h2>What leaves the machine</h2>
       <p class="stack-p">
-        Nothing leaves the machine except through a step on the canvas. A
-        Source fetches a URL or reads from a connected system. A block calls
-        the model you connected to it. A Write puts a value somewhere. Each
-        of those is a card you can see before you run, and each leaves a
-        receipt after.
+        Nothing leaves except through a step on the canvas. A Source fetches a
+        URL or reads a connected system. A block calls the model you connected
+        to it. A Write puts a value somewhere. Each is a card you can see
+        before you run and a receipt after.
       </p>
       <p class="stack-p">
-        Test withholds the writes. It does not withhold the reads or the model
-        calls, because a dry run that skips them would not tell you anything.
-        If a step must not reach a remote model, it says so, and a value
-        labelled as local is refused at that step before it is sent.
+        Test holds back the writes. It does not hold back the reads or the
+        model calls, because a dry run that skipped them would tell you
+        nothing. A value labelled local is refused at any step that would send
+        it to a remote model.
       </p>
       <p>
-        The agents inside blocks run on one vetted model through a provider
-        configured to retain nothing. Telemetry export is off unless you
-        configure an endpoint.
+        Blocks run on one vetted model through a provider configured to retain
+        nothing. Telemetry is off unless you configure an endpoint.
       </p>
     </div>
   </section>
@@ -74,8 +70,8 @@ const readers = [
       <div class="measure">
         <h2>Connected systems</h2>
         <p class="stack-p">
-          A Source reads from twenty-one systems. Each read is a step on the
-          canvas with a receipt behind it.
+          A Source reads from these systems. Each read is a step on the canvas
+          with a receipt behind it.
         </p>
       </div>
       <dl class="readers">
@@ -93,16 +89,15 @@ const readers = [
     <div class="container measure">
       <h2>Workspaces</h2>
       <p class="stack-p">
-        A personal workspace has one person who creates, edits, runs and
+        A personal workspace is one person who creates, edits, runs and
         reviews, with no roles. A governed workspace names editors, runners,
         reviewers and administrators, decides whether agents may Run as well
         as Test, and can require an approved revision before an unattended
-        run. Organization rules only constrain a setting; they never supply
-        its value.
+        run.
       </p>
       <p>
-        Agents hold their own credentials. An agent is never a flow's owner,
-        never deletes one, and never approves a revision.
+        Agents hold their own credentials. An agent never owns a flow, never
+        deletes one, and never approves a revision.
       </p>
     </div>
   </section>
@@ -111,9 +106,8 @@ const readers = [
     <div class="container measure">
       <h2>Distribution</h2>
       <p class="stack-p">
-        Flows are source files in your project. Runs, receipts and the
-        knowledge base live under one data directory. Distribution and
-        licensing terms land here when they are settled.
+        Distribution and licensing terms will be posted here when they are
+        settled.
       </p>
       <div class="actions">
         <Button href="/how-it-works" variant="primary">How it works</Button>

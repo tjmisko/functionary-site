@@ -11,18 +11,18 @@ import { siteScan, scanBody, unchecked, checked } from "../lib/flows";
 const tasks = [
   {
     name: "Report QC",
-    what: "Check a finished report against every source it cites and surface the inconsistencies.",
-    failure: "An inconsistency the QC itself missed because it sampled.",
+    what: "Check a finished report against every source it cites. Surface what does not hold.",
+    failure: "An error the check missed because it sampled.",
   },
   {
     name: "Source Validation",
-    what: "Find candidate sources on a topic, grade each against five criteria, keep what passes.",
-    failure: "An irrelevant source that slipped the criteria.",
+    what: "Find candidate sources on a topic, grade each against your criteria, keep what passes.",
+    failure: "A weak source that slipped the criteria.",
   },
   {
     name: "Dataset Assembly",
-    what: "Pull figures from filings and data vendors into one model, every cell traceable to its figure.",
-    failure: "A number that no longer matches its source after an update.",
+    what: "Pull figures from filings and data vendors into one model, each cell traceable to its figure.",
+    failure: "A number that no longer matches its source.",
   },
   {
     name: "Evidence Combing",
@@ -36,7 +36,7 @@ const tasks = [
   },
   {
     name: "Document Revision",
-    what: "Take in a draft, gather what bears on it, and propose the changes as a redline.",
+    what: "Take a draft, gather what bears on it, and propose the changes as a redline.",
     failure: "A change nobody can trace to a reason.",
   },
 ];
@@ -53,12 +53,11 @@ const scanSource = `fn scan(row: Row) -> Scanned {
 <BaseLayout>
   <section class="hero">
     <div class="container">
-      <h1 class="display">Hand the work to agents. Keep the process in view.</h1>
+      <h1 class="display">Delegate the research. Stand behind the result.</h1>
       <p class="lead measure">
-        Functionary is for research and analysis that an agent could do and
-        that you are on the hook for. An agent writes the process as a flow of
-        trusted steps. The flow is the program. You read it, run it, and fix
-        the step that was wrong.
+        Functionary runs research and analysis as a flow of steps you can
+        read. An agent drafts the flow. You check it, run it, and see where
+        each result came from.
       </p>
       <div class="actions">
         <Button href="/how-it-works" variant="primary">How it works</Button>
@@ -67,22 +66,18 @@ const scanSource = `fn scan(row: Row) -> Scanned {
     </div>
     <div class="container wide hero-canvas">
       <Canvas flow={siteScan} run bare />
-      <p class="desktop-note">The canvas is a desktop tool. The argument reads fine here; the product does not.</p>
+      <p class="desktop-note">Functionary is a desktop tool. The canvas is best read on a larger screen.</p>
     </div>
   </section>
 
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>Control, not capability</h2>
+        <h2>What it does</h2>
         <p class="stack-p">
-          The work is the kind an early-career consultant, research assistant
-          or analyst does, and models have been able to do it for a couple of
-          years. What they cannot give you is a process you can see: dozens to
-          hundreds of steps, done the way you meant, the same way next week,
-          with the record to show it. The person whose name goes on the result
-          has no view of what happened below. That is why research shops pay
-          for footnote checks and for replications of their own work.
+          The jobs an analyst, research assistant or junior consultant spends
+          days on. Each is dozens of small steps. None is hard. Any of them
+          can go wrong without anyone noticing.
         </p>
       </div>
       <ul class="tasks">
@@ -90,37 +85,30 @@ const scanSource = `fn scan(row: Row) -> Scanned {
           <li>
             <span class="task-name">{t.name}</span>
             <p class="task-what">{t.what}</p>
-            <p class="task-fail"><span>The failure</span>{t.failure}</p>
+            <p class="task-fail"><span>What goes wrong</span>{t.failure}</p>
           </li>
         ))}
       </ul>
-      <p class="measure after">
-        Maybe an agent plus an adversarial review loop never gets anything
-        wrong. Maybe the mess is fine and the cost is trivial next to the
-        benefit. Most people seem to think so, and they may be right.
-        Functionary is for the people who are exposed if they are not.
-      </p>
     </div>
   </section>
 
   <section class="section">
     <div class="container split">
       <div class="measure">
-        <h2>Where the risk is</h2>
+        <h2>See the work, not just the answer</h2>
+        <p class="stack-p">
+          A chat assistant gives you an answer. It does not give you the work
+          behind it. In research, one unvetted source or skipped step spoils
+          the deliverable, and nothing in the finished output shows where.
+        </p>
         <p>
-          Research and analysis are sold on trust. The people who rely on the
-          work take it on the strength of who produced it, and the bar is
-          exact. The errors that break that trust are rarely bold ones. They
-          are omissions: a step skipped, or a result carried forward as if it
-          had been checked, with nothing in the finished output to show where.
-          So in Functionary every value carries where it came from. A value a
-          model wrote stays marked through every later step, and only a
-          deterministic check against the source or a person clears it. The
+          Functionary shows every step that ran. A value a model wrote stays
+          marked until a check against the source or a person clears it. The
           knowledge base refuses anything nobody cleared.
         </p>
       </div>
       <div class="pair">
-        <Canvas flow={unchecked} legend caption="A model-written table heads for the knowledge base. The dashed wire says a model wrote it; the Write refuses it." />
+        <Canvas flow={unchecked} legend caption="A model-written table heads for the knowledge base. The dashed wire says a model wrote it, and the Write refuses it." />
         <Canvas flow={checked} legend caption="A Check confirms each quote is in the filing. The wire after it is verified, and the Write accepts it." />
       </div>
     </div>
@@ -129,19 +117,15 @@ const scanSource = `fn scan(row: Row) -> Scanned {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>The flow is the program</h2>
+        <h2>What you see is what runs</h2>
         <p class="stack-p">
-          You never read code. The agent never looks at a canvas. They are
-          the same object in two forms: the canvas is drawn from the flow's
-          source, and an edit on the canvas is written back into it. What you
-          see is what the agent wrote, and what the agent wrote is what runs.
+          The agent writes the flow as steps. The canvas is drawn from what it
+          wrote, and an edit on the canvas goes back into it. There is no
+          hidden code.
         </p>
         <p>
-          The agent cannot write arbitrary code. It composes vetted blocks and
-          the control structures the canvas can draw, in a fixed subset of
-          Rust, and anything else is refused before it is saved. There is no
-          hard-coded data, no file read that is not a step, and no second way
-          to execute.
+          If the agent tries to write its own loop or read a file on the side,
+          the save is refused and the canvas keeps the last accepted flow.
         </p>
       </div>
       <div class="bijection">
@@ -150,13 +134,13 @@ const scanSource = `fn scan(row: Row) -> Scanned {
           <Canvas flow={scanBody} />
         </div>
         <div>
-          <p class="side">The agent sees</p>
+          <p class="side">The agent wrote</p>
           <FlowSource code={scanSource} file="weekly-scan.rs" />
         </div>
       </div>
       <div class="refusal-wrap">
         <Refusal />
-        <p class="fig-note">What the agent may not write: an improvised loop and a bare file read. Both are refused, and the diagnostic says which step to use instead.</p>
+        <p class="fig-note">Refused: an improvised loop and a bare file read. The diagnostic names the step to use instead.</p>
       </div>
     </div>
   </section>
@@ -164,21 +148,17 @@ const scanSource = `fn scan(row: Row) -> Scanned {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>One judgement per step</h2>
+        <h2>Every step is small enough to check</h2>
         <p class="stack-p">
-          A block does one judgement: summarize this page and keep track of the
-          source text, pull the passages that bear on a question, grade this
-          source against these criteria. Its prompt is tuned by us and never
-          edited by the agent that places it. The model inside can only take
-          the actions the block lists. That is the product: being able to say
-          with confidence that the only thing this step can do is read its
-          input and look at the documents in front of it.
+          Each step does one job: summarize this page, grade this source
+          against these criteria, pull the passages that bear on a question.
+          The model inside a step can only do what that step allows.
         </p>
         <p>
-          Every model call, tool call, review decision and write leaves a
-          receipt. A failed row is a failed row in the result, not a blank.
-          Test runs the whole flow and withholds the writes, so you read the
-          outcome before anything leaves.
+          Every model call leaves a receipt. A page that failed to load is a
+          failed row in the result, not a blank. Test runs the whole flow and
+          holds back the writes, so you read the outcome before anything
+          leaves.
         </p>
       </div>
       <div class="table-wrap">
@@ -193,12 +173,12 @@ const scanSource = `fn scan(row: Row) -> Scanned {
             [{ text: "competitor.io/changelog" }, { text: "200 · 128 KB", origin: "sourced" }, { text: "Three releases; one deprecates the export API.", origin: "generated" }, { text: "sha256:41bc07…" }],
             [{ text: "partner.example/terms" }, { text: "403", status: "failed" }, { text: "", status: "missing" }, { text: "sha256:7d01e8…" }],
           ]}
-          caption="One row per site. The third site refused the fetch; the row says so instead of disappearing."
+          caption="One row per site. The third site refused the fetch, and the row says so instead of disappearing."
         />
       </div>
       <div class="kinds-wrap">
         <Kinds />
-        <p class="fig-note">The palette. Seven kinds of step, and the verbs under each.</p>
+        <p class="fig-note">The seven kinds of step, and the verbs under each.</p>
       </div>
     </div>
   </section>
@@ -206,36 +186,33 @@ const scanSource = `fn scan(row: Row) -> Scanned {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>Iterate, then stabilize</h2>
+        <h2>Fix it once. Run it again next week.</h2>
         <p class="stack-p">
-          Most flows get built, adjusted, run, adjusted, run, and then rarely
-          touched again. That loop carries no versioning ceremony. One person
-          creates, edits, runs and reviews, and never sees the word pin.
+          Describe the job and the agent drafts the flow. Test it, read every
+          row, change a setting or delete a step, and run again. Next week it
+          runs on new inputs, and the fix is still there.
         </p>
         <p>
-          When a flow starts to matter, you ask for friction. Every run records
-          exactly which revision it ran. A correction is a change to a visible
-          step, with its history, and the next run inherits it. The process
-          improves. The model does not have to.
+          When a flow starts to carry weight, add the controls you want: pin
+          what it reads, name who reviews it, run it on a schedule.
         </p>
       </div>
       <div class="ladder">
         <div>
-          <h3>Iterate</h3>
+          <h3>Day one</h3>
           <ul>
-            <li>Describe the job; the agent drafts the flow.</li>
+            <li>Describe the job. The agent drafts the flow.</li>
             <li>Test. Read every row. Change a setting, delete a step.</li>
-            <li>Run it again with new inputs next week.</li>
-            <li>Imports follow the latest version on their own.</li>
+            <li>Run it again next week with new inputs.</li>
           </ul>
         </div>
         <div>
-          <h3>Stabilize</h3>
+          <h3>When it matters</h3>
           <ul>
             <li>Pin the tables and modules the flow reads.</li>
-            <li>Name who reviews its outputs, and where.</li>
+            <li>Name who reviews its outputs.</li>
             <li>Require an approved revision before an unattended run.</li>
-            <li>Start it on a schedule, a webhook, or an inbound email.</li>
+            <li>Start it on a schedule, a webhook or an inbound email.</li>
           </ul>
         </div>
       </div>
@@ -244,11 +221,11 @@ const scanSource = `fn scan(row: Row) -> Scanned {
 
   <section class="section cta">
     <div class="container measure">
-      <h2>Own the process</h2>
+      <h2>Runs where you put it</h2>
       <p class="stack-p">
-        Flows are source files in a project you own. Runs, receipts and the
-        knowledge base live under one data directory. Models and connected
-        systems are steps on the canvas, so you can read what leaves.
+        Flows are files in a project you own. Runs, receipts and results stay
+        under one directory on your machine. Every model and every system the
+        flow reaches is a step on the canvas, so you can see what leaves.
       </p>
       <div class="actions">
         <Button href="/how-it-works" variant="primary">How it works</Button>

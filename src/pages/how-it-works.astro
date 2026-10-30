@@ -9,27 +9,27 @@ import { checkCitations, sourceValidation, bestOfN } from "../lib/flows";
 const steps = [
   {
     title: "Start from what you have.",
-    body: "A draft report, a folder of documents, a list of URLs in a table. There is no blank canvas to fill. You describe the job in plain terms to the agent and point it at the inputs.",
+    body: "A draft report, a folder of documents, a list of URLs. You describe the job in plain terms and point the agent at the inputs.",
   },
   {
     title: "The agent drafts the flow.",
-    body: "It can only place steps from the palette and wire them. It cannot write a loop, read a file on the side, or hard-code a value. If it tries, the save is refused with a diagnostic naming the construct, and the canvas keeps the last accepted flow.",
+    body: "It can only place steps from the palette and wire them. If it tries to write a loop, read a file on the side or hard-code a value, the save is refused and the diagnostic names the construct.",
   },
   {
     title: "Read the canvas.",
-    body: "Every card is a step and every wire carries one typed value. The canvas is derived from the source, so what you see is the program. Rename a step, change a setting, delete one, or ask the agent for a change. You never need to open the source.",
+    body: "Every card is a step and every wire carries one typed value. Rename a step, change a setting, delete one, or ask the agent for a change. You never need to open the source.",
   },
   {
     title: "Run it as a Test.",
-    body: "Everything runs: the fetches, the model calls, the loops. The writes are withheld and come back as dry-run receipts. When the Test looks right, you escalate it to a Run without repeating the work.",
+    body: "Everything runs: the fetches, the model calls, the loops. Writes are held back and come back as dry-run receipts. When it looks right, escalate to a Run without redoing the work.",
   },
   {
     title: "Look at every row.",
-    body: "The run inspector lists each step's outcome, one per occurrence inside a loop. A source that refused the fetch is a failed row with its cause. A step that never ran says it did not run. Nothing is dropped to make the table look clean.",
+    body: "Each step's outcome is listed, one per row inside a loop. A source that refused the fetch is a failed row with its cause. A step that never ran says so.",
   },
   {
     title: "Review where you choose.",
-    body: "A Review card holds the run until a person answers. The run parks durably, for a minute or a week, and nothing else moves until the answer comes. The decision is a receipt, keyed to the inputs behind the output, so an approval cannot slide onto a different result.",
+    body: "A Review card holds the run until a person answers, for a minute or a week. The decision is keyed to the inputs behind the output, so an approval cannot slide onto a different result.",
   },
   {
     title: "Run it again next week.",
@@ -59,17 +59,16 @@ fn flow() {
 
 <BaseLayout
   title="How it works. Functionary"
-  description="One job end to end: an agent drafts a flow of trusted steps, you read the canvas, run it as a Test, inspect every row, review where you choose, and run it again."
+  description="One job start to finish: an agent drafts the flow, you read the canvas, run it as a Test, inspect every row, review where you choose, and run it again next week."
 >
   <section class="section first">
     <div class="container measure">
       <h1>How it works</h1>
       <p class="lead">
-        Report QC. A finished draft goes in. Every claim it makes is paired
-        with the source it cites, the source is fetched and read, a quote is
-        pulled and checked against the page, and a ledger of what holds and
-        what does not comes out. A person fixes the claim list before the
-        checking starts.
+        Report QC, start to finish. A draft report goes in. Each claim is
+        paired with its cited source, the source is fetched, a quote is pulled
+        and checked against the page, and out comes a ledger of which claims
+        hold. A person corrects the claim list before the checking starts.
       </p>
     </div>
     <div class="container wide canvas-wrap">
@@ -102,15 +101,14 @@ fn flow() {
         <p class="stack-p">
           A run pins what it will execute when it starts: the flow revision,
           every block version, the table revisions it reads. Each step's
-          result is recorded against its path, so a step inside a loop has one
-          result per row. If the server dies halfway, the run resumes from its
-          receipts and does not ask the model again.
+          result is recorded against its path, one per row inside a loop. If
+          the server dies halfway, the run resumes from its receipts and does
+          not ask the model again.
         </p>
         <p>
           Results sit in run tables you can read and edit by hand. Committing
-          one to the knowledge base makes an immutable revision that outlives
-          the run, with every outcome it depends on pinned, and marked partial
-          if any cell failed.
+          one to the knowledge base makes an immutable revision, with every
+          outcome it depends on pinned and marked partial if any cell failed.
         </p>
       </div>
       <div>
@@ -140,9 +138,9 @@ fn flow() {
         <h2>The source</h2>
         <p class="stack-p">
           The agent wrote this. Each binding is a card, each argument a wire,
-          and the function the Map calls is the body of its region. There is
-          nothing in the file that is not on the canvas, and nothing on the
-          canvas that is not in the file.
+          and the function the Map calls is the body of its region. Nothing is
+          in the file that is not on the canvas, and nothing is on the canvas
+          that is not in the file.
         </p>
         <p>
           An agent can draft and Test a flow in your name. By default it
@@ -160,11 +158,10 @@ fn flow() {
       <div class="measure">
         <h2>Procedures</h2>
         <p class="stack-p">
-          Some shapes come up in every job. Best of N, adversarial review,
+          Some shapes come up in every job: best of N, adversarial review,
           consolidating duplicates, classify and route, recover from failure.
-          Each is a procedure: one thing in the palette that expands on the
-          canvas into visible steps, every one with its own settings and its
-          own receipt. Nothing hides inside an opaque block.
+          Each is one item in the palette that expands on the canvas into
+          visible steps, each with its own settings and its own receipt.
         </p>
       </div>
       <div class="procs">
