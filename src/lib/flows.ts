@@ -12,15 +12,33 @@ export const siteScan: CanvasFlow = {
   aria:
     "A flow: a table of URLs feeds a Map; inside it each row's URL is fetched, formatted to text and summarized; the Map's table is formatted, summarized into one digest, held for review, then written.",
   nodes: [
-    { id: "urls", kind: "source", verb: "Source", title: "sites to scan", mode: "table", col: 0, lane: 0 },
+    {
+      id: "urls",
+      kind: "source",
+      verb: "Source",
+      title: "Sites to scan",
+      col: 0,
+      lane: 0,
+      table: {
+        columns: ["Name", "URL"],
+        widths: [2, 3],
+        rows: [
+          ["Vendor", "vendor.example/pricing"],
+          ["Competitor", "competitor.io/changes"],
+          ["Partner", "partner.example/terms"],
+          ["Status", "status.example.net"],
+        ],
+        total: 12,
+      },
+    },
     { id: "map", kind: "jig", verb: "Map", mode: "one row at a time", foot: "12 rows · parallel · up to 4", col: 1, lane: 0, body: ["url", "fetch", "text", "issues"] },
     { id: "url", kind: "transform", verb: "Field", mode: "url", col: 1, lane: 0 },
     { id: "fetch", kind: "source", verb: "Source", title: "fetch the page", mode: "url", col: 2, lane: 0 },
     { id: "text", kind: "transform", verb: "Format", mode: "html to text", col: 3, lane: 0 },
     { id: "issues", kind: "block", verb: "Summarize", title: "issues on this page", col: 4, lane: 0 },
     { id: "report", kind: "transform", verb: "Format", mode: "table to markdown", col: 5, lane: 0 },
-    { id: "digest", kind: "block", verb: "Summarize", title: "one digest across sites", col: 6, lane: 0 },
-    { id: "review", kind: "gate", verb: "Review", title: "read before it goes out", col: 7, lane: 0 },
+    { id: "digest", kind: "block", verb: "Summarize", title: "digest across sites", col: 6, lane: 0 },
+    { id: "review", kind: "gate", verb: "Review", title: "read before sending", col: 7, lane: 0 },
     { id: "write", kind: "egress", verb: "Write", title: "weekly scan", mode: "knowledge", col: 8, lane: 0 },
   ],
   edges: [
@@ -32,6 +50,24 @@ export const siteScan: CanvasFlow = {
     { from: "report", to: "digest", origin: "generated", label: "Text" },
     { from: "digest", to: "review", origin: "generated", label: "Text" },
     { from: "review", to: "write", origin: "reviewed", label: "Text" },
+  ],
+};
+
+/** The body of the weekly scan's Map, on its own: what the canvas shows for `fn scan`. */
+export const scanBody: CanvasFlow = {
+  id: "scan-body",
+  aria: "The Map body: Field selects the URL, a Source fetches the page, a Format turns it to text, a Summarize writes the issues.",
+  nodes: [
+    { id: "map", kind: "jig", verb: "Map", mode: "scan", foot: "one row in, one row out", col: 0, lane: 0, body: ["url", "fetch", "text", "issues"] },
+    { id: "url", kind: "transform", verb: "Field", mode: "url", col: 0, lane: 0 },
+    { id: "fetch", kind: "source", verb: "Source", title: "fetch the page", mode: "url", col: 1, lane: 0 },
+    { id: "text", kind: "transform", verb: "Format", mode: "html to text", col: 2, lane: 0 },
+    { id: "issues", kind: "block", verb: "Summarize", title: "issues on this page", col: 3, lane: 0 },
+  ],
+  edges: [
+    { from: "url", to: "fetch", origin: "sourced", label: "Text" },
+    { from: "fetch", to: "text", origin: "sourced", label: "Document" },
+    { from: "text", to: "issues", origin: "computed", label: "Text" },
   ],
 };
 
@@ -76,12 +112,12 @@ export const checkCitations: CanvasFlow = {
     "A draft is split by a Model into claims and sources, reviewed by a person, then a Map over each claim-source pair fetches the source, formats it to text, judges its stance with a quote, and checks that the quote is in the page; results are aggregated per claim and written to knowledge.",
   nodes: [
     { id: "paste", kind: "source", verb: "Source", title: "the draft report", mode: "file", col: 0, lane: 0 },
-    { id: "split", kind: "block", verb: "Model", title: "claims and the sources cited", extraction: true, col: 1, lane: 0 },
-    { id: "edit", kind: "gate", verb: "Review", title: "fix the list before checking", mode: "edit", col: 2, lane: 0 },
+    { id: "split", kind: "block", verb: "Model", title: "claims and sources", extraction: true, col: 1, lane: 0 },
+    { id: "edit", kind: "gate", verb: "Review", title: "fix the claim list", mode: "edit", col: 2, lane: 0 },
     { id: "map", kind: "jig", verb: "Map", mode: "each claim, each source", foot: "38 pairs · parallel", col: 3, lane: 0, body: ["fetch", "text", "stance", "quote"] },
     { id: "fetch", kind: "source", verb: "Source", title: "fetch the source", mode: "url", col: 3, lane: 0 },
     { id: "text", kind: "transform", verb: "Format", mode: "html to text", col: 4, lane: 0 },
-    { id: "stance", kind: "block", verb: "Judge", title: "supports, contradicts, not found", mode: "stance", col: 5, lane: 0 },
+    { id: "stance", kind: "block", verb: "Judge", title: "supports or contradicts", mode: "stance", col: 5, lane: 0 },
     { id: "quote", kind: "gate", verb: "Check", title: "quote is on the page", mode: "quote", col: 6, lane: 0 },
     { id: "agg", kind: "transform", verb: "Aggregate", mode: "per claim", col: 7, lane: 0 },
     { id: "write", kind: "egress", verb: "Write", title: "citation ledger", mode: "knowledge", col: 8, lane: 0 },
@@ -109,7 +145,7 @@ export const bestOfN: CanvasFlow = {
     { id: "d1", kind: "block", verb: "Draft", title: "memo from the brief", mode: "compose", col: 1, lane: 0 },
     { id: "d2", kind: "block", verb: "Draft", title: "memo from the brief", mode: "compose", col: 1, lane: 1 },
     { id: "d3", kind: "block", verb: "Draft", title: "memo from the brief", mode: "compose", col: 1, lane: 2 },
-    { id: "pick", kind: "block", verb: "Compare", title: "which is best, and why", mode: "choose", col: 2, lane: 1 },
+    { id: "pick", kind: "block", verb: "Compare", title: "best, with a reason", mode: "choose", col: 2, lane: 1 },
     { id: "sel", kind: "transform", verb: "Select", mode: "the chosen draft", col: 3, lane: 1 },
     { id: "review", kind: "gate", verb: "Review", title: "editor", col: 4, lane: 1 },
     { id: "write", kind: "egress", verb: "Write", title: "memo", mode: "file", col: 5, lane: 1 },
@@ -137,10 +173,10 @@ export const sourceValidation: CanvasFlow = {
     { id: "search", kind: "block", verb: "Search", title: "candidate sources", mode: "web · files", extraction: true, col: 1, lane: 0 },
     { id: "map", kind: "jig", verb: "Map", mode: "each candidate", foot: "64 candidates · parallel · up to 8", col: 2, lane: 0, body: ["fetch", "quote", "grade"] },
     { id: "fetch", kind: "source", verb: "Source", title: "fetch the source", mode: "url", col: 2, lane: 0 },
-    { id: "quote", kind: "block", verb: "Quote", title: "passages on each criterion", extraction: true, col: 3, lane: 0 },
-    { id: "grade", kind: "block", verb: "Judge", title: "against the five criteria", mode: "grade", col: 4, lane: 0 },
+    { id: "quote", kind: "block", verb: "Quote", title: "passages per criterion", extraction: true, col: 3, lane: 0 },
+    { id: "grade", kind: "block", verb: "Judge", title: "against the criteria", mode: "grade", col: 4, lane: 0 },
     { id: "keep", kind: "transform", verb: "Filter", mode: "grade ≥ B", col: 5, lane: 0 },
-    { id: "review", kind: "gate", verb: "Review", title: "sample the kept sources", mode: "sample", col: 6, lane: 0 },
+    { id: "review", kind: "gate", verb: "Review", title: "sample what passed", mode: "sample", col: 6, lane: 0 },
     { id: "write", kind: "egress", verb: "Write", title: "validated sources", mode: "knowledge", col: 7, lane: 0 },
   ],
   edges: [

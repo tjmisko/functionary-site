@@ -23,6 +23,8 @@ export interface CanvasNode {
   body?: string[];
   /** Jigs only: the footer line, e.g. "12 rows · parallel". */
   foot?: string;
+  /** Table sources: the spreadsheet drawn in the card body. */
+  table?: { columns: string[]; rows: string[][]; total?: number; widths?: number[] };
 }
 
 export interface CanvasEdge {

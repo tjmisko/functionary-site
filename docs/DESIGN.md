@@ -19,11 +19,11 @@ gradient, Agent Sketch cards) survives on the site.
 | # | Decision | Choice |
 |---|---|---|
 | Aesthetic | Fidelity to the product | **Bend it**: softer, more open layout; same palette and voice. |
-| Argument | The spine of the home page | **The founder's argument, in order.** The work; none of it is hard, any of it can go wrong; "you're selling good words" (contamination); the agent writes the plan, you read it; each step is a job you could hand to a junior; fix the step once; what works today. Concrete failure first, concession second, mechanism third. |
-| Hero | The centerpiece | **One flow inside the editor's chrome.** The weekly-scan flow drawn in the canvas grammar, framed by the flow editor's toolbar (name, revision, Test / Run / Escalate) and status strip, with one pass of execution state (running, completed, awaiting review) that plays once and freezes under `prefers-reduced-motion`. No rotating examples, no domain dots. |
+| Argument | The spine of the home page | **The founder's argument, in order.** Control, not capability; where the risk is (omission); the flow is the program (you see the canvas, the agent sees the code, same object); one judgement per step; iterate, then stabilize; own the process. Concrete failure first, concession second, mechanism third. |
+| Hero | The centerpiece | **One flow, frameless, fitting one screen.** The weekly-scan flow drawn in the canvas grammar directly on the page, its table source shown as a spreadsheet card, with one pass of execution state (running, completed, parked at Review) that plays once and freezes under `prefers-reduced-motion`. No chrome, no caption, no rotating examples. |
 | Spec | What the site describes | **The F98 specification as the product.** The seven kinds, origin on every wire, Check, procedures and the governed workspace are shown as what Functionary is, with no build-state badges. The task names are generic: Report QC, Source Validation, Dataset Assembly, Evidence Combing, Market Map, Document Revision. |
 | Scope | Page count | **Small multi-page**: Home (the argument) / How it works (one job end to end) / Deployment + Blog. |
-| Voice | The hard constraint | **Does not bend.** Terse, declarative, specific. No marketing vocabulary, no em-dashes, no rhetorical questions, no triads for their own sake. Founder register, third person; nothing is placed in quotation marks unless verbatim. |
+| Voice | The hard constraint | **Does not bend.** Terse, declarative, specific. Section headers are direct nouns ("The run record", "Procedures", "Deployment"), never slogans. No marketing vocabulary, no em-dashes, no rhetorical questions, no triads for their own sake. Founder register, third person; nothing is placed in quotation marks unless verbatim. The trust argument is one paragraph about omission, not a provocation. |
 | Mode | Default theme | **Dark.** A light marketing site would feel disowned by a dark product. |
 | Blog | Presence | **One quiet nav item.** No home feed, no popups, no email capture. RSS for those who want it. |
 | CTA | Conversion | **See one job end to end.** No download, install or sign-up promise while distribution and licensing are unsettled. |
@@ -82,8 +82,7 @@ Validation, Dataset Assembly, Evidence Combing, Market Map, Document Revision.
 
 | File | Draws |
 |---|---|
-| `Canvas.astro` | A flow from `src/lib/flows.ts` in the canvas grammar: kind-coloured cards with per-verb line icons (`src/lib/icons.ts`), a model dot on blocks, error ports, transform pills, Jig regions with label and footer, typed wire labels, origin-styled wires; optional run pass and legend. |
-| `Workspace.astro` | The flow editor's chrome around a canvas: toolbar with name, revision and Test / Run / Escalate; status strip that follows the run pass. |
+| `Canvas.astro` | A flow from `src/lib/flows.ts` in the canvas grammar: kind-coloured cards with per-verb line icons (`src/lib/icons.ts`), a model dot on blocks, error ports, transform pills, Jig regions with label and footer, a table source drawn as the product's spreadsheet card, origin-styled wires whose type shows on hover; optional run pass and legend. Drawn frameless on the page with `bare`. |
 | `FlowSource.astro` | Flow source in the restricted Rust subset with light highlighting. |
 | `Refusal.astro` | Code outside the subset and the checker diagnostics that refuse it. |
 | `RunTable.astro` | Run outcomes per row or per occurrence path, with origin dots and failures kept as rows. |

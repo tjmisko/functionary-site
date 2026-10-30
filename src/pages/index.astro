@@ -6,7 +6,7 @@ import FlowSource from "../components/FlowSource.astro";
 import Refusal from "../components/Refusal.astro";
 import RunTable from "../components/RunTable.astro";
 import Kinds from "../components/Kinds.astro";
-import { siteScan, unchecked, checked } from "../lib/flows";
+import { siteScan, scanBody, unchecked, checked } from "../lib/flows";
 
 const tasks = [
   {
@@ -47,15 +47,6 @@ const scanSource = `fn scan(row: Row) -> Scanned {
     let text   = Format::new(html_to_text).input(page.document);
     let issues = Summarize::new(issues_on_this_page).input(text.text);
     Scanned { issues: issues.text }
-}
-
-fn flow() {
-    let sites  = TableSource::new(sites_to_scan);
-    let rows   = Map::new(each_site).over(sites.table).map(scan);
-    let report = Format::new(table_to_markdown).input(rows.table);
-    let digest = Summarize::new(one_digest).input(report.text);
-    let read   = Review::new(before_it_goes_out).input(digest.text);
-    let saved  = Write::new(weekly_scan).input(read.text);
 }`;
 ---
 
@@ -70,7 +61,7 @@ fn flow() {
         the step that was wrong.
       </p>
       <div class="actions">
-        <Button href="/how-it-works" variant="primary">See one job end to end</Button>
+        <Button href="/how-it-works" variant="primary">How it works</Button>
         <Button href="/self-hosting" variant="ghost">Deployment</Button>
       </div>
     </div>
@@ -83,7 +74,7 @@ fn flow() {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>Capability is not the problem. Control is.</h2>
+        <h2>Control, not capability</h2>
         <p class="stack-p">
           The work is the kind an early-career consultant, research assistant
           or analyst does, and models have been able to do it for a couple of
@@ -115,27 +106,17 @@ fn flow() {
   <section class="section">
     <div class="container split">
       <div class="measure">
-        <h2>You're selling good words.</h2>
-        <p class="stack-p">
-          In code, a creative fix that refactors something to make it work is a
-          help. In research it is how things go bad. An unvetted source or a
-          paraphrase that drifted from its quote contaminates everything
-          downstream, and the longer the chain of agents, the harder it is to
-          tell whether the one in the middle checked which sources it could
-          actually reach.
-        </p>
-        <p class="stack-p">
-          A research organization has no product but its words. When the words
-          turn out to be wrong, you trace the step that let it in and change
-          the process so it cannot happen again. You cannot do that with a
-          free-running agent. You can ask it nicely in a markdown file and hope.
-        </p>
+        <h2>Where the risk is</h2>
         <p>
-          So every wire carries where its value came from. A value a model
-          wrote stays marked through every later step. Only two things clear
-          the mark: a deterministic check against the source, or a person.
-          More effort inside the model call buys a better draft, not an
-          independent look. The knowledge base refuses anything nobody cleared.
+          Research and analysis are sold on trust. The people who rely on the
+          work take it on the strength of who produced it, and the bar is
+          exact. The errors that break that trust are rarely bold ones. They
+          are omissions: a step skipped, or a result carried forward as if it
+          had been checked, with nothing in the finished output to show where.
+          So in Functionary every value carries where it came from. A value a
+          model wrote stays marked through every later step, and only a
+          deterministic check against the source or a person clears it. The
+          knowledge base refuses anything nobody cleared.
         </p>
       </div>
       <div class="pair">
@@ -148,35 +129,34 @@ fn flow() {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>The agent writes the plan. You read it.</h2>
+        <h2>The flow is the program</h2>
         <p class="stack-p">
-          Agents make it cheap to control a process from above. Instead of
-          micromanaging the work, you have an agent write the process out in
-          full, then look at it. A plan with holes is easy to spot. A
-          transcript is not.
-        </p>
-        <p class="stack-p">
-          For that to work, the flowchart has to be what runs. So the agent
-          writes flows in a small, fixed subset of Rust. The checker reads the
-          graph off the source without running it, and the canvas draws that
-          graph one to one. Loops and branches exist only as the visible
-          regions on the canvas. There is no hard-coded data, no file read
-          that is not a step, and no second way to execute.
+          You never read code. The agent never looks at a canvas. They are
+          the same object in two forms: the canvas is drawn from the flow's
+          source, and an edit on the canvas is written back into it. What you
+          see is what the agent wrote, and what the agent wrote is what runs.
         </p>
         <p>
-          Anything outside the subset is refused at save. Until the agent
-          writes exactly what is allowed, nothing changes.
+          The agent cannot write arbitrary code. It composes vetted blocks and
+          the control structures the canvas can draw, in a fixed subset of
+          Rust, and anything else is refused before it is saved. There is no
+          hard-coded data, no file read that is not a step, and no second way
+          to execute.
         </p>
       </div>
-      <div class="two-up">
+      <div class="bijection">
         <div>
+          <p class="side">You see</p>
+          <Canvas flow={scanBody} />
+        </div>
+        <div>
+          <p class="side">The agent sees</p>
           <FlowSource code={scanSource} file="weekly-scan.rs" />
-          <p class="fig-note">The hero flow, as the agent wrote it. Each binding is a card; each argument is a wire.</p>
         </div>
-        <div>
-          <Refusal />
-          <p class="fig-note">An improvised loop and a bare file read. Both are refused, and the diagnostic says what to use instead.</p>
-        </div>
+      </div>
+      <div class="refusal-wrap">
+        <Refusal />
+        <p class="fig-note">What the agent may not write: an improvised loop and a bare file read. Both are refused, and the diagnostic says which step to use instead.</p>
       </div>
     </div>
   </section>
@@ -184,7 +164,7 @@ fn flow() {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>Each step is a job you could hand to a junior.</h2>
+        <h2>One judgement per step</h2>
         <p class="stack-p">
           A block does one judgement: summarize this page and keep track of the
           source text, pull the passages that bear on a question, grade this
@@ -226,7 +206,7 @@ fn flow() {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>Fix the step once. Every later run uses the fix.</h2>
+        <h2>Iterate, then stabilize</h2>
         <p class="stack-p">
           Most flows get built, adjusted, run, adjusted, run, and then rarely
           touched again. That loop carries no versioning ceremony. One person
@@ -264,14 +244,14 @@ fn flow() {
 
   <section class="section cta">
     <div class="container measure">
-      <h2>Your process should outlive the prompt that started it.</h2>
+      <h2>Own the process</h2>
       <p class="stack-p">
         Flows are source files in a project you own. Runs, receipts and the
         knowledge base live under one data directory. Models and connected
         systems are steps on the canvas, so you can read what leaves.
       </p>
       <div class="actions">
-        <Button href="/how-it-works" variant="primary">See one job end to end</Button>
+        <Button href="/how-it-works" variant="primary">How it works</Button>
         <Button href="/self-hosting" variant="ghost">Deployment</Button>
       </div>
     </div>
@@ -372,12 +352,25 @@ fn flow() {
     gap: var(--s-24);
     min-width: 0;
   }
-  .two-up {
+  .bijection {
     margin-top: var(--s-40);
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: var(--s-24);
     align-items: start;
+  }
+  .side {
+    font-family: var(--font-mono);
+    font-size: var(--fs-11);
+    color: var(--fg-2);
+    margin: 0 0 var(--s-10);
+  }
+  .bijection > div {
+    min-width: 0;
+  }
+  .refusal-wrap {
+    margin-top: var(--s-32);
+    max-width: 56rem;
   }
   .fig-note {
     font-size: var(--ms-small);
@@ -431,7 +424,7 @@ fn flow() {
   }
   @media (max-width: 860px) {
     .split,
-    .two-up,
+    .bijection,
     .ladder {
       grid-template-columns: minmax(0, 1fr);
     }
