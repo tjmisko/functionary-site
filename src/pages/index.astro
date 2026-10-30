@@ -2,18 +2,44 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Button from "../components/Button.astro";
 import Canvas from "../components/Canvas.astro";
+import Workspace from "../components/Workspace.astro";
 import FlowSource from "../components/FlowSource.astro";
 import Refusal from "../components/Refusal.astro";
 import RunTable from "../components/RunTable.astro";
 import Kinds from "../components/Kinds.astro";
 import { siteScan, unchecked, checked } from "../lib/flows";
 
-const jobs = [
-  "Secondary research on a market: find every major player and what changed.",
-  "Comb a thousand documents for evidence and counterevidence on a claim.",
-  "Build a model from filings and market data, every cell traceable to a figure.",
-  "Find data sources, filter them on five criteria, clean them, populate the model.",
-  "QC a finished work product against the sources it cites.",
+const tasks = [
+  {
+    name: "Report QC",
+    what: "Check a finished report against every source it cites and surface the inconsistencies.",
+    failure: "An inconsistency the QC itself missed because it sampled.",
+  },
+  {
+    name: "Source Validation",
+    what: "Find candidate sources on a topic, grade each against five criteria, keep what passes.",
+    failure: "An irrelevant source that slipped the criteria.",
+  },
+  {
+    name: "Dataset Assembly",
+    what: "Pull figures from filings and data vendors into one model, every cell traceable to its figure.",
+    failure: "A number that no longer matches its source after an update.",
+  },
+  {
+    name: "Evidence Combing",
+    what: "Go through a thousand documents for evidence and counterevidence on a claim.",
+    failure: "An unvetted quote, or a document silently skipped.",
+  },
+  {
+    name: "Market Map",
+    what: "Find every major player in an industry, how each is positioned, and what changed.",
+    failure: "A missing player nobody notices is missing.",
+  },
+  {
+    name: "Document Revision",
+    what: "Take in a draft, gather what bears on it, and propose the changes as a redline.",
+    failure: "A change nobody can trace to a reason.",
+  },
 ];
 
 const scanSource = `fn scan(row: Row) -> Scanned {
@@ -32,27 +58,6 @@ fn flow() {
     let read   = Review::new(before_it_goes_out).input(digest.text);
     let saved  = Write::new(weekly_scan).input(read.text);
 }`;
-
-const works = [
-  "An agent writes flows in the restricted subset; the checker refuses anything else before it is saved.",
-  "The canvas is generated from the source and edits go back into it.",
-  "Source (file, URL, document, integration), Search over granted files, Summarize, Template, Format, Review, Write.",
-  "Map, Repeat, Refine, Retry and Branch as visible regions on the canvas.",
-  "Receipts for every model call, tool call, review decision and write; a run pins what it runs.",
-  "Test runs the whole flow and withholds the writes; a finished Test can be escalated to a Run.",
-  "A crashed run resumes from its receipts without asking the model again.",
-  "Results land in run tables; committing one to the knowledge base makes an immutable revision.",
-  "Read-only readers for 21 systems, from Gmail and Drive to Salesforce and Jira.",
-  "Personal and governed workspaces; agents hold their own credentials and start Tests only, by default.",
-];
-const coming = [
-  "Origin on every wire, with the knowledge base refusing model-written values nobody checked.",
-  "Check: a quote is an exact substring, a value matches a schema, a predicate holds.",
-  "Quote, Model, Judge, Compare and Draft as blocks; Aggregate, Join and Reshape as transforms.",
-  "Named compositions you insert as one step: Best of N, Adversarial review, Consolidate.",
-  "Paste a chat answer and check each claim against the source it cites.",
-  "The screens for scheduled and unattended runs, and for requiring an approved revision.",
-];
 ---
 
 <BaseLayout>
@@ -71,33 +76,41 @@ const coming = [
       </div>
     </div>
     <div class="container wide hero-canvas">
-      <Canvas
-        flow={siteScan}
-        run
-        status="built"
-        caption="A list of sites, one summary per site, one digest, a person, a write. The yellow card is a person."
-      />
+      <Workspace name="weekly-scan" revision={14} run cols={9}>
+        <Canvas flow={siteScan} run bare />
+      </Workspace>
+      <p class="hero-cap">
+        A list of sites, one summary per site, one digest, a person, a write.
+        Every card is a step the agent wired. The yellow card is a person.
+      </p>
       <p class="desktop-note">The canvas is a desktop tool. The argument reads fine here; the product does not.</p>
     </div>
   </section>
 
   <section class="section">
-    <div class="container measure">
-      <h2>None of it is hard. Any of it can go wrong.</h2>
-      <p class="stack-p">
-        The work is the kind an early-career consultant, research assistant or
-        analyst does, and AI has been able to do it for a couple of years.
-      </p>
-      <ul class="jobs">
-        {jobs.map((j) => <li>{j}</li>)}
+    <div class="container">
+      <div class="measure">
+        <h2>None of it is hard. Any of it can go wrong.</h2>
+        <p class="stack-p">
+          The work is the kind an early-career consultant, research assistant
+          or analyst does, and AI has been able to do it for a couple of
+          years. Each job is dozens to hundreds of small steps. None is
+          difficult on its own. Errors creep in anyway, and the person whose
+          name goes on the result has no view of what happened below. That is
+          why research shops pay for footnote checks and for replications of
+          their own work.
+        </p>
+      </div>
+      <ul class="tasks">
+        {tasks.map((t) => (
+          <li>
+            <span class="task-name">{t.name}</span>
+            <p class="task-what">{t.what}</p>
+            <p class="task-fail"><span>The failure</span>{t.failure}</p>
+          </li>
+        ))}
       </ul>
-      <p class="stack-p">
-        Each of these is dozens to hundreds of small steps. None is difficult
-        on its own. Errors creep in anyway, and the person whose name goes on
-        the result has no view of what happened below. That is why research
-        shops pay for footnote checks and for replications of their own work.
-      </p>
-      <p>
+      <p class="measure after">
         Maybe an agent plus an adversarial review loop never gets anything
         wrong. Maybe the mess is fine and the cost is trivial next to the
         benefit. Most people seem to think so, and they may be right.
@@ -113,7 +126,7 @@ const coming = [
         <p class="stack-p">
           In code, a creative fix that refactors something to make it work is a
           help. In research it is how things go bad. An unvetted source or a
-          paraphrase that drifted from its quote can contaminate everything
+          paraphrase that drifted from its quote contaminates everything
           downstream, and the longer the chain of agents, the harder it is to
           tell whether the one in the middle checked which sources it could
           actually reach.
@@ -125,26 +138,16 @@ const coming = [
           free-running agent. You can ask it nicely in a markdown file and hope.
         </p>
         <p>
-          Functionary's answer is to mark where every value came from. A value
-          a model wrote stays marked through every later step. Only two things
-          clear the mark: a deterministic check against the source, or a
-          person. More effort inside the model call buys a better draft, not an
-          independent look.
+          So every wire carries where its value came from. A value a model
+          wrote stays marked through every later step. Only two things clear
+          the mark: a deterministic check against the source, or a person.
+          More effort inside the model call buys a better draft, not an
+          independent look. The knowledge base refuses anything nobody cleared.
         </p>
       </div>
       <div class="pair">
-        <Canvas
-          flow={unchecked}
-          legend
-          status="designed"
-          caption="A model-written table goes straight into the knowledge base. Nothing marks it."
-        />
-        <Canvas
-          flow={checked}
-          legend
-          status="designed"
-          caption="A Check confirms each quote is in the filing. The wire after it is verified."
-        />
+        <Canvas flow={unchecked} legend caption="A model-written table heads for the knowledge base. The dashed wire says a model wrote it; the Write refuses it." />
+        <Canvas flow={checked} legend caption="A Check confirms each quote is in the filing. The wire after it is verified, and the Write accepts it." />
       </div>
     </div>
   </section>
@@ -191,12 +194,12 @@ const coming = [
         <h2>Each step is a job you could hand to a junior.</h2>
         <p class="stack-p">
           A block does one judgement: summarize this page and keep track of the
-          source text, search the files it was granted, grade this source
-          against these criteria. Its prompt is tuned by us and never edited
-          by the agent that places it. The model inside can only take the
-          actions the block lists. That is the product: being able to say with
-          confidence that the only thing this step can do is read its input
-          and look at the documents in front of it.
+          source text, pull the passages that bear on a question, grade this
+          source against these criteria. Its prompt is tuned by us and never
+          edited by the agent that places it. The model inside can only take
+          the actions the block lists. That is the product: being able to say
+          with confidence that the only thing this step can do is read its
+          input and look at the documents in front of it.
         </p>
         <p>
           Every model call, tool call, review decision and write leaves a
@@ -219,54 +222,58 @@ const coming = [
       </div>
       <div class="kinds-wrap">
         <Kinds />
-        <p class="fig-note">
-          Seven kinds of step, and the verbs under each. The colour map is decided;
-          the canvas does not paint cards by kind yet.
-        </p>
+        <p class="fig-note">The palette. Seven kinds of step, and the verbs under each.</p>
       </div>
     </div>
   </section>
 
   <section class="section">
-    <div class="container measure">
-      <h2>Fix the step once. Every later run uses the fix.</h2>
-      <p class="stack-p">
-        Most flows get built, adjusted, run, adjusted, run, and then rarely
-        touched again. That loop carries no versioning ceremony. One person
-        creates, edits, runs and reviews, and never sees the word pin.
-      </p>
-      <p class="stack-p">
-        When a flow starts to matter, you ask for friction: pin the tables it
-        reads and name who reviews its outputs. Requiring an approved revision
-        before an unattended run is being wired in. Every run records exactly
-        which revision it ran. A correction is a change to a visible step, with its history, and
-        the next run inherits it. The process improves. The model does not
-        have to.
-      </p>
-      <p>
-        Scheduled and unattended runs exist on the server today. The screens
-        for setting them up come after the rest of this lands.
-      </p>
+    <div class="container">
+      <div class="measure">
+        <h2>Fix the step once. Every later run uses the fix.</h2>
+        <p class="stack-p">
+          Most flows get built, adjusted, run, adjusted, run, and then rarely
+          touched again. That loop carries no versioning ceremony. One person
+          creates, edits, runs and reviews, and never sees the word pin.
+        </p>
+        <p>
+          When a flow starts to matter, you ask for friction. Every run records
+          exactly which revision it ran. A correction is a change to a visible
+          step, with its history, and the next run inherits it. The process
+          improves. The model does not have to.
+        </p>
+      </div>
+      <div class="ladder">
+        <div>
+          <h3>Iterate</h3>
+          <ul>
+            <li>Describe the job; the agent drafts the flow.</li>
+            <li>Test. Read every row. Change a setting, delete a step.</li>
+            <li>Run it again with new inputs next week.</li>
+            <li>Imports follow the latest version on their own.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Stabilize</h3>
+          <ul>
+            <li>Pin the tables and modules the flow reads.</li>
+            <li>Name who reviews its outputs, and where.</li>
+            <li>Require an approved revision before an unattended run.</li>
+            <li>Start it on a schedule, a webhook, or an inbound email.</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="section status">
-    <div class="container">
-      <h2>What works today, and what is decided.</h2>
-      <p class="measure stack-p">
-        The backend described above lives on an integration branch and has not
-        shipped. This list is kept honest on purpose.
+  <section class="section cta">
+    <div class="container measure">
+      <h2>Your process should outlive the prompt that started it.</h2>
+      <p class="stack-p">
+        Flows are source files in a project you own. Runs, receipts and the
+        knowledge base live under one data directory. Models and connected
+        systems are steps on the canvas, so you can read what leaves.
       </p>
-      <div class="cols">
-        <div>
-          <h3>Runs on the branch</h3>
-          <ul>{works.map((w) => <li>{w}</li>)}</ul>
-        </div>
-        <div>
-          <h3>Decided, being built</h3>
-          <ul class="coming">{coming.map((c) => <li>{c}</li>)}</ul>
-        </div>
-      </div>
       <div class="actions">
         <Button href="/how-it-works" variant="primary">See one job end to end</Button>
         <Button href="/self-hosting" variant="ghost">Deployment</Button>
@@ -296,9 +303,15 @@ const coming = [
   .hero-canvas {
     margin-top: var(--s-40);
   }
+  .hero-cap {
+    margin-top: var(--s-12);
+    font-size: var(--ms-small);
+    color: var(--fg-2);
+    max-width: var(--measure-prose);
+  }
   .desktop-note {
     display: none;
-    margin-top: var(--s-16);
+    margin-top: var(--s-12);
     font-family: var(--font-mono);
     font-size: var(--fs-11);
     color: var(--fg-3);
@@ -313,15 +326,49 @@ const coming = [
   .section p {
     margin-top: var(--s-16);
   }
-  .jobs {
-    margin: var(--s-20) 0 var(--s-20);
-    padding-left: 1.1em;
+  .after {
+    margin-top: var(--s-32);
+  }
+
+  .tasks {
+    list-style: none;
+    margin: var(--s-32) 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-16);
+  }
+  .tasks li {
+    border: 1px solid var(--border-0);
+    border-radius: var(--r-8);
+    background: var(--bg-1);
+    padding: var(--s-16) var(--s-20) var(--s-20);
     display: grid;
     gap: var(--s-8);
+    align-content: start;
+  }
+  .task-name {
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    font-weight: 700;
+    color: var(--fg-0);
+  }
+  .tasks p {
+    margin: 0;
+    font-size: var(--ms-small);
     color: var(--fg-1);
   }
-  .jobs li::marker {
-    color: var(--fg-3);
+  .task-fail {
+    color: var(--fg-2);
+    padding-top: var(--s-8);
+    border-top: 1px solid var(--border-0);
+  }
+  .task-fail span {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--fs-10);
+    color: var(--danger);
+    margin-bottom: 2px;
   }
 
   .split {
@@ -335,13 +382,10 @@ const coming = [
     gap: var(--s-24);
     min-width: 0;
   }
-  .two-up > div {
-    min-width: 0;
-  }
   .two-up {
     margin-top: var(--s-40);
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: var(--s-24);
     align-items: start;
   }
@@ -349,51 +393,65 @@ const coming = [
     font-size: var(--ms-small);
     color: var(--fg-2);
   }
-  .table-wrap {
-    margin-top: var(--s-40);
-  }
+  .table-wrap,
   .kinds-wrap {
     margin-top: var(--s-40);
   }
 
-  .status {
-    background: var(--bg-1);
-  }
-  .cols {
+  .ladder {
     margin-top: var(--s-32);
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--s-40);
+    gap: var(--s-20);
+    max-width: 56rem;
   }
-  .cols h3 {
+  .ladder div {
+    border-top: 2px solid var(--border-1);
+    padding-top: var(--s-12);
+  }
+  .ladder div:last-child {
+    border-top-color: var(--cat-human);
+  }
+  .ladder h3 {
     font-family: var(--font-mono);
     font-size: var(--fs-12);
     font-weight: 700;
-    color: var(--fg-2);
-    margin-bottom: var(--s-12);
+    color: var(--fg-0);
   }
-  .cols ul {
+  .ladder ul {
+    margin: var(--s-10) 0 0;
     padding-left: 1.1em;
     display: grid;
-    gap: var(--s-8);
+    gap: var(--s-6);
     font-size: var(--ms-small);
     color: var(--fg-1);
   }
-  .cols li::marker {
-    color: var(--success);
-  }
-  .cols .coming li::marker {
-    color: var(--warn);
+  .ladder li::marker {
+    color: var(--fg-3);
   }
 
+  .cta {
+    background: var(--bg-1);
+  }
+
+  @media (max-width: 1000px) {
+    .tasks {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
   @media (max-width: 860px) {
     .split,
     .two-up,
-    .cols {
+    .ladder {
       grid-template-columns: minmax(0, 1fr);
     }
     .desktop-note {
       display: block;
+    }
+  }
+  @media (max-width: 600px) {
+    .tasks {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
   @media (max-width: 480px) {

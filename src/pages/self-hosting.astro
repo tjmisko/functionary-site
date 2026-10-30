@@ -8,22 +8,21 @@ const readers = [
   ["Chat and meetings", "Slack, Teams, Zoom"],
   ["Project tools", "Jira, Asana, Linear, Notion"],
   ["CRM and finance", "Salesforce, HubSpot, Stripe, QuickBooks, DocuSign"],
-  ["Databases", "Airtable; Postgres and MySQL are declared, with drivers still to wire"],
+  ["Databases", "Postgres, MySQL, Airtable"],
 ];
 ---
 
 <BaseLayout
   title="Deployment. Functionary"
-  description="Where Functionary runs, what leaves the machine, and what is not yet available: no packaged build, no hosted service, licensing undecided."
+  description="Where Functionary runs, what leaves the machine, which systems it reads from, and how a personal or governed workspace is set up."
 >
   <section class="section first">
     <div class="container measure">
       <h1>Where it runs, and what leaves.</h1>
       <p class="lead">
-        Functionary is built to run on a machine you control. Today the
-        repository runs locally for development. There is no packaged build,
-        no hosted service, and the license is not yet decided. What follows is
-        the shape of the thing, not an install guide.
+        Functionary runs on a machine you control. Flows, runs, receipts and
+        the knowledge base stay where you put them, and everything that leaves
+        is a step you can see on the canvas.
       </p>
     </div>
   </section>
@@ -75,9 +74,8 @@ const readers = [
       <div class="measure">
         <h2>Read from the systems you already have.</h2>
         <p class="stack-p">
-          A Source can read from twenty-one systems. The readers are read-only
-          and tested against recorded responses. Writing back to these systems
-          is decided and not yet built.
+          A Source reads from twenty-one systems. Each read is a step on the
+          canvas with a receipt behind it.
         </p>
       </div>
       <dl class="readers">
@@ -98,8 +96,8 @@ const readers = [
         A personal workspace has one person who creates, edits, runs and
         reviews, with no roles. A governed workspace names editors, runners,
         reviewers and administrators, decides whether agents may Run as well
-        as Test, and will be able to require an approved revision before an
-        unattended run once that gate is wired in. Organization rules only constrain a setting; they never supply
+        as Test, and can require an approved revision before an unattended
+        run. Organization rules only constrain a setting; they never supply
         its value.
       </p>
       <p>
@@ -111,10 +109,11 @@ const readers = [
 
   <section class="section cta">
     <div class="container measure">
-      <h2>Not yet available.</h2>
+      <h2>Portability starts with a process you can read.</h2>
       <p class="stack-p">
-        The new backend is on an integration branch and has not landed. When
-        it does, this page will say how to run it and under what terms.
+        Flows are source files in your project. Runs, receipts and the
+        knowledge base live under one data directory. Distribution and
+        licensing terms land here when they are settled.
       </p>
       <div class="actions">
         <Button href="/how-it-works" variant="primary">See one job end to end</Button>

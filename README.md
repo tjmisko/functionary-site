@@ -37,8 +37,8 @@ npm run check      # astro check (typecheck)
 src/
   layouts/BaseLayout.astro    # <head>, SEO/OG meta, header + footer
   components/                 # Header, Footer, Button, Chip, Pillar, CodeBlock,
-                              # Canvas (flow drawings), FlowSource, Refusal,
-                              # RunTable, Kinds, Status
+                              # Canvas (flow drawings), Workspace (editor chrome),
+                              # FlowSource, Refusal, RunTable, Kinds
   pages/
     index.astro               # Home: the argument, with one real flow as the hero
     how-it-works.astro        # One job end to end
@@ -50,7 +50,8 @@ src/
   styles/                     # tokens.css (vendored) + marketing.css + global.css
   lib/flow.ts                 # the seven kinds, origins and run states → tokens
   lib/canvas.ts               # data model for a drawn flow
-  lib/flows.ts                # the flows the site draws (built or designed)
+  lib/flows.ts                # the flows the site draws
+  lib/icons.ts                # per-verb line icons for cards
 public/                       # favicon, robots.txt
 deploy/                       # nginx.conf, deploy.sh, deploy instructions
 ```
@@ -62,5 +63,4 @@ Static build → rsync to nginx on the VPS. See [`deploy/README.md`](deploy/READ
 ## Pre-launch
 
 See the checklist at the end of [`docs/DESIGN.md`](docs/DESIGN.md). The research
-the copy rests on is in `docs/research-2026-10-30/`; re-caption "designed"
-drawings as the F104 block-ontology tasks land.
+the copy rests on is in `docs/research-2026-10-30/`.

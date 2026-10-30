@@ -13,7 +13,7 @@ export interface CanvasNode {
   verb: string;
   /** What this instance does, in the user's words: "claims with quotes". */
   title?: string;
-  /** Mode or settings summary shown under the title. */
+  /** Mode or settings summary shown as the header badge. */
   mode?: string;
   /** Extract-class blocks and Search read as extraction (green). */
   extraction?: boolean;
@@ -21,13 +21,15 @@ export interface CanvasNode {
   lane: number;
   /** Jigs only: ids of the nodes inside the region. */
   body?: string[];
+  /** Jigs only: the footer line, e.g. "12 rows · parallel". */
+  foot?: string;
 }
 
 export interface CanvasEdge {
   from: string;
   to: string;
   origin?: Origin;
-  /** Wire type label drawn on the edge, e.g. "Table<Claim>". */
+  /** Wire type drawn on the edge, e.g. "Table<Claim>". */
   label?: string;
 }
 

@@ -2,22 +2,23 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Button from "../components/Button.astro";
 import Canvas from "../components/Canvas.astro";
+import Workspace from "../components/Workspace.astro";
 import FlowSource from "../components/FlowSource.astro";
 import RunTable from "../components/RunTable.astro";
-import { siteScan, checkCitations, bestOfN } from "../lib/flows";
+import { checkCitations, sourceValidation, bestOfN } from "../lib/flows";
 
 const steps = [
   {
     title: "Start from what you have.",
-    body: "A list of URLs in a table, a folder of documents, a file. There is no blank canvas to fill. You describe the job in plain terms to the agent and point it at the inputs.",
+    body: "A draft report, a folder of documents, a list of URLs in a table. There is no blank canvas to fill. You describe the job in plain terms to the agent and point it at the inputs.",
   },
   {
     title: "The agent drafts the flow.",
-    body: "It can only place steps from the catalog and wire them. It cannot write a loop, read a file on the side, or hard-code a value. If it tries, the save is refused with a diagnostic naming the construct, and the canvas keeps the last accepted flow.",
+    body: "It can only place steps from the palette and wire them. It cannot write a loop, read a file on the side, or hard-code a value. If it tries, the save is refused with a diagnostic naming the construct, and the canvas keeps the last accepted flow.",
   },
   {
     title: "Read the canvas.",
-    body: "Every card is a step and every wire carries one typed value. The canvas is derived from the source, so what you see is the program. You rename a step, change a setting, delete one, or ask the agent for a change. You never need to open the source.",
+    body: "Every card is a step and every wire carries one typed value. The canvas is derived from the source, so what you see is the program. Rename a step, change a setting, delete one, or ask the agent for a change. You never need to open the source.",
   },
   {
     title: "Run it as a Test.",
@@ -25,7 +26,7 @@ const steps = [
   },
   {
     title: "Look at every row.",
-    body: "The run inspector lists each step's outcome, one per occurrence inside a loop. A page that refused the fetch is a failed row with its cause. A step that never ran says it did not run. Nothing is dropped to make the table look clean.",
+    body: "The run inspector lists each step's outcome, one per occurrence inside a loop. A source that refused the fetch is a failed row with its cause. A step that never ran says it did not run. Nothing is dropped to make the table look clean.",
   },
   {
     title: "Review where you choose.",
@@ -37,11 +38,23 @@ const steps = [
   },
 ];
 
-const reviewSource = `fn flow() {
-    let draft = Summarize::new(one_digest).input(report.text);
-    // Execution parks here until a person answers. The answer is a receipt.
-    let read  = Review::new(before_it_goes_out).input(draft.text);
-    let saved = Write::new(weekly_scan).input(read.text);
+const reviewSource = `fn check_pair(pair: Row) -> Stance {
+    let url   = Field::new(source_url).input(pair);
+    let claim = Field::new(claim_text).input(pair);
+    let page  = Source::new(fetch_source).input(url.text);
+    let text  = Format::new(html_to_text).input(page.document);
+    let st    = Judge::new(citation_stance).input(claim.text).context(text.text);
+    let found = Check::new(quote_is_on_the_page).input(st.record);   // exact substring, or the row fails
+    Stance { stance: st.record, verified: found.bool }
+}
+
+fn flow() {
+    let draft   = Source::new(the_draft_report);
+    let split   = Model::new(claims_and_sources).input(draft.document);
+    let edited  = Review::new(fix_the_list).input(split.table);
+    let checked = Map::new(each_pair).over(edited.table).map(check_pair);
+    let ledger  = Aggregate::new(per_claim).input(checked.table);
+    let saved   = Write::new(citation_ledger).input(ledger.table);
 }`;
 ---
 
@@ -53,13 +66,22 @@ const reviewSource = `fn flow() {
     <div class="container measure">
       <h1>One job, end to end.</h1>
       <p class="lead">
-        A weekly scan of a list of sites: fetch each page, summarize what
-        changed, roll the summaries into one digest, have a person read it,
-        write it down. Small enough to follow, and it runs today.
+        Report QC. A finished draft goes in. Every claim it makes is paired
+        with the source it cites, the source is fetched and read, a quote is
+        pulled and checked against the page, and a ledger of what holds and
+        what does not comes out. A person fixes the claim list before the
+        checking starts.
       </p>
     </div>
     <div class="container wide canvas-wrap">
-      <Canvas flow={siteScan} status="built" caption="Nine steps. One loop. One person." />
+      <Workspace name="report-qc" revision={7} cols={9}>
+        <Canvas flow={checkCitations} bare />
+      </Workspace>
+      <p class="hero-cap">
+        Dashed wires carry values a model wrote. The wire leaving the Check is
+        verified: the quote is on the page, byte for byte. The knowledge base
+        takes nothing less.
+      </p>
     </div>
   </section>
 
@@ -88,10 +110,10 @@ const reviewSource = `fn flow() {
           receipts and does not ask the model again.
         </p>
         <p>
-          Results sit in run tables you can read. Committing one to the
-          knowledge base makes an immutable revision that outlives the run,
-          with every outcome it depends on pinned, and marked partial if any
-          cell failed.
+          Results sit in run tables you can read and edit by hand. Committing
+          one to the knowledge base makes an immutable revision that outlives
+          the run, with every outcome it depends on pinned, and marked partial
+          if any cell failed.
         </p>
       </div>
       <div>
@@ -99,14 +121,14 @@ const reviewSource = `fn flow() {
           columns={["path", "step", "status", "receipt"]}
           mono={[0, 3]}
           rows={[
-            [{ text: "/map/0/issues" }, { text: "Summarize" }, { text: "complete", origin: "generated" }, { text: "sha256:3c7e…" }],
-            [{ text: "/map/1/issues" }, { text: "Summarize" }, { text: "complete", origin: "generated" }, { text: "sha256:b219…" }],
-            [{ text: "/map/2/fetch" }, { text: "Source" }, { text: "", status: "failed" }, { text: "sha256:e04a…" }],
-            [{ text: "/map/2/issues" }, { text: "Summarize" }, { text: "did not run", origin: "computed" }, { text: "" }],
-            [{ text: "/review" }, { text: "Review" }, { text: "approved", origin: "reviewed" }, { text: "sha256:9d10…" }],
-            [{ text: "/write" }, { text: "Write" }, { text: "dry run", origin: "reviewed" }, { text: "sha256:51f2…" }],
+            [{ text: "/map/0/stance" }, { text: "Judge" }, { text: "supports", origin: "generated" }, { text: "sha256:3c7e…" }],
+            [{ text: "/map/0/quote" }, { text: "Check" }, { text: "verified", origin: "verified" }, { text: "sha256:b219…" }],
+            [{ text: "/map/1/fetch" }, { text: "Source" }, { text: "", status: "failed" }, { text: "sha256:e04a…" }],
+            [{ text: "/map/1/stance" }, { text: "Judge" }, { text: "did not run", origin: "computed" }, { text: "" }],
+            [{ text: "/map/2/quote" }, { text: "Check" }, { text: "", status: "missing" }, { text: "sha256:9d10…" }],
+            [{ text: "/write" }, { text: "Write" }, { text: "dry run", origin: "verified" }, { text: "sha256:51f2…" }],
           ]}
-          caption="Outcomes by occurrence path from a Test. Row 2's fetch failed, so its summary did not run; the Write was withheld."
+          caption="Outcomes by occurrence path from a Test. Pair 1's source refused the fetch, so its stance did not run. Pair 2's quote was not on the page, so the Check failed the row."
         />
       </div>
     </div>
@@ -115,13 +137,12 @@ const reviewSource = `fn flow() {
   <section class="section">
     <div class="container split">
       <div class="measure">
-        <h2>A person is a step.</h2>
+        <h2>The source behind the canvas.</h2>
         <p class="stack-p">
-          Review is a gate on the canvas like any other card. It takes a value
-          and either lets it through or stops it, and the flow cannot invent
-          the missing answer. You put one where the judgement is yours: before
-          a write leaves the machine, on a sample of merged records, on a
-          claim the model graded low.
+          The agent wrote this. Each binding is a card, each argument a wire,
+          and the function the Map calls is the body of its region. There is
+          nothing in the file that is not on the canvas, and nothing on the
+          canvas that is not in the file.
         </p>
         <p>
           An agent can draft and Test a flow in your name. By default it
@@ -129,7 +150,7 @@ const reviewSource = `fn flow() {
         </p>
       </div>
       <div>
-        <FlowSource code={reviewSource} file="weekly-scan.rs" />
+        <FlowSource code={reviewSource} file="report-qc.rs" />
       </div>
     </div>
   </section>
@@ -137,28 +158,25 @@ const reviewSource = `fn flow() {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>Where this is going.</h2>
+        <h2>Compositions you insert as one step.</h2>
         <p class="stack-p">
-          The block ontology decided on 29 October 2026 adds the steps that
-          carry the contamination argument all the way through: origin on
-          every wire, Check as a deterministic gate, Quote and Model as the
-          blocks that harvest from sources with an anchor back to the exact
-          passage, and named compositions you insert as one step. Two of them,
-          drawn as designed.
+          Some shapes come up in every job. Best of N, adversarial review,
+          consolidating duplicates, classify and route, recover from failure.
+          Each is a procedure: one thing in the palette that expands on the
+          canvas into visible steps, every one with its own settings and its
+          own receipt. Nothing hides inside an opaque block.
         </p>
       </div>
-      <div class="designed">
+      <div class="procs">
         <Canvas
-          flow={checkCitations}
+          flow={sourceValidation}
           legend
-          status="designed"
-          caption="Check the citations in a pasted answer. Each quote is verified as a substring of the page it came from; the knowledge base will refuse anything that is not."
+          caption="Source Validation. Search finds candidates; each is fetched, quoted against the criteria and graded; a Filter keeps what passes; a person samples the result."
         />
         <Canvas
           flow={bestOfN}
           legend
-          status="designed"
-          caption="Best of N. Three drafts from different models, one chosen with a stated reason, one editor."
+          caption="Best of N. Three drafts from three models, one chosen with a stated reason, one editor."
         />
       </div>
     </div>
@@ -183,6 +201,12 @@ const reviewSource = `fn flow() {
   }
   .canvas-wrap {
     margin-top: var(--s-40);
+  }
+  .hero-cap {
+    margin-top: var(--s-12);
+    font-size: var(--ms-small);
+    color: var(--fg-2);
+    max-width: var(--measure-prose);
   }
 
   .steps {
@@ -231,14 +255,14 @@ const reviewSource = `fn flow() {
     gap: var(--s-40);
     align-items: start;
   }
-  .designed {
+  .split > div {
+    min-width: 0;
+  }
+  .procs {
     margin-top: var(--s-40);
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: var(--s-40);
-  }
-  .split > div {
-    min-width: 0;
   }
 
   @media (max-width: 860px) {

@@ -1,0 +1,145 @@
+---
+/**
+ * The flow editor's chrome around a canvas: a toolbar with the flow name,
+ * revision, and the Test / Run / Escalate controls, and a status strip with
+ * the run state. When `run` is set the status follows the canvas's one run
+ * pass: running, then awaiting review.
+ */
+interface Props {
+  name: string;
+  revision: number;
+  run?: boolean;
+  /** How many columns the canvas has, to time the status change. */
+  cols?: number;
+}
+const { name, revision, run = false, cols = 9 } = Astro.props;
+const settle = cols * 0.55 + 1.7;
+---
+
+<div class:list={["ws", { run }]} style={`--settle: ${settle}s`}>
+  <div class="bar">
+    <span class="name">{name}</span>
+    <span class="rev">revision {revision}</span>
+    <span class="spacer" />
+    <span class="btn active">Test</span>
+    <span class="btn">Run</span>
+    <span class="btn">Escalate</span>
+  </div>
+  <slot />
+  <div class="strip">
+    <span class="st running"><i />running · Test, effects withheld</span>
+    <span class="st parked"><i />awaiting review · /review</span>
+    <span class="spacer" />
+    <span class="meta">receipts 12 · model calls 9 · 0 failed</span>
+  </div>
+</div>
+
+<style>
+  .ws {
+    border: 1px solid var(--border-0);
+    border-radius: var(--r-10);
+    background: var(--bg-1);
+    overflow: hidden;
+  }
+  .bar,
+  .strip {
+    display: flex;
+    align-items: center;
+    gap: var(--s-12);
+    padding: 0 var(--s-14);
+    font-family: var(--font-mono);
+    font-size: var(--fs-11);
+    color: var(--fg-2);
+  }
+  .bar {
+    height: 40px;
+    border-bottom: 1px solid var(--border-0);
+  }
+  .strip {
+    height: 32px;
+    border-top: 1px solid var(--border-0);
+    font-size: var(--fs-10);
+    position: relative;
+  }
+  .name {
+    color: var(--fg-0);
+    font-weight: 600;
+  }
+  .spacer {
+    flex: 1;
+  }
+  .btn {
+    padding: 3px 10px;
+    border: 1px solid var(--border-1);
+    border-radius: var(--r-4);
+    color: var(--fg-1);
+    font-size: var(--fs-11);
+  }
+  .btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg-0);
+    font-weight: 600;
+  }
+  .st {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .st i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-strong);
+  }
+  .st.parked i {
+    background: var(--conf-needs-input);
+  }
+  .st.parked {
+    position: absolute;
+    left: var(--s-14);
+    opacity: 0;
+  }
+  .meta {
+    color: var(--fg-3);
+  }
+
+  .run .st.running {
+    animation: hide 0.3s ease forwards;
+    animation-delay: var(--settle);
+  }
+  .run .st.parked {
+    animation: show 0.3s ease forwards;
+    animation-delay: var(--settle);
+  }
+  /* without a run pass, show the settled state */
+  .ws:not(.run) .st.running {
+    opacity: 0;
+  }
+  .ws:not(.run) .st.parked {
+    opacity: 1;
+  }
+  @keyframes hide {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes show {
+    to {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .run .st.running,
+    .run .st.parked {
+      animation-duration: 0.001ms;
+      animation-delay: 0s;
+    }
+  }
+  @media (max-width: 680px) {
+    .rev,
+    .meta {
+      display: none;
+    }
+  }
+</style>

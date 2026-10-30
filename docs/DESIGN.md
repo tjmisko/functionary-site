@@ -20,8 +20,8 @@ gradient, Agent Sketch cards) survives on the site.
 |---|---|---|
 | Aesthetic | Fidelity to the product | **Bend it**: softer, more open layout; same palette and voice. |
 | Argument | The spine of the home page | **The founder's argument, in order.** The work; none of it is hard, any of it can go wrong; "you're selling good words" (contamination); the agent writes the plan, you read it; each step is a job you could hand to a junior; fix the step once; what works today. Concrete failure first, concession second, mechanism third. |
-| Hero | The centerpiece | **One real flow, drawn in the canvas grammar.** The site-scan fixture that runs on `integration/f98`, with one pass of execution state (running, completed, awaiting review) that plays once and freezes under `prefers-reduced-motion`. No rotating examples, no domain dots. |
-| Honesty | Build state | **Every drawing carries a status chip**: "runs today" or "designed, not yet built". The home page ends with a two-column list of what runs and what is decided. Nothing decided is shown as shipped. |
+| Hero | The centerpiece | **One flow inside the editor's chrome.** The weekly-scan flow drawn in the canvas grammar, framed by the flow editor's toolbar (name, revision, Test / Run / Escalate) and status strip, with one pass of execution state (running, completed, awaiting review) that plays once and freezes under `prefers-reduced-motion`. No rotating examples, no domain dots. |
+| Spec | What the site describes | **The F98 specification as the product.** The seven kinds, origin on every wire, Check, procedures and the governed workspace are shown as what Functionary is, with no build-state badges. The task names are generic: Report QC, Source Validation, Dataset Assembly, Evidence Combing, Market Map, Document Revision. |
 | Scope | Page count | **Small multi-page**: Home (the argument) / How it works (one job end to end) / Deployment + Blog. |
 | Voice | The hard constraint | **Does not bend.** Terse, declarative, specific. No marketing vocabulary, no em-dashes, no rhetorical questions, no triads for their own sake. Founder register, third person; nothing is placed in quotation marks unless verbatim. |
 | Mode | Default theme | **Dark.** A light marketing site would feel disowned by a dark product. |
@@ -48,7 +48,8 @@ Document / Record as the two payloads (Document, Table, Record); HumanReview
 approval, roles, and Rust.
 
 Do not name third-party tools as the foil, and do not name the founder's past
-employers or projects in public copy without asking.
+employers or projects. Jobs are named generically: Report QC, Source
+Validation, Dataset Assembly, Evidence Combing, Market Map, Document Revision.
 
 ## How the design binds to the product
 
@@ -62,8 +63,7 @@ employers or projects in public copy without asking.
   `rgba(28,33,40,.95)`, kind-coloured header, grey transform pills, translucent
   orange Jig regions, 10px port rings. Kind colours follow the decided map
   (D135, F104.25). Wire origins (D139) are drawn as Sourced and Computed plain,
-  Generated dashed, Verified and Reviewed tinted; that styling is a design
-  proposal, so any drawing that leans on it is captioned "designed".
+  Generated dashed, Verified and Reviewed tinted.
 - **Two voices, by typeface.** Monospace (JetBrains Mono) is the machine and the
   artifact: wordmark, chips, verbs, code, receipts. Inter is us explaining.
 - **Restraint.** No gradients in chrome, no decorative icons, no emoji, no
@@ -82,12 +82,12 @@ employers or projects in public copy without asking.
 
 | File | Draws |
 |---|---|
-| `Canvas.astro` | A flow from `src/lib/flows.ts` in the canvas grammar; optional run pass, legend and status chip. |
+| `Canvas.astro` | A flow from `src/lib/flows.ts` in the canvas grammar: kind-coloured cards with per-verb line icons (`src/lib/icons.ts`), a model dot on blocks, error ports, transform pills, Jig regions with label and footer, typed wire labels, origin-styled wires; optional run pass and legend. |
+| `Workspace.astro` | The flow editor's chrome around a canvas: toolbar with name, revision and Test / Run / Escalate; status strip that follows the run pass. |
 | `FlowSource.astro` | Flow source in the restricted Rust subset with light highlighting. |
 | `Refusal.astro` | Code outside the subset and the checker diagnostics that refuse it. |
 | `RunTable.astro` | Run outcomes per row or per occurrence path, with origin dots and failures kept as rows. |
-| `Kinds.astro` | The seven kinds and their verbs, built ones plain and decided ones dashed. |
-| `Status.astro` | The "runs today" / "designed, not yet built" chip. |
+| `Kinds.astro` | The palette: seven kinds and their verbs with icons, in the canvas's grouping and colours. |
 
 ## Mobile
 
@@ -104,7 +104,4 @@ prose and read fine on a phone.
   site exists.
 - Licensing block on the Deployment page once the OSS / commercial split is
   decided.
-- Re-caption drawings from "designed" to "runs today" as F104 lands (origin,
-  Check, Quote, Compare, Replicate), and move items between the two columns of
-  the home page's status section.
 - Seed blog posts.
