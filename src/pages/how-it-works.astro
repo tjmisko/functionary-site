@@ -2,7 +2,6 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Button from "../components/Button.astro";
 import Canvas from "../components/Canvas.astro";
-import Workspace from "../components/Workspace.astro";
 import FlowSource from "../components/FlowSource.astro";
 import RunTable from "../components/RunTable.astro";
 import { checkCitations, sourceValidation, bestOfN } from "../lib/flows";
@@ -74,13 +73,11 @@ fn flow() {
       </p>
     </div>
     <div class="container wide canvas-wrap">
-      <Workspace name="report-qc" revision={7} cols={9}>
-        <Canvas flow={checkCitations} bare />
-      </Workspace>
+      <Canvas flow={checkCitations} bare />
       <p class="hero-cap">
         Dashed wires carry values a model wrote. The wire leaving the Check is
-        verified: the quote is on the page, byte for byte. The knowledge base
-        takes nothing less.
+        verified: the quote is on the page, byte for byte. Hover a wire for
+        its type.
       </p>
     </div>
   </section>
@@ -118,8 +115,11 @@ fn flow() {
       </div>
       <div>
         <RunTable
+          title="report-qc"
+          subtitle="Run · Test"
+          badge="outcomes"
+          tint="var(--cat-synthesis)"
           columns={["path", "step", "status", "receipt"]}
-          mono={[0, 3]}
           rows={[
             [{ text: "/map/0/stance" }, { text: "Judge" }, { text: "supports", origin: "generated" }, { text: "sha256:3c7e…" }],
             [{ text: "/map/0/quote" }, { text: "Check" }, { text: "verified", origin: "verified" }, { text: "sha256:b219…" }],

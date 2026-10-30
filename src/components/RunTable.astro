@@ -2,99 +2,177 @@
 import { originLabel, type Origin } from "../lib/flow";
 
 /**
- * A run result as the product shows it: one row per item, every cell with its
- * origin, and failures kept as rows rather than dropped.
+ * A table as the product draws one: a card with a kind-coloured header
+ * (title, subtitle, badge), a row-number column, monospace cells, 1px row
+ * rules, and an add-column cell. Failures and missing values stay as rows
+ * with a status in the cell rather than a blank.
  */
 interface Cell {
   text: string;
   origin?: Origin;
-  /** A failed or missing cell: drawn as a status, not a blank. */
   status?: "failed" | "missing";
 }
 interface Props {
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  /** CSS colour for the header; defaults to the Source blue. */
+  tint?: string;
   columns: string[];
   rows: Cell[][];
   caption?: string;
-  /** Column index that carries the receipt hash, drawn in mono. */
-  mono?: number[];
 }
-const { columns, rows, caption, mono = [] } = Astro.props;
+const {
+  title,
+  subtitle = "Table",
+  badge = "source",
+  tint = "var(--cat-source)",
+  columns,
+  rows,
+  caption,
+} = Astro.props;
 ---
 
-<figure class="run">
-  <div class="scroll">
-    <table>
-      <thead>
-        <tr>{columns.map((c) => <th>{c}</th>)}</tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
+<figure class="sheet" style={`--tint: ${tint}`}>
+  <div class="card">
+    <div class="head">
+      <span class="tri" aria-hidden="true">▶</span>
+      <span class="titles">
+        <span class="title">{title}</span>
+        <span class="sub">{subtitle}</span>
+      </span>
+      <span class="badge">{badge}</span>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
           <tr>
-            {r.map((cell, i) => (
-              <td class:list={[{ mono: mono.includes(i), failed: cell.status === "failed", missing: cell.status === "missing" }]}>
-                {cell.status === "failed" ? (
-                  <span class="st">failed</span>
-                ) : cell.status === "missing" ? (
-                  <span class="st">not found</span>
-                ) : (
-                  cell.text
-                )}
-                {cell.origin && <span class={`org org-${cell.origin}`} title={originLabel[cell.origin]} />}
-              </td>
-            ))}
+            <th class="num">#</th>
+            {columns.map((c) => <th>{c}</th>)}
+            <th class="add" aria-label="Add column">+</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr>
+              <td class="num">{i + 1}</td>
+              {r.map((cell) => (
+                <td class:list={[{ failed: cell.status === "failed", missing: cell.status === "missing" }]}>
+                  {cell.status === "failed" ? (
+                    <span class="st">failed</span>
+                  ) : cell.status === "missing" ? (
+                    <span class="st">not found</span>
+                  ) : (
+                    cell.text
+                  )}
+                  {cell.origin && <span class={`org org-${cell.origin}`} title={originLabel[cell.origin]} />}
+                </td>
+              ))}
+              <td class="add" />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   </div>
   {caption && <figcaption>{caption}</figcaption>}
 </figure>
 
 <style>
-  .run {
+  .sheet {
     margin: 0;
+    min-width: 0;
+  }
+  .card {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--r-8);
+    background: rgba(28, 33, 40, 0.97);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    gap: var(--s-8);
+    padding: 7px 12px;
+    background: var(--tint);
+    color: #fff;
+  }
+  .tri {
+    font-size: 9px;
+    opacity: 0.9;
+  }
+  .titles {
+    display: grid;
+    line-height: 1.15;
+    flex: 1;
+    min-width: 0;
+  }
+  .title {
+    font-family: var(--font-mono);
+    font-size: var(--fs-13);
+    font-weight: 700;
+  }
+  .sub {
+    font-family: var(--font-mono);
+    font-size: var(--fs-9);
+    opacity: 0.7;
+  }
+  .badge {
+    font-family: var(--font-mono);
+    font-size: var(--fs-9);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    opacity: 0.75;
   }
   .scroll {
     overflow-x: auto;
-    border: 1px solid var(--border-0);
-    border-radius: var(--r-8);
-    background: var(--bg-1);
   }
   table {
     width: 100%;
     border-collapse: collapse;
+    font-family: var(--font-mono);
     font-size: var(--fs-12);
     min-width: 560px;
   }
-  th {
+  th,
+  td {
     text-align: left;
-    font-family: var(--font-mono);
-    font-size: var(--fs-10);
-    font-weight: 600;
-    color: var(--fg-2);
-    padding: var(--s-8) var(--s-12);
-    border-bottom: 1px solid var(--border-1);
-    background: var(--bg-1);
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-0);
+    border-right: 1px solid var(--border-0);
     white-space: nowrap;
+    vertical-align: top;
+  }
+  th {
+    color: var(--fg-1);
+    font-weight: 500;
+    background: rgba(18, 22, 28, 0.45);
   }
   td {
-    padding: var(--s-8) var(--s-12);
-    border-bottom: 1px solid var(--border-0);
-    color: var(--fg-1);
-    vertical-align: top;
-    position: relative;
+    color: var(--fg-0);
+  }
+  td:not(.num):not(.add) {
+    white-space: normal;
+    min-width: 12ch;
+  }
+  .num {
+    width: 2.5ch;
+    color: var(--fg-3);
+    text-align: center;
+    background: rgba(18, 22, 28, 0.45);
+  }
+  th.add,
+  td.add {
+    width: 2.5ch;
+    text-align: center;
+    color: var(--fg-3);
+    border-right: none;
   }
   tr:last-child td {
     border-bottom: none;
   }
-  td.mono {
-    font-family: var(--font-mono);
-    font-size: var(--fs-11);
-    color: var(--fg-2);
-    white-space: nowrap;
-  }
   .st {
-    font-family: var(--font-mono);
     font-size: var(--fs-10);
     text-transform: uppercase;
     letter-spacing: 0.5px;

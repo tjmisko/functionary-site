@@ -2,7 +2,6 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Button from "../components/Button.astro";
 import Canvas from "../components/Canvas.astro";
-import Workspace from "../components/Workspace.astro";
 import FlowSource from "../components/FlowSource.astro";
 import Refusal from "../components/Refusal.astro";
 import RunTable from "../components/RunTable.astro";
@@ -76,13 +75,7 @@ fn flow() {
       </div>
     </div>
     <div class="container wide hero-canvas">
-      <Workspace name="weekly-scan" revision={14} run cols={9}>
-        <Canvas flow={siteScan} run bare />
-      </Workspace>
-      <p class="hero-cap">
-        A list of sites, one summary per site, one digest, a person, a write.
-        Every card is a step the agent wired. The yellow card is a person.
-      </p>
+      <Canvas flow={siteScan} run bare />
       <p class="desktop-note">The canvas is a desktop tool. The argument reads fine here; the product does not.</p>
     </div>
   </section>
@@ -90,15 +83,15 @@ fn flow() {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>None of it is hard. Any of it can go wrong.</h2>
+        <h2>Capability is not the problem. Control is.</h2>
         <p class="stack-p">
           The work is the kind an early-career consultant, research assistant
-          or analyst does, and AI has been able to do it for a couple of
-          years. Each job is dozens to hundreds of small steps. None is
-          difficult on its own. Errors creep in anyway, and the person whose
-          name goes on the result has no view of what happened below. That is
-          why research shops pay for footnote checks and for replications of
-          their own work.
+          or analyst does, and models have been able to do it for a couple of
+          years. What they cannot give you is a process you can see: dozens to
+          hundreds of steps, done the way you meant, the same way next week,
+          with the record to show it. The person whose name goes on the result
+          has no view of what happened below. That is why research shops pay
+          for footnote checks and for replications of their own work.
         </p>
       </div>
       <ul class="tasks">
@@ -210,14 +203,17 @@ fn flow() {
       </div>
       <div class="table-wrap">
         <RunTable
+          title="Weekly scan"
+          subtitle="Run table · Test"
+          badge="result"
+          tint="var(--cat-synthesis)"
           columns={["site", "fetched", "summary", "receipt"]}
-          mono={[3]}
           rows={[
             [{ text: "example-vendor.com/pricing" }, { text: "200 · 41 KB", origin: "sourced" }, { text: "Two plans removed since last scan; enterprise tier now quote-only.", origin: "generated" }, { text: "sha256:9f2a1c…" }],
             [{ text: "competitor.io/changelog" }, { text: "200 · 128 KB", origin: "sourced" }, { text: "Three releases; one deprecates the export API.", origin: "generated" }, { text: "sha256:41bc07…" }],
             [{ text: "partner.example/terms" }, { text: "403", status: "failed" }, { text: "", status: "missing" }, { text: "sha256:7d01e8…" }],
           ]}
-          caption="One row per site, in the run inspector's terms. The third site refused the fetch; the row says so instead of disappearing."
+          caption="One row per site. The third site refused the fetch; the row says so instead of disappearing."
         />
       </div>
       <div class="kinds-wrap">
@@ -302,12 +298,6 @@ fn flow() {
   }
   .hero-canvas {
     margin-top: var(--s-40);
-  }
-  .hero-cap {
-    margin-top: var(--s-12);
-    font-size: var(--ms-small);
-    color: var(--fg-2);
-    max-width: var(--measure-prose);
   }
   .desktop-note {
     display: none;
