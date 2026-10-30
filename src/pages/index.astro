@@ -53,7 +53,7 @@ const scanSource = `fn scan(row: Row) -> Scanned {
 <BaseLayout>
   <section class="hero">
     <div class="container">
-      <h1 class="display">Delegate the research. Stand behind the result.</h1>
+      <h1 class="display">Delegate research to agents and keep every step in view.</h1>
       <p class="lead measure">
         Functionary runs research and analysis as a flow of steps you can
         read. An agent drafts the flow. You check it, run it, and see where
@@ -73,7 +73,7 @@ const scanSource = `fn scan(row: Row) -> Scanned {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>What it does</h2>
+        <h2>Jobs</h2>
         <p class="stack-p">
           The jobs an analyst, research assistant or junior consultant spends
           days on. Each is dozens of small steps. None is hard. Any of them
@@ -85,7 +85,7 @@ const scanSource = `fn scan(row: Row) -> Scanned {
           <li>
             <span class="task-name">{t.name}</span>
             <p class="task-what">{t.what}</p>
-            <p class="task-fail"><span>What goes wrong</span>{t.failure}</p>
+            <p class="task-fail"><span>Risk</span>{t.failure}</p>
           </li>
         ))}
       </ul>
@@ -95,7 +95,7 @@ const scanSource = `fn scan(row: Row) -> Scanned {
   <section class="section">
     <div class="container split">
       <div class="measure">
-        <h2>See the work, not just the answer</h2>
+        <h2>Provenance</h2>
         <p class="stack-p">
           A chat assistant gives you an answer. It does not give you the work
           behind it. In research, one unvetted source or skipped step spoils
@@ -117,7 +117,7 @@ const scanSource = `fn scan(row: Row) -> Scanned {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>What you see is what runs</h2>
+        <h2>Canvas and source</h2>
         <p class="stack-p">
           The agent writes the flow as steps. The canvas is drawn from what it
           wrote, and an edit on the canvas goes back into it. There is no
@@ -130,11 +130,11 @@ const scanSource = `fn scan(row: Row) -> Scanned {
       </div>
       <div class="bijection">
         <div>
-          <p class="side">You see</p>
+          <p class="side">Canvas</p>
           <Canvas flow={scanBody} />
         </div>
         <div>
-          <p class="side">The agent wrote</p>
+          <p class="side">Source</p>
           <FlowSource code={scanSource} file="weekly-scan.rs" />
         </div>
       </div>
@@ -148,7 +148,7 @@ const scanSource = `fn scan(row: Row) -> Scanned {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>Every step is small enough to check</h2>
+        <h2>Steps</h2>
         <p class="stack-p">
           Each step does one job: summarize this page, grade this source
           against these criteria, pull the passages that bear on a question.
@@ -186,7 +186,7 @@ const scanSource = `fn scan(row: Row) -> Scanned {
   <section class="section">
     <div class="container">
       <div class="measure">
-        <h2>Fix it once. Run it again next week.</h2>
+        <h2>Iteration</h2>
         <p class="stack-p">
           Describe the job and the agent drafts the flow. Test it, read every
           row, change a setting or delete a step, and run again. Next week it
@@ -199,7 +199,7 @@ const scanSource = `fn scan(row: Row) -> Scanned {
       </div>
       <div class="ladder">
         <div>
-          <h3>Day one</h3>
+          <h3>Iterate</h3>
           <ul>
             <li>Describe the job. The agent drafts the flow.</li>
             <li>Test. Read every row. Change a setting, delete a step.</li>
@@ -207,7 +207,7 @@ const scanSource = `fn scan(row: Row) -> Scanned {
           </ul>
         </div>
         <div>
-          <h3>When it matters</h3>
+          <h3>Stabilize</h3>
           <ul>
             <li>Pin the tables and modules the flow reads.</li>
             <li>Name who reviews its outputs.</li>
@@ -221,7 +221,7 @@ const scanSource = `fn scan(row: Row) -> Scanned {
 
   <section class="section cta">
     <div class="container measure">
-      <h2>Runs where you put it</h2>
+      <h2>Where it runs</h2>
       <p class="stack-p">
         Flows are files in a project you own. Runs, receipts and results stay
         under one directory on your machine. Every model and every system the
