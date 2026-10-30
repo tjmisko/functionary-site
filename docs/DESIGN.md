@@ -5,67 +5,106 @@ canvas. The governing risk is that a marketing page drifts toward consumer-SaaS
 gloss and disowns the product it describes. The whole approach is a response to
 that: **bend the layout, hold the voice.** Open up the type, whitespace, and
 reading rhythm so a first-time visitor isn't reading dense 12px monospace at a
-wall — but keep the palette, the structural monospace, the restraint, and the
+wall, but keep the palette, the structural monospace, the restraint, and the
 terse, declarative copy. The site should read like the product wrote it.
+
+Rewritten 2026-10-30 against the F98 backend direction. The research behind the
+copy is in `docs/research-2026-10-30/` (seven reports, a synthesis in the
+founder's register, and an adversarial critique of that synthesis). Nothing
+from the pre-F98 product (Sketch / Test / Graduate, JSON flows, the discretion
+gradient, Agent Sketch cards) survives on the site.
 
 ## Locked decisions
 
 | # | Decision | Choice |
 |---|---|---|
-| Aesthetic | Fidelity to the product | **Bend it** — softer, more open layout; same palette and voice. |
-| Hero | The centerpiece | **Visible graduation** — the primary animation moves from Agent Sketch through captured evidence, formalization, Test, and snapshot-bound Production approval. Two recurring information-work diagrams show staged execution. Domain dots switch examples; motion freezes under `prefers-reduced-motion`. |
-| Scope | Page count | **Small multi-page** — Home / How it works / Deployment + Blog. The Philosophy page was removed 2026-09-08; the arguments live in the blog essays. |
-| Voice | The hard constraint | **Does not bend.** Terse, declarative, specific. No marketing vocabulary. |
+| Aesthetic | Fidelity to the product | **Bend it**: softer, more open layout; same palette and voice. |
+| Argument | The spine of the home page | **The founder's argument, in order.** The work; none of it is hard, any of it can go wrong; "you're selling good words" (contamination); the agent writes the plan, you read it; each step is a job you could hand to a junior; fix the step once; what works today. Concrete failure first, concession second, mechanism third. |
+| Hero | The centerpiece | **One real flow, drawn in the canvas grammar.** The site-scan fixture that runs on `integration/f98`, with one pass of execution state (running, completed, awaiting review) that plays once and freezes under `prefers-reduced-motion`. No rotating examples, no domain dots. |
+| Honesty | Build state | **Every drawing carries a status chip**: "runs today" or "designed, not yet built". The home page ends with a two-column list of what runs and what is decided. Nothing decided is shown as shipped. |
+| Scope | Page count | **Small multi-page**: Home (the argument) / How it works (one job end to end) / Deployment + Blog. |
+| Voice | The hard constraint | **Does not bend.** Terse, declarative, specific. No marketing vocabulary, no em-dashes, no rhetorical questions, no triads for their own sake. Founder register, third person; nothing is placed in quotation marks unless verbatim. |
 | Mode | Default theme | **Dark.** A light marketing site would feel disowned by a dark product. |
 | Blog | Presence | **One quiet nav item.** No home feed, no popups, no email capture. RSS for those who want it. |
-| Blog | Post types | **Essay / Use Case / Note** — a spectrum from editorial prose to terse machine voice. |
-| CTA | Conversion | **See the artifact.** Use direct repository actions while distribution and licensing remain unsettled. Do not promise accountless production use or a packaged release. |
+| CTA | Conversion | **See one job end to end.** No download, install or sign-up promise while distribution and licensing are unsettled. |
+
+## Vocabulary
+
+Public spine words: delegation, trust (for components: trusted steps, untrusted
+agent), control from above, visible, contamination, "the flow is the program".
+Endurance is "the process improves" (not "learns", which was June-era copy, and
+never "hardens").
+
+Never in public copy: harden, ossify, calcify, bureaucracy, principal-agent,
+agency cost, moral hazard, enframing, Gestell, spider or web metaphor; unlock,
+seamless, empower, supercharge, leverage, robust, game-changing.
+
+Retired product vocabulary and its replacement: Sketch · Test · Graduate
+(iterate, then stabilize; Test survives only as the dry run); Agent Sketch
+(the sketch agent kind, not built); flows as JSON (restricted Rust source);
+Document / Record as the two payloads (Document, Table, Record); HumanReview
+(Review); ForEach (Map); Pivot (Reshape); Graduate / Promote / Publish
+(Commit); discretion (origin). For the Associate path, avoid pin, versioning,
+approval, roles, and Rust.
+
+Do not name third-party tools as the foil, and do not name the founder's past
+employers or projects in public copy without asking.
 
 ## How the design binds to the product
 
 - **Palette is inherited verbatim.** `src/styles/tokens.css` is a vendored copy
-  of the canvas design system (slate/graphite surfaces, the single cool slate
-  `--accent #8a9ab2`, the block-category colors). It is never edited here. The
-  site extends it in `src/styles/marketing.css` and nowhere touches the base.
-  No new accent, no promoted brand pop color.
+  of the canvas design system. The site extends it in `src/styles/marketing.css`
+  (which also adds the one token the vendored file lacks, `--cat-agent`, for the
+  Agent kind) and never edits the base. No new accent, no promoted brand colour.
+- **The canvas grammar is the app's.** `src/components/Canvas.astro` draws cards,
+  pills, Jig regions, ports and wires to the measurements in the app's
+  `web/src/style.css`: 8px radius, 1px `rgba(255,255,255,.12)` border on
+  `rgba(28,33,40,.95)`, kind-coloured header, grey transform pills, translucent
+  orange Jig regions, 10px port rings. Kind colours follow the decided map
+  (D135, F104.25). Wire origins (D139) are drawn as Sourced and Computed plain,
+  Generated dashed, Verified and Reviewed tinted; that styling is a design
+  proposal, so any drawing that leans on it is captioned "designed".
 - **Two voices, by typeface.** Monospace (JetBrains Mono) is the machine and the
-  artifact: wordmark, eyebrows, status chips, block names, code, JSON, metrics.
-  A readable face (Inter) is *us explaining* — display headlines, body, nav.
-  This mirrors the boundary the product draws between the execution plane and
-  the prose around it.
+  artifact: wordmark, chips, verbs, code, receipts. Inter is us explaining.
 - **Restraint.** No gradients in chrome, no decorative icons, no emoji, no
-  testimonial carousel, no logo soup. Motion is limited to execution state —
-  the one place motion carries meaning — and freezes under
-  `prefers-reduced-motion`.
+  testimonials, no logo soup. Motion is limited to execution state on the hero
+  and freezes under `prefers-reduced-motion`.
 
 ## Stack
 
-- **Astro**, static output. `astro build` emits plain HTML/CSS/JS; no SSR
-  runtime, no SPA framework. Deploy is rsync to nginx.
+- **Astro**, static output. `astro build` emits plain HTML/CSS/JS; deploy is
+  rsync to nginx.
 - **Scoped CSS** on top of the vendored token file. No CSS framework.
-- **Blog posts are markdown files** in `src/content/blog/`, git-versioned — the
-  same ownership grain as flows. The generator renders them; the file is
-  canonical. One RSS feed; no list we hold over the reader.
-- Self-hosted fonts (weight axis only) to keep the payload small.
+- **Blog posts are markdown files** in `src/content/blog/`. One RSS feed.
+- Self-hosted fonts (weight axis only).
 
-## Open items (deferred, with sane defaults in place)
+## Components
 
-| # | Item | Current default |
-|---|---|---|
-| Readable face | Inter for all prose in V1; the editorial zone (blog Essays) references `--font-editorial` so a serif can swap in later with a one-line change. |
-| OSS / commercial | The Ownership page is built price-agnostic, with a marked drop-in slot for a pricing/licensing block. |
-| Docs site | Doesn't exist yet; "Read the docs" points at the repo until it does. |
-| Hero flow | Three launch examples rotate: Sketch to flow, Customer feedback, and Inbound leads, plus the hidden TPS easter egg. The domain diagrams are illustrative and carry no bundled-template metadata. |
-| Mobile | **Shipped** (`docs/mobile-plan.md`, branch `hero-mobile-scroll`). Canvas is desktop-first, so mobile lands the pitch + routes to desktop rather than demoing the canvas. At ≤860px the hero is a **horizontal scroll-follow window** (LTR is load-bearing grammar — never rotate flows vertical): nodes at a legible fixed scale (`--node-scale: 0.9`), the SVG overflowing its viewport, auto-panning to keep the running stage centered (a user swipe pauses the pan ~4s), with edge fades. Plus a mobile-only "best on desktop" line under the hero canvas, no funnel; `FlowSnippet` scrolls instead of wrapping; the display headline no longer right-cuts on small phones. |
+| File | Draws |
+|---|---|
+| `Canvas.astro` | A flow from `src/lib/flows.ts` in the canvas grammar; optional run pass, legend and status chip. |
+| `FlowSource.astro` | Flow source in the restricted Rust subset with light highlighting. |
+| `Refusal.astro` | Code outside the subset and the checker diagnostics that refuse it. |
+| `RunTable.astro` | Run outcomes per row or per occurrence path, with origin dots and failures kept as rows. |
+| `Kinds.astro` | The seven kinds and their verbs, built ones plain and decided ones dashed. |
+| `Status.astro` | The "runs today" / "designed, not yet built" chip. |
+
+## Mobile
+
+The canvas is desktop-first. Below 1100px a drawing keeps a legible size and
+scrolls sideways inside its frame instead of shrinking; the home hero carries a
+one-line note that the product lives on a desktop. The argument sections are
+prose and read fine on a phone.
 
 ## Pre-launch checklist
 
-- Production domain is set to `functionary.app` (in `astro.config.mjs`,
-  `public/robots.txt`, `deploy/nginx.conf`). Done.
 - Add `public/og.png` (1200×630) and restore the `og:image` / `twitter:image`
-  tags in `BaseLayout.astro` (removed 2026-09-08 because the file did not exist).
-- Add GitHub / Docs links to the footer's Build column once the repository is
-  public and a docs site exists (the placeholder links were removed 2026-09-08).
+  tags in `BaseLayout.astro`.
+- Add GitHub / Docs links to the footer once the repository is public and a docs
+  site exists.
 - Licensing block on the Deployment page once the OSS / commercial split is
   decided.
-- Seed posts are drafts pending an author pass.
+- Re-caption drawings from "designed" to "runs today" as F104 lands (origin,
+  Check, Quote, Compare, Replicate), and move items between the two columns of
+  the home page's status section.
+- Seed blog posts.
