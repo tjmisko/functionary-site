@@ -1,0 +1,84 @@
+---
+/**
+ * Flow source in the restricted Rust subset, with the light highlighting the
+ * product's reference pages use: keywords, types, methods, comments.
+ */
+interface Props {
+  code: string;
+  file?: string;
+}
+const { code, file } = Astro.props;
+
+const KEYWORDS = new Set(["fn", "let", "struct", "mut", "return"]);
+
+function escape(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// One pass: comment | identifier followed by "(" (method) | identifier | other.
+const TOKEN = /(\/\/.*$)|\.([a-z_][a-z0-9_]*)(?=\()|\b([A-Za-z_][A-Za-z0-9_]*)\b|([^A-Za-z_]+)/gm;
+
+function highlight(src: string): string {
+  let out = "";
+  for (const m of src.matchAll(TOKEN)) {
+    const [, comment, method, ident, other] = m;
+    if (comment !== undefined) out += `<span class="cm">${escape(comment)}</span>`;
+    else if (method !== undefined) out += `.<span class="me">${method}</span>`;
+    else if (ident !== undefined) {
+      if (KEYWORDS.has(ident)) out += `<span class="kw">${ident}</span>`;
+      else if (/^[A-Z]/.test(ident)) out += `<span class="ty">${ident}</span>`;
+      else out += ident;
+    } else out += escape(other ?? "");
+  }
+  return out;
+}
+
+const html = highlight(code.trim());
+---
+
+<figure class="src">
+  {file && <figcaption>{file}</figcaption>}
+  <pre><code set:html={html} /></pre>
+</figure>
+
+<style>
+  .src {
+    margin: 0;
+    border: 1px solid var(--border-0);
+    border-radius: var(--r-8);
+    background: var(--bg-0);
+    overflow: hidden;
+  }
+  figcaption {
+    font-family: var(--font-mono);
+    font-size: var(--fs-10);
+    color: var(--fg-2);
+    padding: var(--s-8) var(--s-14);
+    border-bottom: 1px solid var(--border-0);
+    background: var(--bg-1);
+  }
+  pre {
+    margin: 0;
+    padding: var(--s-16);
+    overflow-x: auto;
+    tab-size: 4;
+  }
+  code {
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    line-height: 1.6;
+    color: var(--fg-0);
+  }
+  code :global(.kw) {
+    color: var(--cat-control);
+  }
+  code :global(.ty) {
+    color: var(--accent-strong);
+  }
+  code :global(.me) {
+    color: var(--cat-transformation);
+  }
+  code :global(.cm) {
+    color: var(--fg-3);
+  }
+</style>

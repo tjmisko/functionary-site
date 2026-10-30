@@ -1,0 +1,57 @@
+---
+import FlowSource from "./FlowSource.astro";
+
+/**
+ * What the checker does with code outside the allowed subset: it refuses the
+ * save and names the construct. The screen refuses for, while, if, match,
+ * closures, macros, unsafe and naked I/O (functionary-flow-check, screen.rs).
+ */
+const bad = `fn flow() {
+    let urls = TableSource::new(sites_to_scan);
+    for row in urls.table {                 // the agent improvises a loop
+        let page = std::fs::read_to_string(row.path);
+        let note = Summarize::new(issues).input(page);
+    }
+}`;
+---
+
+<div class="refusal">
+  <FlowSource code={bad} file="scan.rs" />
+  <ul class="diag" aria-label="Checker diagnostics">
+    <li><span class="code">for</span> loops are not allowed in flow source. Use a Map.</li>
+    <li><span class="code">std::fs::read_to_string</span> is not a step. Reads go through a Source.</li>
+    <li>Nothing was saved. The canvas still shows the last accepted flow.</li>
+  </ul>
+</div>
+
+<style>
+  .refusal {
+    display: grid;
+    gap: var(--s-12);
+  }
+  .diag {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--s-8);
+  }
+  .diag li {
+    font-size: var(--ms-small);
+    color: var(--fg-1);
+    padding: var(--s-8) var(--s-12);
+    border: 1px solid var(--border-0);
+    border-left: 2px solid var(--danger);
+    border-radius: 0 var(--r-4) var(--r-4) 0;
+    background: var(--bg-1);
+  }
+  .diag li:last-child {
+    border-left-color: var(--border-1);
+    color: var(--fg-2);
+  }
+  .code {
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    color: var(--fg-0);
+  }
+</style>

@@ -1,8 +1,9 @@
 # functionary-site
 
-Public marketing site for **Functionary** — a project workspace for capturing
-agent work and progressively formalizing recurring processes into typed,
-auditable flows.
+Public marketing site for **Functionary**: an agent writes research and
+analysis work as a flow of trusted steps in a restricted subset of Rust; the
+canvas is that program, drawn; you read it, run it as a Test, and fix the step
+that was wrong.
 
 Separate from the main Functionary application repo on purpose: this is
 human/design-maintained, statically built, and deployed independently to
@@ -35,18 +36,22 @@ npm run check      # astro check (typecheck)
 ```
 src/
   layouts/BaseLayout.astro    # <head>, SEO/OG meta, header + footer
-  components/                 # Header, Footer, Button, Chip, Pillar,
-                              # FlowSnippet, BlockCard, CodeBlock, Hero (animated)
+  components/                 # Header, Footer, Button, Chip, Pillar, CodeBlock,
+                              # Canvas (flow drawings), Workspace (editor chrome),
+                              # FlowSource, Refusal, RunTable, Kinds
   pages/
-    index.astro               # Home (animated hero + the argument)
-    how-it-works.astro
-    self-hosting.astro
+    index.astro               # Home: the argument, with one real flow as the hero
+    how-it-works.astro        # One job end to end
+    self-hosting.astro        # Deployment: where it runs, what leaves
     blog/index.astro          # type-filtered index
     blog/[...slug].astro       # per-type post layout
     rss.xml.ts                # RSS feed
   content/blog/*.md           # posts (essay | usecase | note)
   styles/                     # tokens.css (vendored) + marketing.css + global.css
-  lib/flow.ts                 # shared category/state → token map
+  lib/flow.ts                 # the seven kinds, origins and run states → tokens
+  lib/canvas.ts               # data model for a drawn flow
+  lib/flows.ts                # the flows the site draws
+  lib/icons.ts                # per-verb line icons for cards
 public/                       # favicon, robots.txt
 deploy/                       # nginx.conf, deploy.sh, deploy instructions
 ```
@@ -57,6 +62,5 @@ Static build → rsync to nginx on the VPS. See [`deploy/README.md`](deploy/READ
 
 ## Pre-launch
 
-See the checklist at the end of [`docs/DESIGN.md`](docs/DESIGN.md): `og.png`,
-GitHub/docs URLs once the repo is public, licensing block, and an author pass on
-the seed posts.
+See the checklist at the end of [`docs/DESIGN.md`](docs/DESIGN.md). The research
+the copy rests on is in `docs/research-2026-10-30/`.
