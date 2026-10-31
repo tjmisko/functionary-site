@@ -6,50 +6,105 @@ import type { CanvasFlow } from "./canvas";
  * as compositions.
  */
 
-/** A weekly scan of a list of sites: fetch, summarize per site, one digest, a person, a write. */
+/**
+ * A weekly scan that reports only what changed: each site's page is compared
+ * with the last snapshot committed for it, this week's text
+ * is written as the new snapshot, the differences are drafted into a report,
+ * and the reviewed report is written to a file and summarized for a table of
+ * recipients.
+ */
 export const siteScan: CanvasFlow = {
   id: "site-scan",
+  pitch: 100,
   aria:
-    "A flow: a table of URLs feeds a Map; inside it each row's URL is fetched, formatted to text and summarized; the Map's table is formatted, summarized into one digest, held for review, then written.",
+    "A flow: a table of sites and a table of last week's page snapshots are joined by site. A Map runs per site: one line fetches the page and formats it to text, the other selects the snapshot path and reads last week's text from that file; this week's text is written to a new snapshot file, which next week's run reads as its baseline, and a Compare finds the differences. The changes are drafted into this week's report; a person reviews it, it is written to a file, and a summary of it is sent to each person in a table of recipients.",
   nodes: [
     {
-      id: "urls",
+      id: "sites",
       kind: "source",
       verb: "Source",
       title: "Sites to scan",
       col: 0,
       lane: 0,
       table: {
-        columns: ["Name", "URL"],
+        columns: ["Site", "URL"],
         widths: [2, 3],
         rows: [
           ["Vendor", "vendor.example/pricing"],
           ["Competitor", "competitor.io/changes"],
           ["Partner", "partner.example/terms"],
-          ["Status", "status.example.net"],
         ],
         total: 12,
       },
     },
-    { id: "map", kind: "jig", verb: "Map", mode: "one row at a time", foot: "12 rows · parallel · up to 4", col: 1, lane: 0, body: ["url", "fetch", "text", "issues"] },
-    { id: "url", kind: "transform", verb: "Field", mode: "url", col: 1, lane: 0 },
-    { id: "fetch", kind: "source", verb: "Source", title: "fetch the page", mode: "url", col: 2, lane: 0 },
-    { id: "text", kind: "transform", verb: "Format", mode: "html → text", col: 3, lane: 0 },
-    { id: "issues", kind: "block", verb: "Summarize", title: "issues on this page", col: 4, lane: 0 },
-    { id: "report", kind: "transform", verb: "Format", mode: "table → markdown", col: 5, lane: 0 },
-    { id: "digest", kind: "block", verb: "Summarize", title: "digest across sites", col: 6, lane: 0 },
-    { id: "review", kind: "gate", verb: "Review", title: "read before sending", col: 7, lane: 0 },
-    { id: "write", kind: "egress", verb: "Write", title: "weekly scan", mode: "knowledge", col: 8, lane: 0 },
+    {
+      id: "last",
+      kind: "source",
+      verb: "Source",
+      title: "Last week's snapshots",
+      col: 0,
+      lane: 1,
+      table: {
+        columns: ["Site", "Snapshot"],
+        widths: [2, 3],
+        rows: [
+          ["Vendor", "vendor/10-23.txt"],
+          ["Competitor", "competitor/10-23.txt"],
+          ["Partner", "partner/10-16.txt"],
+        ],
+        total: 12,
+      },
+    },
+    { id: "join", kind: "transform", verb: "Join", mode: "by site", col: 1, lane: 0.5 },
+    { id: "map", kind: "jig", verb: "Map", mode: "one site at a time", foot: "12 sites · parallel · up to 4", col: 2, lane: 0, body: ["url", "fetch", "text", "ref", "before", "diff", "snapshot", "section"] },
+    { id: "url", kind: "transform", verb: "Select", mode: "url", col: 2, lane: 0.2 },
+    { id: "fetch", kind: "source", verb: "Source", query: "{url}", mode: "url", col: 3, lane: 0.2 },
+    { id: "text", kind: "transform", verb: "Format", mode: "html → text", col: 4, lane: 0.2 },
+    { id: "ref", kind: "transform", verb: "Select", mode: "snapshot", col: 2, lane: 0.8 },
+    { id: "before", kind: "source", verb: "Source", query: "snapshots/{snapshot}", mode: "file", col: 3, lane: 0.8 },
+    { id: "diff", kind: "block", verb: "Compare", title: "what changed", mode: "differences", col: 5, lane: 0.85 },
+    { id: "snapshot", kind: "egress", verb: "Write", mode: "file", col: 5, lane: 0 },
+    { id: "section", kind: "transform", verb: "Template", mode: "markdown", template: ["## {{site}}", "", "{{changes}}"], col: 6, lane: 0.5 },
+    { id: "draft", kind: "block", verb: "Draft", title: "this week's report", mode: "compose", col: 7, lane: 0.5 },
+    { id: "review", kind: "gate", verb: "Review", col: 8, lane: 0.5 },
+    { id: "write", kind: "egress", verb: "Write", query: "reports/{week}.md", mode: "file", col: 9, lane: 0.1 },
+    { id: "summary", kind: "block", verb: "Summarize", title: "what changed this week", col: 9, lane: 0.9 },
+    {
+      id: "recipients",
+      kind: "source",
+      verb: "Source",
+      title: "Recipients",
+      col: 0,
+      lane: 1.925,
+      table: {
+        columns: ["Name", "Channel"],
+        widths: [2, 3],
+        rows: [
+          ["Priya", "#market-watch"],
+          ["Sam", "sam@acme.co"],
+        ],
+      },
+    },
+    { id: "notify", kind: "egress", verb: "Notify", title: "each recipient", mode: "message", col: 10, lane: 1.6 },
   ],
   edges: [
-    { from: "urls", to: "url", origin: "sourced", label: "Table" },
+    { from: "sites", to: "join", origin: "sourced", label: "Table" },
+    { from: "last", to: "join", origin: "sourced", label: "Table" },
+    { from: "join", to: "url", origin: "sourced", label: "Row" },
+    { from: "join", to: "ref", origin: "sourced", label: "Row" },
+    { from: "ref", to: "before", origin: "sourced", label: "Text" },
     { from: "url", to: "fetch", origin: "sourced", label: "Text" },
     { from: "fetch", to: "text", origin: "sourced", label: "Document" },
-    { from: "text", to: "issues", origin: "computed", label: "Text" },
-    { from: "issues", to: "report", origin: "generated", label: "Table" },
-    { from: "report", to: "digest", origin: "generated", label: "Text" },
-    { from: "digest", to: "review", origin: "generated", label: "Text" },
-    { from: "review", to: "write", origin: "reviewed", label: "Text" },
+    { from: "text", to: "diff", origin: "computed", label: "Text" },
+    { from: "text", to: "snapshot", origin: "computed", label: "Text" },
+    { from: "before", to: "diff", origin: "sourced", label: "Text" },
+    { from: "diff", to: "section", origin: "generated", label: "Table<Change>" },
+    { from: "section", to: "draft", origin: "computed", label: "Table" },
+    { from: "draft", to: "review", origin: "generated", label: "Document" },
+    { from: "review", to: "write", origin: "reviewed", label: "Document" },
+    { from: "review", to: "summary", origin: "reviewed", label: "Document" },
+    { from: "summary", to: "notify", origin: "generated", label: "Text" },
+    { from: "recipients", to: "notify", origin: "sourced", label: "Table" },
   ],
 };
 
