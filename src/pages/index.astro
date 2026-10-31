@@ -236,7 +236,8 @@ const scanSource = `fn scan(row: Row) -> Scanned {
     padding-block: clamp(3.5rem, 8vh, 6rem) var(--section-pad);
   }
   h1.display {
-    max-width: 24ch;
+    font-size: clamp(2rem, 1.4rem + 1.6vw, 2.5rem);
+    max-width: 28ch;
     hyphens: manual;
     overflow-wrap: normal;
   }
@@ -250,7 +251,8 @@ const scanSource = `fn scan(row: Row) -> Scanned {
     margin-top: var(--s-32);
   }
   .hero-canvas {
-    margin-top: var(--s-40);
+    max-width: 1680px;
+    margin-top: var(--s-32);
   }
   .desktop-note {
     display: none;
