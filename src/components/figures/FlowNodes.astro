@@ -1,0 +1,82 @@
+---
+/**
+ * Flow nodes in the figure's schematic language, as SVG groups: one <g> per
+ * node, so a caller can time each one. Styling comes from the caller's global
+ * rules (see FlowHero.astro).
+ */
+import type { FlowNode } from "../../lib/flow-nodes";
+
+interface Props {
+  nodes: FlowNode[];
+  /** class and style for the i-th node's group */
+  cls?: string;
+  styleAt?: (i: number) => string | undefined;
+  /** id of the radial gradient an Agent is filled with */
+  glow?: string;
+}
+const { nodes, cls, styleAt, glow = "fh-glow" } = Astro.props;
+
+const hex = (cx: number, cy: number, r: number) => {
+  const h = r * 0.87;
+  return `M ${cx - r} ${cy} L ${cx - r / 2} ${cy - h} L ${cx + r / 2} ${cy - h} L ${cx + r} ${cy} L ${cx + r / 2} ${cy + h} L ${cx - r / 2} ${cy + h} Z`;
+};
+const header = (x: number, y: number, w: number) =>
+  `M ${x} ${y + 20} V ${y + 10} a 10 10 0 0 1 10 -10 H ${x + w - 10} a 10 10 0 0 1 10 10 V ${y + 20} Z`;
+---
+
+{nodes.map((n, i) => (
+  <g class={cls} style={styleAt?.(i)}>
+    {n.k === "jig" && (
+      <g class="k-jig">
+        <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="4" class="jigfill" />
+        <path d={`M ${n.x + 12} ${n.y} H ${n.x} V ${n.y + n.h} H ${n.x + 12}`} class="wire bracket" />
+        <path d={`M ${n.x + n.w - 12} ${n.y} H ${n.x + n.w} V ${n.y + n.h} H ${n.x + n.w - 12}`} class="wire bracket" />
+        <text x={n.x + 20} y={n.y + 4} class="tc">{n.label}</text>
+      </g>
+    )}
+    {n.k === "agent" && (
+      <>
+        <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="40" fill={`url(#${glow})`} />
+        <text x={n.x + n.w / 2} y={n.y + 34} class="mid t0">Agent</text>
+      </>
+    )}
+    {(n.k === "source" || n.k === "write") && (
+      <g class={n.k === "source" ? "k-source" : "k-egress"}>
+        <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="1.5" class="node square" />
+        <text x={n.x + n.w / 2} y={n.y + n.h / 2 + 4} class="mid t0">{n.label}</text>
+      </g>
+    )}
+    {n.k === "mini" && (
+      <g class={n.tone === "source" ? "k-source" : "k-egress"}>
+        <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="1.5" class:list={["node", "square", { dim: n.dim }]} />
+        {n.label ? (
+          <text x={n.x + n.w / 2} y={n.y + n.h / 2 + 4} class="mid t0">{n.label}</text>
+        ) : (
+          <line x1={n.x + 6} y1={n.y + n.h / 2} x2={n.x + n.w - 8} y2={n.y + n.h / 2} class:list={["wire", "rule", { dim: n.dim }]} />
+        )}
+      </g>
+    )}
+    {n.k === "text" && <text x={n.x} y={n.y}>{n.text}</text>}
+    {n.k === "block" && (
+      <g class="k-block">
+        <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" class="body" />
+        <path d={header(n.x, n.y, n.w)} class="solid" />
+        <text x={n.x + 9} y={n.y + 14} class="head">{n.label}</text>
+        <circle cx={n.x + n.w - 10} cy={n.y + 10} r="3" class="modeldot" />
+      </g>
+    )}
+    {n.k === "pill" && (
+      <g class="k-transform">
+        <rect x={n.x} y={n.y} width={n.w} height="26" rx="13" class="pill" />
+        <circle cx={n.x + 12} cy={n.y + 13} r="3" class="solid" />
+        <text x={n.x + 21} y={n.y + 17} class="t0">{n.label}</text>
+      </g>
+    )}
+    {n.k === "gate" && (
+      <g class={n.human ? "k-gate" : "k-ok"}>
+        <path d={hex(n.cx, n.cy, n.r)} class="hexa" />
+        <text x={n.cx} y={n.human ? n.cy + n.r + 13 : n.cy - n.r - 5} class="mid tc">{n.label}</text>
+      </g>
+    )}
+  </g>
+))}

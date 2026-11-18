@@ -1,0 +1,102 @@
+---
+/**
+ * Hero candidate: the run grid.
+ *
+ * One run as a field of block calls. Cells fill in on load: written by a
+ * model first, then verified. Failures stay where they happened, and a few
+ * calls are held for a person.
+ */
+const COLS = 32;
+const ROWS = 7;
+const N = COLS * ROWS;
+const PITCH = 33;
+const X0 = 33;
+const Y0 = 54;
+const failed = new Set([37, 118, 190]);
+const review = new Set([64, 151]);
+
+const cells = Array.from({ length: N }, (_, i) => {
+  const col = Math.floor(i / ROWS);
+  const row = i % ROWS;
+  return {
+    x: X0 + col * PITCH,
+    y: Y0 + row * PITCH,
+    state: failed.has(i) ? "failed" : review.has(i) ? "review" : "ok",
+    delay: 200 + col * 85 + row * 22,
+  };
+});
+const verified = N - failed.size - review.size;
+---
+
+<figure class="plate">
+  <div class="ground scroll">
+    <svg class="fig" viewBox="0 0 1120 340" role="img" aria-label={`One run of ${N} block calls. ${verified} verified, ${review.size} held for review, ${failed.size} failed and kept in the results.`}>
+      <text x={X0} y="30" class="t0">one run, {N} block calls</text>
+      {cells.map((c) => (
+        <rect
+          x={c.x}
+          y={c.y}
+          width="26"
+          height="26"
+          rx="5"
+          class:list={["cell", c.state]}
+          style={`animation-delay:${c.delay}ms`}
+        />
+      ))}
+      <g transform={`translate(${X0} 316)`}>
+        <rect x="0" y="-11" width="12" height="12" rx="3" class="cell ok still" />
+        <text x="20" y="0">{verified} verified</text>
+        <rect x="150" y="-11" width="12" height="12" rx="3" class="cell review still" />
+        <text x="170" y="0">{review.size} held for review</text>
+        <rect x="330" y="-11" width="12" height="12" rx="3" class="cell failed still" />
+        <text x="350" y="0">{failed.size} failed, kept in the results</text>
+      </g>
+    </svg>
+  </div>
+</figure>
+
+<style>
+  .cell {
+    stroke-width: 1.25;
+  }
+  .cell.ok {
+    --final: var(--success);
+  }
+  .cell.review {
+    --final: var(--jig);
+  }
+  .cell.failed {
+    --final: var(--danger);
+  }
+  .cell {
+    fill: color-mix(in srgb, var(--final) 26%, var(--bg-1));
+    stroke: var(--final);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .cell:not(.still) {
+      animation: fill 1.5s ease-out both;
+    }
+  }
+  @keyframes fill {
+    0% {
+      fill: var(--bg-2);
+      stroke: var(--border-0);
+    }
+    35% {
+      fill: color-mix(in srgb, var(--cat-synthesis) 26%, var(--bg-1));
+      stroke: var(--cat-synthesis);
+    }
+    70% {
+      fill: color-mix(in srgb, var(--cat-synthesis) 26%, var(--bg-1));
+      stroke: var(--cat-synthesis);
+    }
+  }
+  @media (max-width: 860px) {
+    .scroll {
+      overflow-x: auto;
+    }
+    .scroll .fig {
+      min-width: 820px;
+    }
+  }
+</style>

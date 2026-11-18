@@ -11,8 +11,8 @@ interface Props {
 }
 
 const {
-  title = "Functionary. Research and analysis as a flow of steps you can read",
-  description = "An agent drafts your research task as a flow of steps you can read. Run it, check every row, see where each result came from, and fix a step once.",
+  title = "Functionary. Agent harness for knowledge work",
+  description = "An agent writes the job as a program built from fixed blocks. A runtime executes it and records every run, so the work can be reproduced and checked.",
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
@@ -48,6 +48,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    <slot name="head" />
   </head>
   <body>
     <a href="#main" class="skip">Skip to content</a>

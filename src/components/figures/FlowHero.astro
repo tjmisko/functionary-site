@@ -1,0 +1,887 @@
+---
+/**
+ * Hero: the lifecycle of a flow, on a real perspective scene.
+ *
+ *   you -> agent -> flow.rs -> execution -> results, and back.
+ *
+ * The scene is a stack of flat layers in a CSS 3D world: the flow sheet at
+ * z = 0, and one layer per Replicate lane above it. A camera (a transform on
+ * the world) stays face-on for the loop, then tilts so the lanes can lift off
+ * the sheet in depth, then returns.
+ *
+ * One clock. Every element is a CSS animation delayed to its window on the
+ * same timeline (`T`, seconds). Without JavaScript the animations simply
+ * play. With it, the script pauses them all and sets their time itself, which
+ * makes the figure scrubbable and lets a capture harness freeze any frame
+ * (`?t=12.5`). With reduced motion only the last frame is shown.
+ *
+ * Replicate is drawn as what it is: a Jig around a few judgement blocks, not
+ * a re-run of the flow. Its lanes take the same path on the wires and
+ * different paths inside the blocks.
+ */
+import { rng, spline, type P } from "../../lib/draw";
+import type { FlowNode } from "../../lib/flow-nodes";
+import FlowNodes from "./FlowNodes.astro";
+
+const W = 1120;
+const H = 476;
+
+const T = {
+  ask: 0.3,
+  agent: 0.9,
+  write1: 1.5, // no flow yet: the agent takes the job itself
+  run1: 2.0,
+  react1: 4.2,
+  write2: 6.0, // the agent writes the first flow
+  run2: 7.6,
+  react2: 9.6,
+  write3: 11.2, // the flow is revised
+  run3: 12.8,
+  mark: 15.0, // Replicate goes round the judgement blocks
+  lift: 16.4, // the camera tilts; the lanes lift off the sheet
+  reps: 18.0, // each lane runs
+  settle: 21.0, // the camera returns; the lanes settle into one bundle
+  read: 22.4, // where the repeats disagree
+  end: 25.0,
+};
+const LIFT = 1.4;
+const SETTLE = 1.3;
+
+const win = (t0: number, t1?: number | null) =>
+  `animation: fh-in 0.4s ${t0.toFixed(2)}s both` + (t1 != null ? `, fh-out 0.35s ${t1.toFixed(2)}s forwards` : "");
+const draw = (t0: number, dur: number, t1?: number | null) =>
+  `animation: fh-draw ${dur}s ${t0.toFixed(2)}s both, fh-in 0.15s ${t0.toFixed(2)}s both` +
+  (t1 != null ? `, fh-out 0.35s ${t1.toFixed(2)}s forwards` : "");
+const cls = (base: string, t1?: number | null) => (t1 == null ? `${base} final` : base);
+
+// ---- drawing helpers ------------------------------------------------------
+
+/** A looping, wandering path from (x0, y) to (x1, y), staying within ±amp. */
+function curl(x0: number, x1: number, y: number, amp: number, seed: number): P[] {
+  const q = rng(seed);
+  const L = x1 - x0;
+  const per = Math.min(40, Math.max(15, amp * 0.42));
+  const n = Math.max(2, Math.round(L / per));
+  const ph = [q() * 6.28, q() * 6.28, q() * 6.28, q() * 6.28];
+  const f = 1 + q() * 1.2;
+  const steps = n * 10;
+  const pts: P[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const s = i / steps;
+    const env = Math.pow(Math.sin(Math.PI * s), 0.55);
+    const wander =
+      amp * 0.6 * env * (0.65 * Math.sin(2 * Math.PI * f * s + ph[0]) + 0.35 * Math.sin(2 * Math.PI * (f + 1.9) * s + ph[1]));
+    const size = 0.55 + 0.45 * Math.sin(2 * Math.PI * 1.4 * s + ph[2]) * Math.sin(2 * Math.PI * 0.6 * s + ph[3]);
+    const r = amp * 0.6 * env * size;
+    const rx = per * (0.55 + 0.6 * size) * (0.4 + 0.6 * env);
+    const th = 2 * Math.PI * n * s;
+    pts.push({ x: x0 + s * L + rx * Math.sin(th), y: y + wander + r * Math.cos(th + ph[2]) });
+  }
+  pts[0] = { x: x0, y };
+  pts[pts.length - 1] = { x: x1, y };
+  return pts;
+}
+/**
+ * One functionary's way through a block: a few broad swings from (x0, y) to
+ * (x1, y), within ±amp. Sparser than `curl`, so five of them laid over each
+ * other can still be told apart.
+ */
+function wander(x0: number, x1: number, y: number, amp: number, seed: number): P[] {
+  const q = rng(seed);
+  const L = x1 - x0;
+  const m = 4 + Math.floor(q() * 2);
+  const pts: P[] = [{ x: x0, y }];
+  let side = q() < 0.5 ? -1 : 1;
+  for (let i = 1; i < m; i++) {
+    const back = (q() - 0.5) * L * 0.42;
+    pts.push({ x: Math.min(x1 - 3, Math.max(x0 + 3, x0 + (L * i) / m + back)), y: y + side * amp * (0.45 + 0.55 * q()) });
+    if (q() < 0.75) side = -side;
+  }
+  pts.push({ x: x1, y });
+  return pts;
+}
+/** A spline's curve commands, without its leading move. */
+const seg = (pts: P[]) => spline(pts).replace(/^M [\d.-]+ [\d.-]+/, "");
+const wire = (x1: number, y1: number, x2: number, y2: number) => {
+  const d = Math.max(12, Math.abs(x2 - x1) * 0.5);
+  return `M ${x1} ${y1} C ${x1 + d} ${y1}, ${x2 - d} ${y2}, ${x2} ${y2}`;
+};
+
+// ---- flow revisions -------------------------------------------------------
+type Rev = {
+  name: string | null;
+  nodes: FlowNode[];
+  wires: string[];
+  ports: P[];
+  before: string;
+  after: string | null;
+  branch: string[];
+  flag: P | null;
+  in: number;
+  out: number | null;
+  run: number;
+  flagAt: number | null;
+};
+
+// Four small sources, stacked, converging on one entry point.
+const DY = [-39, -13, 13, 39];
+const stack = (cy: number): FlowNode[] =>
+  DY.map((dy) => ({ k: "mini" as const, tone: "source" as const, label: null, x: 240, y: cy + dy - 9, w: 44, h: 18 }));
+const fanIn = (cy: number, tx: number) => DY.map((dy) => `M 284 ${cy + dy} C ${tx - 22} ${cy + dy}, ${tx - 26} ${cy}, ${tx} ${cy}`);
+const stackPorts = (cy: number): P[] => DY.map((dy) => ({ x: 284, y: cy + dy }));
+
+// Before any flow exists, the agent finds its own sources.
+const scatter = rng(17);
+const loose: FlowNode[] = Array.from({ length: 9 }, (_, i) => ({
+  k: "mini" as const,
+  tone: "source" as const,
+  label: null,
+  x: 252 + scatter() * 250,
+  y: 130 + scatter() * 230,
+  w: 26,
+  h: 15,
+  dim: i % 3 === 2,
+}));
+
+const actions = [
+  { label: "Write", cy: 200 },
+  { label: "Commit", cy: 250 },
+  { label: "Notify", cy: 300 },
+];
+
+// The judgement blocks that Replicate goes round, in revision 2.
+const JIG = { x: 332, y: 202, w: 246, h: 96 };
+const jigNodes: FlowNode[] = [
+  { k: "block", label: "Extract", x: 340, y: 212, w: 72, h: 76 },
+  { k: "pill", label: "Format", x: 422, y: 237, w: 68 },
+  { k: "block", label: "Grade", x: 500, y: 212, w: 70, h: 76 },
+];
+const jigWires = [wire(412, 250, 422, 250), wire(490, 250, 500, 250)];
+
+const revs: Rev[] = [
+  {
+    name: null,
+    nodes: [{ k: "agent", x: 226, y: 92, w: 600, h: 316 }, ...loose],
+    wires: [],
+    ports: [],
+    before: `M 222 250${seg(curl(222, 826, 250, 118, 61))} L 846 250`,
+    after: null,
+    branch: [],
+    flag: { x: 700, y: 150 },
+    in: T.write1,
+    out: T.write2,
+    run: T.run1,
+    flagAt: T.react1 + 0.7,
+  },
+  {
+    name: "revision 1",
+    nodes: [
+      { k: "text", text: "Sources", x: 240, y: 194 },
+      ...stack(250),
+      { k: "jig", label: "Map, per row", x: 322, y: 124, w: 310, h: 258 },
+      { k: "block", label: "Extract", x: 338, y: 210, w: 86, h: 80 },
+      { k: "agent", x: 434, y: 144, w: 192, h: 218 },
+      { k: "gate", label: "Check", cx: 678, cy: 250, r: 24 },
+      { k: "mini", tone: "egress", label: "Write", x: 746, y: 236, w: 62, h: 28 },
+    ],
+    wires: [...fanIn(250, 338), wire(424, 250, 454, 250), wire(604, 250, 654, 250), wire(702, 250, 746, 250)],
+    ports: [...stackPorts(250), { x: 338, y: 250 }, { x: 424, y: 250 }, { x: 746, y: 250 }],
+    before: `${fanIn(250, 338).join(" ")} M 338 250 L 342 250${seg(curl(342, 420, 258, 22, 71))} L 454 250${seg(curl(454, 604, 250, 84, 72))} L 654 250`,
+    after: "M 654 250 H 746",
+    branch: [],
+    flag: { x: 580, y: 176 },
+    in: T.write2,
+    out: T.write3,
+    run: T.run2,
+    flagAt: T.react2 + 0.5,
+  },
+  {
+    name: "revision 2",
+    nodes: [
+      { k: "text", text: "Sources", x: 240, y: 194 },
+      ...stack(250),
+      { k: "jig", label: "Map, per row", x: 322, y: 150, w: 320, h: 206 },
+      ...jigNodes,
+      { k: "gate", label: "Check", cx: 612, cy: 250, r: 19 },
+      { k: "gate", label: "Review", cx: 686, cy: 250, r: 22, human: true },
+      ...actions.map((a) => ({ k: "mini" as const, tone: "egress" as const, label: a.label, x: 754, y: a.cy - 13, w: 64, h: 26 })),
+    ],
+    wires: [
+      ...fanIn(250, 340),
+      ...jigWires,
+      wire(570, 250, 593, 250),
+      "M 328 250 C 342 330, 560 334, 602 266",
+      wire(631, 250, 664, 250),
+      ...actions.map((a) => wire(708, 250, 754, a.cy)),
+    ],
+    ports: [...stackPorts(250), { x: 340, y: 250 }, { x: 412, y: 250 }, { x: 500, y: 250 }, { x: 570, y: 250 }, ...actions.map((a) => ({ x: 754, y: a.cy }))],
+    before: `${fanIn(250, 340).join(" ")} M 340 250 L 344 250${seg(curl(344, 408, 258, 20, 81))} L 422 250 M 490 250 L 504 250${seg(curl(504, 566, 258, 20, 82))} L 593 250`,
+    after: "M 593 250 H 664",
+    branch: actions.map((a) => wire(708, 250, 754, a.cy)),
+    flag: null,
+    in: T.write3,
+    out: null,
+    run: T.run3,
+    flagAt: null,
+  },
+];
+
+// ---- results --------------------------------------------------------------
+const RX = 868;
+const rowY = (i: number) => 124 + i * 24;
+const runs = [
+  { t: T.run1 + 0.7, out: T.run2 + 0.7, s: ["ok", "bad", "ok", "review", "bad", "ok", "bad", "ok"], mark: T.react1 + 0.2, unmark: T.write2 + 0.4 },
+  { t: T.run2 + 0.7, out: T.run3 + 0.7, s: ["ok", "ok", "ok", "review", "ok", "ok", "bad", "ok"], mark: T.react2 + 0.2, unmark: T.write3 + 0.4 },
+  { t: T.run3 + 0.7, out: T.lift, s: ["ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok"], mark: null, unmark: null },
+];
+
+const arcD = "M 943 330 C 943 436, 800 450, 540 450 S 40 436, 40 304";
+const arcs = [
+  { t: T.react1 + 0.4, dur: 1.2, out: T.run2 },
+  { t: T.react2 + 0.3, dur: 1.0, out: T.run3 },
+];
+
+const captions = [
+  { t: 0.2, out: T.write1, text: "You hand the job to an agent." },
+  { t: T.write1, out: T.react1, text: "With no flow yet, it finds sources and does the work its own way." },
+  { t: T.react1, out: T.write2, text: "You react to the results, and to how it got them." },
+  { t: T.write2, out: T.run2, text: "The agent writes what worked into a flow." },
+  { t: T.run2, out: T.react2, text: "The runtime executes the flow and records the run." },
+  { t: T.react2, out: T.write3, text: "You react again. The agent revises the flow." },
+  { t: T.write3, out: T.mark, text: "Each revision fixes more of the process and of how the information is framed." },
+  { t: T.mark, out: T.reps, text: "Some blocks are judgement calls. Replicate repeats just those blocks on the same input." },
+  { t: T.reps, out: T.settle, text: "Each repeat follows the same wires and finds its own way through the blocks." },
+  { t: T.settle, out: null, text: "Where the repeats disagree, the answer depends on who did the work." },
+];
+
+// ---- replicate ------------------------------------------------------------
+const REPS = 5;
+/** Depth between lanes, in hundredths of the figure's width. */
+const DZ = 5.3;
+/** Which repeat lands apart from the others in the lane the camera watches. */
+const ODD = 3;
+const lanes = Array.from({ length: REPS }, (_, j) => {
+  const q = rng(300 + j * 7);
+  const a1 = 22 + q() * 10;
+  const a2 = 22 + q() * 10;
+  return {
+    j,
+    k: j + 1,
+    path:
+      `M ${JIG.x} 250 L 344 250${seg(wander(344, 408, 252, a1, 410 + j * 13))} L 422 250 ` +
+      `M 490 250 L 504 250${seg(wander(504, 566, 252, a2, 520 + j * 17))} L ${JIG.x + JIG.w} 250`,
+    t: T.reps + j * 0.2,
+    odd: j === ODD,
+  };
+});
+const RUN = 1.7;
+
+const MX = 856;
+const gridY = (i: number) => 150 + i * 24;
+const differs = new Set([`1:${ODD}`, "4:1", "4:4", "6:2", `6:${ODD}`]);
+const agree = (i: number) => REPS - [...differs].filter((d) => d.startsWith(`${i}:`)).length;
+const rowsN = 8;
+const beats = captions.slice(1).map((c) => (c.t / T.end) * 100);
+
+// ---- camera ---------------------------------------------------------------
+const pct = (t: number) => `${((t / T.end) * 100).toFixed(3)}%`;
+const FACE = "translate3d(0, 0, 0) rotateX(0deg) rotateZ(0deg) scale(1)";
+const TILT = "translate3d(1cqw, 10cqw, 0) rotateX(62deg) rotateZ(-9deg) scale(1)";
+const css = `
+@keyframes fh-cam {
+  0%, ${pct(T.lift)} { transform: ${FACE}; animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }
+  ${pct(T.lift + LIFT)}, ${pct(T.settle)} { transform: ${TILT}; animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }
+  ${pct(T.settle + SETTLE)}, 100% { transform: ${FACE}; }
+}
+.fh .world { animation: fh-cam ${T.end}s linear both; }
+.fh .clock { animation: fh-clock ${T.end}s linear both; }
+.fh .lift { animation: fh-lift ${LIFT}s ${T.lift}s cubic-bezier(0.6, 0, 0.2, 1) both, fh-drop ${SETTLE}s ${T.settle}s cubic-bezier(0.6, 0, 0.2, 1) forwards; }
+.fh .post { animation: fh-post ${LIFT}s ${T.lift}s cubic-bezier(0.6, 0, 0.2, 1) both, fh-unpost ${SETTLE}s ${T.settle}s cubic-bezier(0.6, 0, 0.2, 1) forwards; }
+`;
+const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:${((y / H) * 100).toFixed(3)}%`;
+---
+
+<figure class="plate fh">
+  <style is:inline set:html={css}></style>
+  <div data-hero-stage data-total={T.end}>
+    <div class="ground scroll">
+      <div class="frame" style={`--dz:${DZ}cqw; --reps:${REPS}`}>
+        <div class="caps">
+          {captions.map((c) => (
+            <p class={cls("t cap", c.out)} style={win(c.t, c.out)}>{c.text}</p>
+          ))}
+        </div>
+        <div class="viewport">
+          <div class="world">
+            <!-- the flow sheet, z = 0 -->
+            <svg class="fig base" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="You describe a job. An agent writes it as a flow. The runtime executes the flow and produces results. You react to the results and to the process, and the flow is revised. Over the revisions the flow leaves less to a free-running agent and handles more with explicit, wired blocks. Then a Replicate is placed round the blocks that make a judgement. Those blocks run five times on the same input. Each repeat follows the same wires and takes a different path inside the blocks, and the rows where the repeats disagree are marked.">
+              <defs>
+                <marker id="fh-ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M0 0L8 4L0 8z" class="arrow" />
+                </marker>
+                <radialGradient id="fh-glow">
+                  <stop offset="0" stop-color="var(--cat-agent)" stop-opacity="0.34" />
+                  <stop offset="0.55" stop-color="var(--cat-agent)" stop-opacity="0.2" />
+                  <stop offset="1" stop-color="var(--cat-agent)" stop-opacity="0" />
+                </radialGradient>
+              </defs>
+
+              <!-- you -->
+              <g class="you">
+                <circle cx="40" cy="238" r="7" />
+                <path d="M27 262 a13 12 0 0 1 26 0" />
+                <text x="40" y="286" class="mid t0">you</text>
+              </g>
+              <line x1="60" y1="250" x2="110" y2="250" class="ln d" pathLength="1" style={draw(T.ask, 0.5)} marker-end="url(#fh-ah)" />
+
+              <!-- agent -->
+              <g class="t final k-agent" style={win(T.agent)}>
+                <circle cx="140" cy="250" r="26" class="node" />
+                <text x="140" y="254" class="mid t0">agent</text>
+              </g>
+              <line x1="168" y1="250" x2="216" y2="250" class="ln d" pathLength="1" style={draw(T.write1 - 0.3, 0.5)} marker-end="url(#fh-ah)" />
+
+              <!-- flow.rs -->
+              <g class="t" style={win(T.write1, T.write2)}>
+                <rect x="220" y="84" width="610" height="332" rx="10" class="file nofile" />
+                <text x="232" y="104">no flow yet</text>
+              </g>
+              <g class="t final" style={win(T.write2)}>
+                <rect x="220" y="84" width="610" height="332" rx="10" class="file" />
+                <path d="M220 104 V94 a10 10 0 0 1 10 -10 H306 V104 z" class="tab" />
+                <text x="232" y="99" class="t0">flow.rs</text>
+              </g>
+
+              {revs.map((rev) => (
+                <>
+                  {rev.name && (
+                    <text x="820" y="99" class={cls("t end", rev.out)} style={win(rev.in, rev.out)}>{rev.name}</text>
+                  )}
+                  <g class={cls("t", rev.out)} style={win(rev.in + 0.25, rev.out)}>
+                    {rev.wires.map((d) => (
+                      <path d={d} class="ln" />
+                    ))}
+                  </g>
+                  <FlowNodes nodes={rev.nodes} cls={cls("t", rev.out)} styleAt={(i) => win(rev.in + i * 0.09, rev.out)} />
+                  <g class={cls("t", rev.out)} style={win(rev.in + 0.5, rev.out)}>
+                    {rev.ports.map((p) => (
+                      <circle cx={p.x} cy={p.y} r="3.5" class="port" />
+                    ))}
+                  </g>
+                  {rev.flag && rev.flagAt != null && (
+                    <circle cx={rev.flag.x} cy={rev.flag.y} r="6" class="t flag" style={win(rev.flagAt, rev.out)} />
+                  )}
+                  <path d={rev.before} class={cls("d work", rev.out)} pathLength="1" style={draw(rev.run, 1.4, rev.out)} />
+                  {rev.after && (
+                    <path d={rev.after} class={cls("d work done", rev.out)} pathLength="1" style={draw(rev.run + 1.3, 0.45, rev.out)} />
+                  )}
+                  {rev.branch.map((d, i) => (
+                    <path d={d} class={cls("d work done", rev.out)} pathLength="1" style={draw(rev.run + 2.0 + i * 0.15, 0.3, rev.out)} />
+                  ))}
+                </>
+              ))}
+
+              <!-- Replicate goes round the judgement blocks -->
+              <g class="t final k-jig" style={win(T.mark)}>
+                <rect x={JIG.x} y={JIG.y} width={JIG.w} height={JIG.h} rx="4" class="jigfill strong" />
+                <path d={`M ${JIG.x + 12} ${JIG.y} H ${JIG.x} V ${JIG.y + JIG.h} H ${JIG.x + 12}`} class="wire bracket" />
+                <path d={`M ${JIG.x + JIG.w - 12} ${JIG.y} H ${JIG.x + JIG.w} V ${JIG.y + JIG.h} H ${JIG.x + JIG.w - 12}`} class="wire bracket" />
+                <text x={JIG.x + 20} y={JIG.y + 4} class="tc">Replicate, {REPS} times</text>
+              </g>
+
+              <line x1="832" y1="250" x2="860" y2="250" class="ln d" pathLength="1" style={draw(T.run1 + 0.4, 0.4)} marker-end="url(#fh-ah)" />
+
+              <!-- results -->
+              <text x={RX} y="104" class="t t0" style={win(T.run1 + 0.5, T.lift)}>results</text>
+              {runs.map((run) =>
+                run.s.map((state, i) => (
+                  <>
+                    <rect x={RX} y={rowY(i)} width="150" height="13" rx="3" class={`t row ${state}`} style={win(run.t + i * 0.07, run.out)} />
+                    {run.mark != null && state !== "ok" && (
+                      <rect x={RX - 5} y={rowY(i) - 5} width="160" height="23" rx="6" class="t ring" style={win(run.mark + i * 0.05, run.unmark)} />
+                    )}
+                  </>
+                )),
+              )}
+
+              <!-- the loop closes -->
+              {arcs.map((a) => (
+                <>
+                  <path d={arcD} class="d arc" pathLength="1" style={draw(a.t, a.dur, a.out)} />
+                  <path d="M34 314 L40 302 L46 314 Z" class="t arrow-you" style={win(a.t + a.dur - 0.15, a.out)} />
+                </>
+              ))}
+
+              <!-- one column of results per repeat -->
+              <text x={MX} y="124" class="t final t0" style={win(T.reps + 0.6)}>results, per repeat</text>
+              {Array.from({ length: REPS }, (_, j) =>
+                Array.from({ length: rowsN }, (_, i) => (
+                  <rect
+                    x={MX + j * 25}
+                    y={gridY(i)}
+                    width="20"
+                    height="13"
+                    rx="3"
+                    class={`t final row ${differs.has(`${i}:${j}`) ? "review" : "ok"}`}
+                    style={win(lanes[j].t + RUN + i * 0.03)}
+                  />
+                )),
+              )}
+
+              <!-- how far the repeats agree, row by row -->
+              <text x="1008" y="124" class="t final t0" style={win(T.read)}>agree</text>
+              {Array.from({ length: rowsN }, (_, i) => (
+                <>
+                  <line x1={MX + REPS * 25 - 2} y1={gridY(i) + 6.5} x2="1004" y2={gridY(i) + 6.5} class="ln d final" pathLength="1" style={draw(T.read + i * 0.05, 0.3)} />
+                  <rect x="1008" y={gridY(i)} width={18 * agree(i)} height="13" rx="3" class={`t final row ${agree(i) === REPS ? "ok" : "review"}`} style={win(T.read + 0.3 + i * 0.05)} />
+                  {agree(i) < REPS && (
+                    <rect x={MX - 5} y={gridY(i) - 5} width="258" height="23" rx="6" class="t final ring" style={win(T.read + 0.9 + i * 0.05)} />
+                  )}
+                </>
+              ))}
+              <text x={MX} y="360" class="t final k-gate tc" style={win(T.read + 1.1)}>3 rows where the repeats disagree</text>
+
+              <!-- colleagues can use the stabilized flow too -->
+              <g class="t final you colleagues" style={win(T.read + 1.3)}>
+                <circle cx="26" cy="340" r="6" />
+                <path d="M15 361 a11 10 0 0 1 22 0" />
+                <circle cx="56" cy="340" r="6" />
+                <path d="M45 361 a11 10 0 0 1 22 0" />
+                <text x="41" y="384" class="mid t0">colleagues</text>
+              </g>
+              <path d="M74 352 C 130 352, 150 338, 208 338" class="ln d final" pathLength="1" style={draw(T.read + 1.5, 0.4)} marker-end="url(#fh-ah)" />
+            </svg>
+
+            <!-- the rails the lanes ride on -->
+            <div class="post" style={at(JIG.x, 250)}></div>
+            <div class="post" style={at(JIG.x + JIG.w, 250)}></div>
+
+            <!-- one lane per repeat, lifted off the sheet -->
+            {lanes.map((lane) => (
+              <div class="layer lift" style={`--k:${lane.k}`} aria-hidden="true">
+              <svg class="fig" viewBox={`0 0 ${W} ${H}`}>
+                <g class="t" style={win(T.lift, T.settle + SETTLE - 0.3)}>
+                  <rect x={JIG.x} y={JIG.y} width={JIG.w} height={JIG.h} rx="4" class="lanecard" />
+                  {jigWires.map((d) => (
+                    <path d={d} class="ln" />
+                  ))}
+                  <FlowNodes nodes={jigNodes} />
+                  <circle cx={JIG.x} cy="250" r="3.5" class="port" />
+                  <circle cx={JIG.x + JIG.w} cy="250" r="3.5" class="port" />
+                  <text x={JIG.x + JIG.w - 8} y={JIG.y + 9} class="end replabel">repeat {lane.k}</text>
+                </g>
+                <path d={lane.path} class="d work rep final" pathLength="1" style={draw(lane.t, RUN)} />
+                <rect
+                  x={JIG.x + JIG.w + 8}
+                  y="243"
+                  width="20"
+                  height="13"
+                  rx="3"
+                  class={`t row ${lane.odd ? "review" : "ok"}`}
+                  style={win(lane.t + RUN - 0.1, T.settle + 0.2)}
+                />
+              </svg>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bar">
+      <button type="button" class="toggle" data-toggle aria-label="Pause the animation">Pause</button>
+      <div class="track">
+        <div class="fill clock"></div>
+        {beats.map((b) => (
+          <span class="beat" style={`left:${b.toFixed(2)}%`} />
+        ))}
+        <input type="range" data-scrub min="0" max={T.end} step="0.01" value="0" aria-label="Position in the animation" />
+      </div>
+    </div>
+  </div>
+</figure>
+
+<script>
+  /**
+   * One clock for the figure. Every CSS animation under the stage is paused
+   * and given its time from here, so the figure can be played, paused,
+   * scrubbed and frozen at a frame (`?t=<seconds>`, used by the capture
+   * harness in scripts/hero-frames.mjs).
+   */
+  type Timed = { a: Animation; t0: number; t1: number };
+
+  function mount(stage: HTMLElement) {
+    const total = Number(stage.dataset.total) * 1000;
+    const scrub = stage.querySelector<HTMLInputElement>("[data-scrub]")!;
+    const toggle = stage.querySelector<HTMLButtonElement>("[data-toggle]")!;
+    const timed: Timed[] = stage.getAnimations({ subtree: true }).map((a) => {
+      const c = a.effect!.getComputedTiming();
+      a.pause();
+      return { a, t0: c.delay ?? 0, t1: Number(c.endTime ?? total) };
+    });
+
+    let now = 0;
+    let playing = false;
+    let last = 0;
+
+    // Only animations whose window the move crosses can change what they draw.
+    const seek = (ms: number, all = false) => {
+      const to = Math.min(total, Math.max(0, ms));
+      const lo = Math.min(now, to);
+      const hi = Math.max(now, to);
+      for (const { a, t0, t1 } of timed) {
+        if (all || (t0 <= hi && t1 >= lo)) a.currentTime = to;
+      }
+      now = to;
+      scrub.value = String(to / 1000);
+    };
+    const label = () => {
+      const text = playing ? "Pause" : now >= total ? "Replay" : "Play";
+      toggle.textContent = text;
+      toggle.setAttribute("aria-label", `${text} the animation`);
+    };
+    const frame = (stamp: number) => {
+      if (!playing) return;
+      seek(now + (stamp - last));
+      last = stamp;
+      if (now >= total) {
+        playing = false;
+        label();
+        return;
+      }
+      requestAnimationFrame(frame);
+    };
+    const play = () => {
+      if (now >= total) seek(0, true);
+      playing = true;
+      last = performance.now();
+      label();
+      requestAnimationFrame(frame);
+    };
+    const pause = () => {
+      playing = false;
+      label();
+    };
+
+    toggle.addEventListener("click", () => (playing ? pause() : play()));
+    scrub.addEventListener("input", () => {
+      pause();
+      seek(Number(scrub.value) * 1000);
+    });
+
+    const frozen = new URLSearchParams(location.search).get("t");
+    seek(0, true);
+    if (frozen != null) {
+      seek(Number(frozen) * 1000, true);
+      label();
+    } else {
+      play();
+    }
+    (stage as HTMLElement & { hero?: unknown }).hero = { seek: (s: number) => (pause(), seek(s * 1000, true)), play, pause };
+  }
+
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.querySelectorAll<HTMLElement>("[data-hero-stage]").forEach(mount);
+  }
+</script>
+
+<style is:global>
+  @keyframes fh-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fh-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  @keyframes fh-draw {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes fh-clock {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+  @keyframes fh-lift {
+    from { transform: translateZ(0); }
+    to { transform: translateZ(calc(var(--k) * var(--dz))); }
+  }
+  @keyframes fh-drop {
+    from { transform: translateZ(calc(var(--k) * var(--dz))); }
+    to { transform: translateZ(0); }
+  }
+  @keyframes fh-post {
+    from { transform: rotateY(-90deg) scaleX(0); }
+    to { transform: rotateY(-90deg) scaleX(1); }
+  }
+  @keyframes fh-unpost {
+    from { transform: rotateY(-90deg) scaleX(1); }
+    to { transform: rotateY(-90deg) scaleX(0); }
+  }
+
+  /* ---- the scene ---- */
+  .fh .frame {
+    position: relative;
+    container-type: inline-size;
+  }
+  .fh .viewport {
+    perspective: 190cqw;
+    perspective-origin: 45% 35%;
+    overflow: hidden;
+  }
+  .fh .world {
+    position: relative;
+    transform-style: preserve-3d;
+    transform-origin: 40.6% 52.5%;
+  }
+  .fh .layer {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    pointer-events: none;
+    /* Chrome drops a lifted layer that paints nothing of its own, so it paints a tint too faint to see. */
+    background: rgb(0 0 0 / 0.004);
+  }
+  .fh .post {
+    position: absolute;
+    width: calc(var(--reps) * var(--dz));
+    height: 2px;
+    margin-top: -1px;
+    background: var(--jig);
+    opacity: 0.7;
+    transform-origin: 0 50%;
+    transform: rotateY(-90deg) scaleX(0);
+  }
+
+  .fh .caps {
+    position: absolute;
+    inset: 0.6cqw auto auto 1.2cqw;
+    z-index: 1;
+  }
+  .fh .cap {
+    position: absolute;
+    inset: 0 auto auto 0;
+    margin: 0;
+    white-space: nowrap;
+    font-family: var(--font-ui);
+    font-size: clamp(13px, 1.52cqw, 17px);
+    font-weight: 500;
+    color: var(--fg-0);
+  }
+
+  .fh .t {
+    opacity: 0;
+  }
+  .fh .d {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  .fh .fig text.head {
+    fill: var(--bg-0);
+    font-weight: 700;
+    font-size: 10.5px;
+  }
+  .fh .fig text.replabel {
+    font-size: 9px;
+    fill: var(--jig);
+  }
+  .fh .you circle,
+  .fh .you path {
+    fill: none;
+    stroke: var(--cat-human);
+    stroke-width: 1.75;
+  }
+  .fh .file {
+    fill: color-mix(in srgb, var(--bg-0) 60%, transparent);
+    stroke: var(--border-1);
+  }
+  .fh .colleagues circle,
+  .fh .colleagues path {
+    opacity: 0.75;
+  }
+  .fh .nofile {
+    fill: none;
+    stroke-dasharray: 5 5;
+  }
+  .fh .dim {
+    opacity: 0.35;
+  }
+  .fh .rule {
+    stroke-width: 1;
+    opacity: 0.7;
+  }
+  .fh .tab {
+    fill: var(--bg-3);
+    stroke: var(--border-1);
+  }
+  .fh .square {
+    fill: color-mix(in srgb, var(--c) 8%, var(--bg-1));
+    stroke-width: 1.5;
+  }
+  .fh .body {
+    fill: var(--bg-2);
+    stroke: var(--border-1);
+    stroke-width: 1;
+  }
+  .fh .modeldot {
+    fill: #fff;
+  }
+  .fh .pill {
+    fill: var(--bg-3);
+    stroke: var(--border-2);
+    stroke-width: 1;
+  }
+  .fh .hexa {
+    fill: var(--bg-1);
+    stroke: var(--c);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+  }
+  .fh .jigfill {
+    fill: color-mix(in srgb, var(--jig) 5%, transparent);
+  }
+  .fh .jigfill.strong {
+    fill: color-mix(in srgb, var(--jig) 9%, transparent);
+  }
+  .fh .lanecard {
+    fill: color-mix(in srgb, var(--bg-1) 88%, transparent);
+    stroke: color-mix(in srgb, var(--jig) 70%, transparent);
+    stroke-width: 1.25;
+  }
+  .fh .bracket {
+    stroke-width: 2;
+  }
+  .fh .port {
+    fill: var(--bg-0);
+    stroke: var(--fg-2);
+    stroke-width: 1.25;
+  }
+  .fh .flag {
+    fill: var(--cat-human);
+  }
+  .fh .work {
+    fill: none;
+    stroke: var(--accent-fg);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .fh .work.done {
+    stroke: var(--success);
+    stroke-width: 2.25;
+  }
+  /* A repeat: one functionary's path through the judgement blocks. */
+  .fh .work.rep {
+    stroke: var(--cat-agent);
+    stroke-width: 1.3;
+    opacity: 0.8;
+  }
+  .fh .row.ok {
+    fill: color-mix(in srgb, var(--success) 55%, var(--bg-1));
+  }
+  .fh .row.bad {
+    fill: color-mix(in srgb, var(--danger) 70%, var(--bg-1));
+  }
+  .fh .row.review {
+    fill: color-mix(in srgb, var(--jig) 70%, var(--bg-1));
+  }
+  .fh .ring {
+    fill: none;
+    stroke: var(--cat-human);
+    stroke-width: 1.5;
+  }
+  .fh .arc {
+    fill: none;
+    stroke: var(--cat-human);
+    stroke-width: 1.5;
+  }
+  .fh .arrow-you {
+    fill: var(--cat-human);
+  }
+
+  /* Playbar: a scrubber with a tick at each beat. */
+  .fh .bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-12);
+    margin-top: var(--s-10);
+  }
+  .fh .track {
+    position: relative;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-0);
+  }
+  .fh .fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+  .fh .beat {
+    position: absolute;
+    top: -3px;
+    width: 1px;
+    height: 10px;
+    background: var(--border-2);
+  }
+  .fh .track input {
+    position: absolute;
+    inset: -8px 0;
+    width: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .fh .track:focus-within {
+    outline: 1px solid var(--accent);
+    outline-offset: 6px;
+  }
+  .fh .toggle {
+    min-width: 4.6rem;
+    background: none;
+    border: 1px solid var(--border-1);
+    border-radius: var(--r-6);
+    color: var(--fg-2);
+    font-family: var(--font-mono);
+    font-size: var(--fs-11);
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+  }
+  .fh .toggle:hover {
+    color: var(--fg-0);
+    border-color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fh .t,
+    .fh .d,
+    .fh .world,
+    .fh .lift,
+    .fh .post {
+      animation: none !important;
+    }
+    .fh .t {
+      opacity: 0;
+    }
+    .fh .d {
+      stroke-dashoffset: 0;
+      opacity: 0;
+    }
+    .fh .ln.d,
+    .fh .final {
+      opacity: 1;
+    }
+    .fh .bar {
+      display: none;
+    }
+  }
+  @media (max-width: 860px) {
+    .fh .scroll {
+      overflow-x: auto;
+    }
+    .fh .frame {
+      min-width: 860px;
+    }
+  }
+</style>

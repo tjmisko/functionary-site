@@ -1,0 +1,240 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Button from "../components/Button.astro";
+import { release, isReleased } from "../lib/release";
+
+const connections = [
+  ["Hosted API", "Anthropic, OpenAI, OpenRouter, or a custom endpoint"],
+  ["Local model", "Ollama"],
+  ["Coding CLI login", "Claude Code or Codex"],
+];
+---
+
+<BaseLayout
+  title="Download. Functionary"
+  description="Functionary runs on your own machine. Builds for Linux, macOS and Windows are posted here at release."
+>
+  <section class="section first">
+    <div class="container measure">
+      <h1>Download</h1>
+      <p class="lead">
+        Functionary runs on your own machine as a local server, used from a
+        browser or a terminal.
+        {
+          isReleased
+            ? ` The current release is ${release.version}.`
+            : " Builds will be posted on this page at release."
+        }
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="measure">
+        <h2>Builds</h2>
+        {
+          isReleased ? (
+            <p>
+              Version <span class="mono">{release.version}</span>
+              {release.date && <>, released {release.date}</>}.
+              {release.notesUrl && (
+                <>
+                  {" "}
+                  <a href={release.notesUrl}>Release notes</a>.
+                </>
+              )}
+            </p>
+          ) : (
+            <p>No build is published yet.</p>
+          )
+        }
+      </div>
+      <table class="builds">
+        <thead>
+          <tr>
+            <th>Platform</th>
+            <th>Architecture</th>
+            <th>Build</th>
+            {isReleased && <th>SHA-256</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {release.builds.map((b) => (
+            <tr>
+              <td>{b.os}</td>
+              <td class="mono">{b.arch}</td>
+              <td>
+                {b.url ? (
+                  <Button href={b.url} variant="ghost" size="sm">Download</Button>
+                ) : (
+                  <span class="pending">At release</span>
+                )}
+              </td>
+              {isReleased && <td class="mono sum">{b.sha256 ?? ""}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="measure">
+        <h2>Model connection</h2>
+        <p>
+          Functionary bundles no model access. You connect your own, and
+          prompts go to the provider you connect.
+        </p>
+      </div>
+      <dl class="connections">
+        {connections.map(([k, v]) => (
+          <div>
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container measure">
+      <h2>Data</h2>
+      <p>
+        Flows, run records, receipts and results are stored in one data
+        directory on your machine. The server listens on the local interface
+        only, and telemetry is off unless you configure an endpoint.
+      </p>
+      <p>
+        During a run, data leaves the machine only through block calls
+        written in the flow: a source read, a model call, a write. Each one
+        is visible in the flow before it runs and has a receipt in the run
+        record after.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container measure">
+      <h2>Workspaces</h2>
+      <p>
+        A personal workspace is the default: one person creates, edits, runs
+        and reviews, with no roles. A governed workspace names editors,
+        runners, reviewers and administrators. It can limit what an agent may
+        run, require an approved revision before an unattended run, and
+        refuse any block call that would send a value past its locality
+        label.
+      </p>
+      <p>
+        Agents hold their own credentials. An agent never owns a flow, never
+        deletes one, and never approves a revision.
+      </p>
+    </div>
+  </section>
+
+  <section class="section cta">
+    <div class="container measure">
+      <h2>License</h2>
+      {
+        release.licenseName ? (
+          <p>
+            Functionary is released under{" "}
+            {release.licenseUrl ? (
+              <a href={release.licenseUrl}>{release.licenseName}</a>
+            ) : (
+              release.licenseName
+            )}
+            .
+          </p>
+        ) : (
+          <p>License terms will be posted with the first release.</p>
+        )
+      }
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* Prose sections share the page's left edge with the wider ones. */
+  .container.measure {
+    max-width: var(--container);
+  }
+  .container.measure > * {
+    max-width: var(--measure-prose);
+  }
+  .first {
+    border-top: none;
+  }
+  .lead {
+    margin-top: var(--s-24);
+  }
+  h2 {
+    max-width: 26ch;
+  }
+  .section p {
+    margin-top: var(--s-16);
+  }
+
+  .builds {
+    margin-top: var(--s-32);
+    width: 100%;
+    max-width: 44rem;
+    border-collapse: collapse;
+    font-size: var(--ms-small);
+  }
+  .builds th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: var(--fs-11);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    color: var(--fg-2);
+    padding: var(--s-8) var(--s-12) var(--s-8) 0;
+    border-bottom: 1px solid var(--border-1);
+  }
+  .builds td {
+    padding: var(--s-10) var(--s-12) var(--s-10) 0;
+    border-bottom: 1px solid var(--border-0);
+    color: var(--fg-0);
+  }
+  .pending {
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    color: var(--fg-3);
+  }
+  .sum {
+    font-size: var(--fs-11);
+    color: var(--fg-2);
+    word-break: break-all;
+  }
+
+  .connections {
+    margin-top: var(--s-32);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-20);
+  }
+  .connections dt {
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    font-weight: 700;
+    color: var(--fg-0);
+  }
+  .connections dd {
+    margin: var(--s-4) 0 0;
+    color: var(--fg-2);
+    font-size: var(--ms-small);
+  }
+
+  .cta {
+    background: var(--bg-1);
+  }
+  @media (max-width: 860px) {
+    .connections {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
