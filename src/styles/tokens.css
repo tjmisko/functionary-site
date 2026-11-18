@@ -1,8 +1,10 @@
 /* =========================================================
    Functionary — Colors & Type  (VENDORED — DO NOT EDIT)
 
-   Verbatim copy of the canvas design system:
+   Copy of the canvas design system:
      ops/design/2026-04-27/colors_and_type.css  (Functionary app repo)
+   with the accent, status and selection values re-vendored on 2026-11-17
+   from the app's live tokens in web/src/style.css.
 
    This is the single visual binding between the marketing site and the
    product. The site extends it in `marketing.css`; it never edits this
@@ -30,15 +32,20 @@
   --border-1: #3a4049;        /* stronger borders, focused inputs */
 
   /* ---------- Accent + state ---------- */
-  --accent: #8a9ab2;          /* cool slate accent */
-  --accent-strong: #b0bccc;
-  --success: #5fa777;
-  --warn: #c9a55a;
+  /* Re-vendored 2026-11-17 from web/src/style.css (Functionary app repo):
+     one steel hue for every interactive accent, calm low-saturation status. */
+  --accent: #8ba1b3;          /* accent line / text / icon */
+  --accent-strong: #b0c2d0;   /* hover */
+  --accent-muted: #657c8e;    /* selected border */
+  --accent-subtle: #24303a;   /* selected fill */
+  --accent-fg: #e3edf4;       /* text on an accent fill */
+  --success: #78a68e;
+  --warn: #c5a16d;
   --danger: #c66060;
 
   /* ---------- Selection / interaction ---------- */
-  --select-single: rgba(255, 140, 40, 0.9);   /* orange single-select outline */
-  --select-multi:  rgba(100, 160, 255, 0.85); /* blue multi/lasso outline */
+  --select-single: var(--accent-strong);
+  --select-multi:  rgba(139, 161, 179, 0.75);
   --port-compatible: rgba(80, 200, 120, 0.9);
   --port-ineligible: rgba(230, 64, 51, 0.9);
 

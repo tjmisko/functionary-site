@@ -1,0 +1,54 @@
+---
+/**
+ * Internal comparison page for hero figures. Not linked from the nav and
+ * marked noindex. Delete it once a hero is chosen.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Lifecycle from "../components/figures/Lifecycle.astro";
+import Harness from "../components/figures/Harness.astro";
+import Weave from "../components/figures/Weave.astro";
+import RunGrid from "../components/figures/RunGrid.astro";
+import RunTwice from "../components/figures/RunTwice.astro";
+---
+
+<BaseLayout title="Hero figures. Functionary" description="Internal comparison of hero figures.">
+  <meta name="robots" content="noindex" slot="head" />
+  <div class="container page">
+    <h1>Hero figures</h1>
+    <p class="note">Internal page. Each figure is shown at the width it would have under the home headline.</p>
+
+    <h2>Lifecycle</h2>
+    <p class="note">The flat SVG version, superseded by the perspective version now on the home page (FlowHero).</p>
+    <Lifecycle />
+
+    <h2>Harness</h2>
+    <p class="note">What the product does to an agent's work: wild only inside a block, recorded at every block.</p>
+    <Harness />
+
+    <h2>Weave</h2>
+    <p class="note">Every result tied back to its source. Point at a row or a source.</p>
+    <Weave />
+
+    <h2>Run grid</h2>
+    <p class="note">Hundreds of calls, none dropped. Fills in on load.</p>
+    <RunGrid />
+
+    <h2>Run twice</h2>
+    <p class="note">The reproducibility argument. Now placed in the Reproducibility section of the home page.</p>
+    <RunTwice />
+  </div>
+</BaseLayout>
+
+<style>
+  .page {
+    padding-block: var(--s-40);
+  }
+  h2 {
+    margin-top: var(--s-40);
+  }
+  .note {
+    margin: var(--s-8) 0 var(--s-16);
+    color: var(--fg-2);
+    font-size: var(--ms-small);
+  }
+</style>

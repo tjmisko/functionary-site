@@ -1,0 +1,754 @@
+---
+/**
+ * Hero: the lifecycle of a flow, in about fifteen seconds.
+ *
+ *   you -> agent -> flow.rs -> execution -> results, and back.
+ *
+ * Three passes round the loop. Each revision leaves less of the flow to a
+ * free-running Agent and writes more of it as explicit, wired blocks. At the
+ * end a second person runs the same flow and gets matching results.
+ *
+ * Node shapes follow the app's canvas language (ops, 2026-11-13) at the level
+ * of shape and colour only: sources and writes are square outlines, blocks
+ * have a filled header and a model dot, gates are hexagons the wire passes
+ * through, transforms are grey pills, a Map is an amber bracket, and the
+ * Agent fades out with no edge. No fields or settings are drawn.
+ *
+ * Every timed element is a window on one clock (`T`, seconds): it fades in at
+ * its start and, unless it survives to the last frame, fades out at its end.
+ * The figure plays once and holds. With reduced motion only the last frame is
+ * shown.
+ */
+import { rng, spline, type P } from "../../lib/draw";
+import FlowSheet from "./FlowSheet.astro";
+
+const W = 1120;
+const H = 476;
+
+const T = {
+  ask: 0.3,
+  agent: 0.9,
+  write1: 1.5, // no flow yet: the agent takes the job itself
+  run1: 2.0,
+  react1: 4.2,
+  write2: 6.0, // the agent writes the first flow
+  run2: 7.6,
+  react2: 9.6,
+  write3: 11.2, // the flow is revised
+  run3: 12.8,
+  replicate: 15.0, // the finished flow, run by several functionaries at once
+  join: 17.6,
+  end: 20.0,
+};
+
+const win = (t0: number, t1?: number | null) =>
+  `animation: lc-in 0.4s ${t0.toFixed(2)}s both` +
+  (t1 != null ? `, lc-out 0.35s ${t1.toFixed(2)}s forwards` : "");
+const draw = (t0: number, dur: number, t1?: number | null) =>
+  `animation: lc-draw ${dur}s ${t0.toFixed(2)}s both, lc-in 0.15s ${t0.toFixed(2)}s both` +
+  (t1 != null ? `, lc-out 0.35s ${t1.toFixed(2)}s forwards` : "");
+const cls = (base: string, t1?: number | null) => (t1 == null ? `${base} final` : base);
+
+// ---- drawing helpers ------------------------------------------------------
+
+/** A looping, wandering path from (x0, y) to (x1, y), staying within ±amp. */
+function curl(x0: number, x1: number, y: number, amp: number, seed: number): P[] {
+  const q = rng(seed);
+  const L = x1 - x0;
+  const per = Math.min(40, Math.max(15, amp * 0.42));
+  const n = Math.max(2, Math.round(L / per));
+  const ph = [q() * 6.28, q() * 6.28, q() * 6.28, q() * 6.28];
+  const f = 1 + q() * 1.2;
+  const steps = n * 10;
+  const pts: P[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const s = i / steps;
+    const env = Math.pow(Math.sin(Math.PI * s), 0.55);
+    const wander =
+      amp * 0.6 * env * (0.65 * Math.sin(2 * Math.PI * f * s + ph[0]) + 0.35 * Math.sin(2 * Math.PI * (f + 1.9) * s + ph[1]));
+    const size = 0.55 + 0.45 * Math.sin(2 * Math.PI * 1.4 * s + ph[2]) * Math.sin(2 * Math.PI * 0.6 * s + ph[3]);
+    const r = amp * 0.6 * env * size;
+    const rx = per * (0.55 + 0.6 * size) * (0.4 + 0.6 * env);
+    const th = 2 * Math.PI * n * s;
+    pts.push({ x: x0 + s * L + rx * Math.sin(th), y: y + wander + r * Math.cos(th + ph[2]) });
+  }
+  pts[0] = { x: x0, y };
+  pts[pts.length - 1] = { x: x1, y };
+  return pts;
+}
+/** A spline's curve commands, without its leading move. */
+const seg = (pts: P[]) => spline(pts).replace(/^M [\d.-]+ [\d.-]+/, "");
+const wire = (x1: number, y1: number, x2: number, y2: number) => {
+  const d = Math.max(12, Math.abs(x2 - x1) * 0.5);
+  return `M ${x1} ${y1} C ${x1 + d} ${y1}, ${x2 - d} ${y2}, ${x2} ${y2}`;
+};
+const hex = (cx: number, cy: number, r: number) => {
+  const h = r * 0.87;
+  return `M ${cx - r} ${cy} L ${cx - r / 2} ${cy - h} L ${cx + r / 2} ${cy - h} L ${cx + r} ${cy} L ${cx + r / 2} ${cy + h} L ${cx - r / 2} ${cy + h} Z`;
+};
+const header = (x: number, y: number, w: number) =>
+  `M ${x} ${y + 20} V ${y + 10} a 10 10 0 0 1 10 -10 H ${x + w - 10} a 10 10 0 0 1 10 10 V ${y + 20} Z`;
+
+// ---- flow revisions -------------------------------------------------------
+type Node =
+  | { k: "source" | "write"; label: string; x: number; y: number; w: number; h: number }
+  | { k: "block"; label: string; x: number; y: number; w: number; h: number }
+  | { k: "agent"; x: number; y: number; w: number; h: number }
+  | { k: "pill"; label: string; x: number; y: number; w: number }
+  | { k: "gate"; label: string; cx: number; cy: number; r: number; human?: boolean }
+  | { k: "map"; x: number; y: number; w: number; h: number }
+  | { k: "mini"; tone: "source" | "egress"; label: string | null; x: number; y: number; w: number; h: number; dim?: boolean }
+  | { k: "text"; text: string; x: number; y: number };
+
+type Rev = {
+  name: string | null;
+  nodes: Node[];
+  wires: string[];
+  ports: P[];
+  before: string;
+  after: string | null;
+  branch: string[];
+  flag: P | null;
+  in: number;
+  out: number | null;
+  run: number;
+  flagAt: number | null;
+};
+
+// Four small sources, stacked, converging on one entry point.
+const stack = (cy: number): Node[] =>
+  [-39, -13, 13, 39].map((dy) => ({ k: "mini" as const, tone: "source" as const, label: null, x: 240, y: cy + dy - 9, w: 44, h: 18 }));
+const fanIn = (cy: number, tx: number) =>
+  [-39, -13, 13, 39].map((dy) => `M 284 ${cy + dy} C ${tx - 22} ${cy + dy}, ${tx - 26} ${cy}, ${tx} ${cy}`);
+const stackPorts = (cy: number): P[] => [-39, -13, 13, 39].map((dy) => ({ x: 284, y: cy + dy }));
+
+// Before any flow exists, the agent finds its own sources.
+const scatter = rng(17);
+const loose: Node[] = Array.from({ length: 9 }, (_, i) => ({
+  k: "mini" as const,
+  tone: "source" as const,
+  label: null,
+  x: 252 + scatter() * 250,
+  y: 130 + scatter() * 230,
+  w: 26,
+  h: 15,
+  dim: i % 3 === 2,
+}));
+
+const actions = [
+  { label: "Write", cy: 200 },
+  { label: "Commit", cy: 250 },
+  { label: "Notify", cy: 300 },
+];
+
+const revs: Rev[] = [
+  {
+    name: null,
+    nodes: [{ k: "agent", x: 226, y: 92, w: 600, h: 316 }, ...loose],
+    wires: [],
+    ports: [],
+    before: `M 222 250${seg(curl(222, 826, 250, 118, 61))} L 846 250`,
+    after: null,
+    branch: [],
+    flag: { x: 700, y: 150 },
+    in: T.write1,
+    out: T.write2,
+    run: T.run1,
+    flagAt: T.react1 + 0.7,
+  },
+  {
+    name: "revision 1",
+    nodes: [
+      { k: "text", text: "Sources", x: 240, y: 194 },
+      ...stack(250),
+      { k: "map", x: 322, y: 124, w: 310, h: 258 },
+      { k: "block", label: "Extract", x: 338, y: 210, w: 86, h: 80 },
+      { k: "agent", x: 434, y: 144, w: 192, h: 218 },
+      { k: "gate", label: "Check", cx: 678, cy: 250, r: 24 },
+      { k: "mini", tone: "egress", label: "Write", x: 746, y: 236, w: 62, h: 28 },
+    ],
+    wires: [...fanIn(250, 338), wire(424, 250, 454, 250), wire(604, 250, 654, 250), wire(702, 250, 746, 250)],
+    ports: [...stackPorts(250), { x: 338, y: 250 }, { x: 424, y: 250 }, { x: 746, y: 250 }],
+    before: `${fanIn(250, 338).join(" ")} M 338 250 L 342 250${seg(curl(342, 420, 258, 22, 71))} L 454 250${seg(curl(454, 604, 250, 84, 72))} L 654 250`,
+    after: "M 654 250 H 746",
+    branch: [],
+    flag: { x: 580, y: 176 },
+    in: T.write2,
+    out: T.write3,
+    run: T.run2,
+    flagAt: T.react2 + 0.5,
+  },
+  {
+    name: "revision 2",
+    nodes: [
+      { k: "text", text: "Sources", x: 240, y: 194 },
+      ...stack(250),
+      { k: "map", x: 322, y: 156, w: 316, h: 196 },
+      { k: "block", label: "Extract", x: 338, y: 212, w: 76, h: 76 },
+      { k: "pill", label: "Format", x: 424, y: 237, w: 70 },
+      { k: "block", label: "Grade", x: 504, y: 212, w: 72, h: 76 },
+      { k: "gate", label: "Check", cx: 608, cy: 250, r: 20 },
+      { k: "gate", label: "Review", cx: 682, cy: 250, r: 23, human: true },
+      ...actions.map((a) => ({ k: "mini" as const, tone: "egress" as const, label: a.label, x: 752, y: a.cy - 13, w: 64, h: 26 })),
+    ],
+    wires: [
+      ...fanIn(250, 338),
+      wire(414, 250, 424, 250),
+      wire(494, 250, 504, 250),
+      wire(576, 250, 588, 250),
+      "M 328 250 C 342 318, 556 322, 596 266",
+      wire(628, 250, 659, 250),
+      ...actions.map((a) => wire(705, 250, 752, a.cy)),
+    ],
+    ports: [...stackPorts(250), { x: 338, y: 250 }, { x: 414, y: 250 }, { x: 504, y: 250 }, { x: 576, y: 250 }, ...actions.map((a) => ({ x: 752, y: a.cy }))],
+    before: `${fanIn(250, 338).join(" ")} M 338 250 L 342 250${seg(curl(342, 410, 258, 20, 81))} L 424 250 M 494 250 L 508 250${seg(curl(508, 572, 258, 20, 82))} L 588 250`,
+    after: "M 588 250 H 659",
+    branch: actions.map((a) => wire(705, 250, 752, a.cy)),
+    flag: null,
+    in: T.write3,
+    out: T.replicate + 0.25,
+    run: T.run3,
+    flagAt: null,
+  },
+];
+
+// ---- results --------------------------------------------------------------
+const RX = 868;
+const rowY = (i: number) => 124 + i * 24;
+const runs = [
+  { t: T.run1 + 0.7, out: T.run2 + 0.7 as number | null, s: ["ok", "bad", "ok", "review", "bad", "ok", "bad", "ok"], mark: T.react1 + 0.2, unmark: T.write2 + 0.4 },
+  { t: T.run2 + 0.7, out: T.run3 + 0.7 as number | null, s: ["ok", "ok", "ok", "review", "ok", "ok", "bad", "ok"], mark: T.react2 + 0.2, unmark: T.write3 + 0.4 },
+  { t: T.run3 + 0.7, out: T.replicate as number | null, s: ["ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok"], mark: null, unmark: null },
+];
+
+const arcD = "M 943 330 C 943 436, 800 450, 540 450 S 40 436, 40 304";
+const arcs = [
+  { t: T.react1 + 0.4, dur: 1.2, out: T.run2 },
+  { t: T.react2 + 0.3, dur: 1.0, out: T.run3 },
+];
+
+const captions = [
+  { t: 0.2, out: T.write1, text: "You hand the job to an agent." },
+  { t: T.write1, out: T.react1, text: "With no flow yet, it finds sources and does the work its own way." },
+  { t: T.react1, out: T.write2, text: "You react to the results, and to how it got them." },
+  { t: T.write2, out: T.run2, text: "The agent writes what worked into a flow." },
+  { t: T.run2, out: T.react2, text: "The runtime executes the flow and records the run." },
+  { t: T.react2, out: T.write3, text: "You react again. The agent revises the flow." },
+  { t: T.write3, out: T.replicate, text: "Each revision fixes more of the process and of how the information is framed." },
+  { t: T.replicate, out: T.join, text: "Every run is a different, similarly trained functionary following the same flow." },
+  { t: T.join, out: null, text: "Replicate the flow and join the results. Where they disagree is worth knowing." },
+];
+
+// ---- replicate and join ---------------------------------------------------
+const REPLICAS = 5;
+const sheets = Array.from({ length: REPLICAS }, (_, k) => ({
+  k,
+  to: `matrix(0.52, -0.14, 0, 0.62, ${75.6 + 36 * k}, ${198.7 - 16 * k})`,
+  // where this sheet's top-left corner lands, for its functionary
+  px: 0.52 * 220 + 75.6 + 36 * k,
+  py: -0.14 * 220 + 0.62 * 84 + 198.7 - 16 * k,
+})).reverse();
+const MX = 856;
+const gridY = (i: number) => 150 + i * 24;
+const differs = new Set(["1:3", "4:1", "4:4", "6:2", "6:3"]);
+const agree = (i: number) => REPLICAS - [...differs].filter((d) => d.startsWith(`${i}:`)).length;
+const rowsN = 8;
+const beats = captions.slice(1).map((c) => (c.t / T.end) * 100);
+---
+
+<figure class="plate lifecycle">
+  <div data-stage>
+    <div class="ground scroll">
+      <svg class="fig" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="You describe a job. An agent writes it as a flow. The runtime executes the flow and produces results. You react to the results and to the process, and the flow is revised. Over three revisions the flow leaves less to a free-running agent and handles more cases with explicit, wired blocks. At the end a second person runs the same flow and reaches matching results.">
+        <defs>
+          <marker id="lc-ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0L8 4L0 8z" class="arrow" />
+          </marker>
+          <radialGradient id="lc-glow">
+            <stop offset="0" stop-color="var(--cat-agent)" stop-opacity="0.34" />
+            <stop offset="0.55" stop-color="var(--cat-agent)" stop-opacity="0.2" />
+            <stop offset="1" stop-color="var(--cat-agent)" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+
+        {captions.map((c) => (
+          <text x="24" y="46" class={cls("t cap", c.out)} style={win(c.t, c.out)}>{c.text}</text>
+        ))}
+
+        <!-- you -->
+        <g class="you">
+          <circle cx="40" cy="238" r="7" />
+          <path d="M27 262 a13 12 0 0 1 26 0" />
+          <text x="40" y="286" class="mid t0">you</text>
+        </g>
+        <line x1="60" y1="250" x2="110" y2="250" class="ln d" pathLength="1" style={draw(T.ask, 0.5)} marker-end="url(#lc-ah)" />
+
+        <!-- agent -->
+        <g class="t final k-agent" style={win(T.agent)}>
+          <circle cx="140" cy="250" r="26" class="node" />
+          <text x="140" y="254" class="mid t0">agent</text>
+        </g>
+        <line x1="168" y1="250" x2="216" y2="250" class="ln d gone" pathLength="1" style={draw(T.write1 - 0.3, 0.5, T.replicate)} marker-end="url(#lc-ah)" />
+
+        <!-- flow.rs -->
+        <g class="t" style={win(T.write1, T.write2)}>
+          <rect x="220" y="84" width="610" height="332" rx="10" class="file nofile" />
+          <text x="232" y="104">no flow yet</text>
+        </g>
+        <g class="t" style={win(T.write2, T.replicate + 0.25)}>
+          <rect x="220" y="84" width="610" height="332" rx="10" class="file" />
+          <path d="M220 104 V94 a10 10 0 0 1 10 -10 H306 V104 z" class="tab" />
+          <text x="232" y="99" class="t0">flow.rs</text>
+        </g>
+
+        {revs.map((rev) => (
+          <>
+            {rev.name && (
+              <text x="820" y="99" class={cls("t end", rev.out)} style={win(rev.in, rev.out)}>{rev.name}</text>
+            )}
+            <g class={cls("t", rev.out)} style={win(rev.in + 0.25, rev.out)}>
+              {rev.wires.map((d) => (
+                <path d={d} class="ln" />
+              ))}
+            </g>
+            {rev.nodes.map((n, i) => (
+              <g class={cls("t", rev.out)} style={win(rev.in + i * 0.09, rev.out)}>
+                {n.k === "map" && (
+                  <g class="k-jig">
+                    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="4" class="mapfill" />
+                    <path d={`M ${n.x + 12} ${n.y} H ${n.x} V ${n.y + n.h} H ${n.x + 12}`} class="wire bracket" />
+                    <path d={`M ${n.x + n.w - 12} ${n.y} H ${n.x + n.w} V ${n.y + n.h} H ${n.x + n.w - 12}`} class="wire bracket" />
+                    <text x={n.x + 20} y={n.y + 5} class="tc">Map, per row</text>
+                  </g>
+                )}
+                {n.k === "agent" && (
+                  <>
+                    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="40" fill="url(#lc-glow)" />
+                    <text x={n.x + n.w / 2} y={n.y + 34} class="mid t0">Agent</text>
+                  </>
+                )}
+                {(n.k === "source" || n.k === "write") && (
+                  <g class={n.k === "source" ? "k-source" : "k-egress"}>
+                    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="1.5" class="node square" />
+                    <text x={n.x + n.w / 2} y={n.y + n.h / 2 + 4} class="mid t0">{n.label}</text>
+                  </g>
+                )}
+                {n.k === "mini" && (
+                  <g class={n.tone === "source" ? "k-source" : "k-egress"}>
+                    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="1.5" class:list={["node", "square", { dim: n.dim }]} />
+                    {n.label ? (
+                      <text x={n.x + n.w / 2} y={n.y + n.h / 2 + 4} class="mid t0">{n.label}</text>
+                    ) : (
+                      <line x1={n.x + 6} y1={n.y + n.h / 2} x2={n.x + n.w - 8} y2={n.y + n.h / 2} class:list={["wire", "rule", { dim: n.dim }]} />
+                    )}
+                  </g>
+                )}
+                {n.k === "text" && <text x={n.x} y={n.y}>{n.text}</text>}
+                {n.k === "block" && (
+                  <g class="k-block">
+                    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" class="body" />
+                    <path d={header(n.x, n.y, n.w)} class="solid" />
+                    <text x={n.x + 9} y={n.y + 14} class="head">{n.label}</text>
+                    <circle cx={n.x + n.w - 10} cy={n.y + 10} r="3" class="modeldot" />
+                  </g>
+                )}
+                {n.k === "pill" && (
+                  <g class="k-transform">
+                    <rect x={n.x} y={n.y} width={n.w} height="26" rx="13" class="pill" />
+                    <circle cx={n.x + 12} cy={n.y + 13} r="3" class="solid" />
+                    <text x={n.x + 21} y={n.y + 17} class="t0">{n.label}</text>
+                  </g>
+                )}
+                {n.k === "gate" && (
+                  <g class={n.human ? "k-gate" : "k-ok"}>
+                    <path d={hex(n.cx, n.cy, n.r)} class="hexa" />
+                    <text x={n.cx} y={n.human ? n.cy + n.r + 13 : n.cy - n.r - 5} class="mid tc">{n.label}</text>
+                  </g>
+                )}
+              </g>
+            ))}
+            <g class={cls("t", rev.out)} style={win(rev.in + 0.5, rev.out)}>
+              {rev.ports.map((p) => (
+                <circle cx={p.x} cy={p.y} r="3.5" class="port" />
+              ))}
+            </g>
+            {rev.flag && rev.flagAt != null && (
+              <circle cx={rev.flag.x} cy={rev.flag.y} r="6" class="t flag" style={win(rev.flagAt, rev.out)} />
+            )}
+            <path d={rev.before} class={cls("d work", rev.out)} pathLength="1" style={draw(rev.run, 1.4, rev.out)} />
+            {rev.after && (
+              <path d={rev.after} class={cls("d work done", rev.out)} pathLength="1" style={draw(rev.run + 1.3, 0.45, rev.out)} />
+            )}
+            {rev.branch.map((d, i) => (
+              <path d={d} class={cls("d work done", rev.out)} pathLength="1" style={draw(rev.run + 2.0 + i * 0.15, 0.3, rev.out)} />
+            ))}
+          </>
+        ))}
+        <line x1="832" y1="250" x2="860" y2="250" class="ln d gone" pathLength="1" style={draw(T.run1 + 0.4, 0.4, T.replicate)} marker-end="url(#lc-ah)" />
+
+        <!-- results -->
+        <text x={RX} y="104" class="t t0" style={win(T.run1 + 0.5, T.replicate)}>results</text>
+        {runs.map((run) =>
+          run.s.map((state, i) => (
+            <>
+              <rect
+                x={RX}
+                y={rowY(i)}
+                width="150"
+                height="13"
+                rx="3"
+                class={cls(`t row ${state}`, run.out)}
+                style={win(run.t + i * 0.07, run.out)}
+              />
+              {run.mark != null && state !== "ok" && (
+                <rect x={RX - 5} y={rowY(i) - 5} width="160" height="23" rx="6" class="t ring" style={win(run.mark + i * 0.05, run.unmark)} />
+              )}
+            </>
+          )),
+        )}
+
+        <!-- the loop closes -->
+        {arcs.map((a) => (
+          <>
+            <path d={arcD} class="d arc" pathLength="1" style={draw(a.t, a.dur, a.out)} />
+            <path d="M34 314 L40 302 L46 314 Z" class="t arrow-you" style={win(a.t + a.dur - 0.15, a.out)} />
+          </>
+        ))}
+
+        <!-- replicate: the same flow, several functionaries -->
+        {sheets.map((sh) => (
+          <FlowSheet
+            rev={revs[2]}
+            class="t final tilt"
+            style={`--to:${sh.to}; animation: lc-in 0.3s ${(T.replicate + (sh.k ? 0.5 + sh.k * 0.12 : 0)).toFixed(2)}s both, lc-tilt 1.3s ${(T.replicate + 0.25 + sh.k * 0.05).toFixed(2)}s both`}
+          />
+        ))}
+        {sheets.map((sh) => (
+          <g class="t final functionary" style={win(T.replicate + 1.5 + sh.k * 0.1)}>
+            <circle cx={sh.px + 2} cy={sh.py - 22} r="4.5" />
+            <path d={`M ${sh.px - 7} ${sh.py - 7} a9 8 0 0 1 18 0`} />
+          </g>
+        ))}
+        <text x="190" y="446" class="t final k-jig tc" style={win(T.replicate + 1.6)}>Replicate: the same flow, {REPLICAS} runs</text>
+
+        <line x1="662" y1="250" x2="840" y2="250" class="ln d final" pathLength="1" style={draw(T.replicate + 1.5, 0.4)} marker-end="url(#lc-ah)" />
+
+        <!-- colleagues can use the stabilized flow too -->
+        <g class="t final you colleagues" style={win(T.join + 1.3)}>
+          <circle cx="26" cy="340" r="6" />
+          <path d="M15 361 a11 10 0 0 1 22 0" />
+          <circle cx="56" cy="340" r="6" />
+          <path d="M45 361 a11 10 0 0 1 22 0" />
+          <text x="41" y="384" class="mid t0">colleagues</text>
+        </g>
+        <path d="M74 352 C 130 352, 150 338, 208 338" class="ln d final" pathLength="1" style={draw(T.join + 1.5, 0.4)} marker-end="url(#lc-ah)" />
+
+        <!-- one column of results per functionary -->
+        <text x={MX} y="124" class="t final t0" style={win(T.replicate + 1.6)}>results, per run</text>
+        {Array.from({ length: REPLICAS }, (_, j) =>
+          Array.from({ length: rowsN }, (_, i) => (
+            <rect
+              x={MX + j * 25}
+              y={gridY(i)}
+              width="20"
+              height="13"
+              rx="3"
+              class={`t final row ${differs.has(`${i}:${j}`) ? "review" : "ok"}`}
+              style={win(T.replicate + 1.7 + j * 0.16 + i * 0.03)}
+            />
+          )),
+        )}
+
+        <!-- join across the runs -->
+        <text x="1008" y="124" class="t final t0" style={win(T.join)}>Join</text>
+        {Array.from({ length: rowsN }, (_, i) => (
+          <>
+            <line x1={MX + REPLICAS * 25 - 2} y1={gridY(i) + 6.5} x2="1004" y2={gridY(i) + 6.5} class="ln d final" pathLength="1" style={draw(T.join + i * 0.05, 0.3)} />
+            <rect
+              x="1008"
+              y={gridY(i)}
+              width={18 * agree(i)}
+              height="13"
+              rx="3"
+              class={`t final row ${agree(i) === REPLICAS ? "ok" : "review"}`}
+              style={win(T.join + 0.3 + i * 0.05)}
+            />
+            {agree(i) < REPLICAS && (
+              <rect x={MX - 5} y={gridY(i) - 5} width="258" height="23" rx="6" class="t final ring" style={win(T.join + 1.0 + i * 0.05)} />
+            )}
+          </>
+        ))}
+        <text x={MX} y="360" class="t final k-gate tc" style={win(T.join + 1.2)}>3 rows where the runs disagree</text>
+      </svg>
+    </div>
+    <div class="bar">
+      <button type="button" class="replay" data-replay aria-label="Replay the animation">Replay</button>
+      <div class="track" role="presentation">
+        <div class="fill" style={`animation-duration:${T.end}s`}></div>
+        {beats.map((b) => (
+          <span class="beat" style={`left:${b.toFixed(2)}%`} />
+        ))}
+      </div>
+    </div>
+  </div>
+</figure>
+
+<script>
+  // Restart the figure: a cloned stage runs its CSS animations from zero.
+  document.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest("[data-replay]");
+    const stage = button?.closest("[data-stage]");
+    stage?.replaceWith(stage.cloneNode(true));
+  });
+</script>
+
+<style is:global>
+  @keyframes lc-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes lc-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  @keyframes lc-draw {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes lc-tilt {
+    from { transform: matrix(1, 0, 0, 1, 0, 0); }
+    to { transform: var(--to); }
+  }
+  @keyframes lc-bar {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+
+  .lifecycle .t {
+    opacity: 0;
+  }
+  .lifecycle .d {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  .lifecycle .fig text.cap {
+    font-family: var(--font-ui);
+    font-size: 17px;
+    font-weight: 500;
+    fill: var(--fg-0);
+  }
+  .lifecycle .fig text.head {
+    fill: var(--bg-0);
+    font-weight: 700;
+    font-size: 10.5px;
+  }
+  .lifecycle .you circle,
+  .lifecycle .you path {
+    fill: none;
+    stroke: var(--cat-human);
+    stroke-width: 1.75;
+  }
+  .lifecycle .anyone circle,
+  .lifecycle .anyone > path:not(.ln) {
+    fill: none;
+    stroke: var(--accent-strong);
+    stroke-width: 1.75;
+  }
+  .lifecycle .file {
+    fill: color-mix(in srgb, var(--bg-0) 60%, transparent);
+    stroke: var(--border-1);
+  }
+  .lifecycle .sheet {
+    fill: var(--bg-1);
+  }
+  .lifecycle .tilt {
+    animation-timing-function: ease, cubic-bezier(0.6, 0, 0.2, 1);
+  }
+  /* The functionary on each run is the agent, standing in for "just anyone". */
+  .lifecycle .functionary circle,
+  .lifecycle .functionary path {
+    fill: var(--bg-1);
+    stroke: var(--cat-agent);
+    stroke-width: 1.5;
+  }
+  .lifecycle .colleagues circle,
+  .lifecycle .colleagues path {
+    opacity: 0.75;
+  }
+  .lifecycle .nofile {
+    fill: none;
+    stroke-dasharray: 5 5;
+  }
+  .lifecycle .dim {
+    opacity: 0.35;
+  }
+  .lifecycle .rule {
+    stroke-width: 1;
+    opacity: 0.7;
+  }
+  .lifecycle .tab {
+    fill: var(--bg-3);
+    stroke: var(--border-1);
+  }
+  .lifecycle .square {
+    fill: color-mix(in srgb, var(--c) 8%, var(--bg-1));
+    stroke-width: 1.5;
+  }
+  .lifecycle .body {
+    fill: var(--bg-2);
+    stroke: var(--border-1);
+    stroke-width: 1;
+  }
+  .lifecycle .modeldot {
+    fill: #fff;
+  }
+  .lifecycle .pill {
+    fill: var(--bg-3);
+    stroke: var(--border-2);
+    stroke-width: 1;
+  }
+  .lifecycle .hexa {
+    fill: var(--bg-1);
+    stroke: var(--c);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+  }
+  .lifecycle .mapfill {
+    fill: color-mix(in srgb, var(--jig) 5%, transparent);
+  }
+  .lifecycle .bracket {
+    stroke-width: 2;
+  }
+  .lifecycle .port {
+    fill: var(--bg-0);
+    stroke: var(--fg-2);
+    stroke-width: 1.25;
+  }
+  .lifecycle .flag {
+    fill: var(--cat-human);
+  }
+  .lifecycle .work {
+    fill: none;
+    stroke: var(--accent-fg);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .lifecycle .work.done {
+    stroke: var(--success);
+    stroke-width: 2.25;
+  }
+  .lifecycle .work.held {
+    stroke: var(--cat-human);
+    stroke-width: 1.75;
+  }
+  .lifecycle .row.ok {
+    fill: color-mix(in srgb, var(--success) 55%, var(--bg-1));
+  }
+  .lifecycle .row.bad {
+    fill: color-mix(in srgb, var(--danger) 70%, var(--bg-1));
+  }
+  .lifecycle .row.review {
+    fill: color-mix(in srgb, var(--jig) 70%, var(--bg-1));
+  }
+  .lifecycle .ring {
+    fill: none;
+    stroke: var(--cat-human);
+    stroke-width: 1.5;
+  }
+  .lifecycle .arc {
+    fill: none;
+    stroke: var(--cat-human);
+    stroke-width: 1.5;
+  }
+  .lifecycle .arrow-you {
+    fill: var(--cat-human);
+  }
+  .lifecycle .tick {
+    fill: none;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .lifecycle .tick.you {
+    stroke: var(--cat-human);
+  }
+  .lifecycle .tick.anyone {
+    stroke: var(--accent-strong);
+  }
+
+  /* Playbar: how far along the story is, with a tick at each beat. */
+  .lifecycle .bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-12);
+    margin-top: var(--s-10);
+  }
+  .lifecycle .track {
+    position: relative;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-0);
+  }
+  .lifecycle .fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 2px;
+    background: var(--accent);
+    animation-name: lc-bar;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+  }
+  .lifecycle .beat {
+    position: absolute;
+    top: -3px;
+    width: 1px;
+    height: 10px;
+    background: var(--border-2);
+  }
+  .lifecycle .replay {
+    background: none;
+    border: 1px solid var(--border-1);
+    border-radius: var(--r-6);
+    color: var(--fg-2);
+    font-family: var(--font-mono);
+    font-size: var(--fs-11);
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+  }
+  .lifecycle .replay:hover {
+    color: var(--fg-0);
+    border-color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lifecycle .t,
+    .lifecycle .d {
+      animation: none !important;
+      opacity: 0;
+      stroke-dashoffset: 0;
+    }
+    .lifecycle .ln.d,
+    .lifecycle .final {
+      opacity: 1;
+    }
+    .lifecycle .ln.d.gone {
+      opacity: 0;
+    }
+    .lifecycle .tilt {
+      transform: var(--to);
+    }
+    .lifecycle .bar {
+      display: none;
+    }
+  }
+  @media (max-width: 860px) {
+    .lifecycle .scroll {
+      overflow-x: auto;
+    }
+    .lifecycle .scroll .fig {
+      min-width: 860px;
+    }
+  }
+</style>

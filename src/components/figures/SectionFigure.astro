@@ -1,0 +1,334 @@
+---
+/**
+ * One schematic per home-page section. These explain mechanisms; none is a
+ * rendering of the application. Shared drawing classes live in marketing.css.
+ */
+interface Props {
+  name: "program" | "record" | "bounds" | "origin" | "iteration" | "machine";
+}
+const { name } = Astro.props;
+
+const bars = [
+  { x: 0, w: 124 },
+  { x: 14, w: 92 },
+  { x: 14, w: 148 },
+  { x: 28, w: 76 },
+  { x: 28, w: 116, bad: true },
+  { x: 14, w: 136 },
+  { x: 14, w: 64 },
+  { x: 0, w: 100 },
+];
+
+const calls = [
+  "read source",
+  "model call",
+  "model call",
+  "check against source",
+  "write result",
+];
+
+const cells = Array.from({ length: 20 }, (_, i) => ({
+  x: (i % 4) * 24,
+  y: Math.floor(i / 4) * 18,
+  bad: i === 5 || i === 9 || i === 14,
+}));
+const columns = [
+  { c: 95, head: "first run", foot: "3 rows wrong", fixed: false, bad: true, rev: "revision 1" },
+  { c: 260, head: "one edit", foot: "fixed in the flow", fixed: true, bad: false, rev: "revision 2" },
+  { c: 425, head: "next week, new inputs", foot: "still fixed", fixed: true, bad: false, rev: "revision 2" },
+];
+---
+
+{
+  name === "program" && (
+    <svg class="fig" viewBox="0 0 520 320" role="img" aria-label="Flow source passes through a checker, which refuses one line, and becomes the graph of blocks the runtime executes.">
+      <defs>
+        <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0 0L8 4L0 8z" class="arrow" />
+        </marker>
+      </defs>
+      <text x="20" y="28" class="t0">flow source</text>
+      {bars.map((b, i) => (
+        <rect x={20 + b.x} y={46 + i * 20} width={b.w} height="7" rx="3.5" class:list={["bar", { bad: b.bad }]} />
+      ))}
+      <line x1="40" y1="129.5" x2="172" y2="129.5" class="strike" />
+      <text x="20" y="232" class="k-bad tc">one line refused</text>
+      <text x="20" y="248">a loop the agent improvised</text>
+
+      <text x="215" y="28" class="mid t0">checker</text>
+      <line x1="215" y1="40" x2="215" y2="212" class="ln dash" />
+      <line x1="184" y1="115" x2="252" y2="115" class="ln" marker-end="url(#ah)" />
+
+      <text x="386" y="28" class="mid t0">what the runtime executes</text>
+      <rect x="262" y="100" width="74" height="30" rx="6" class="node k-source" />
+      <text x="299" y="119" class="mid t0">Source</text>
+      <rect x="356" y="46" width="150" height="182" rx="8" class="wire k-jig dash" />
+      <text x="366" y="64" class="k-jig tc">Map, per row</text>
+      <rect x="394" y="78" width="74" height="30" rx="6" class="node k-block" />
+      <text x="431" y="97" class="mid t0">Block</text>
+      <rect x="386" y="130" width="90" height="24" rx="12" class="node k-transform" />
+      <text x="431" y="146" class="mid t0">Transform</text>
+      <rect x="394" y="178" width="74" height="30" rx="6" class="node k-gate" />
+      <text x="431" y="197" class="mid t0">Check</text>
+      <rect x="394" y="268" width="74" height="30" rx="6" class="node k-egress" />
+      <text x="431" y="287" class="mid t0">Write</text>
+      <path d="M336 115 H366 V93 H393" class="ln" marker-end="url(#ah)" />
+      <line x1="431" y1="108" x2="431" y2="129" class="ln" marker-end="url(#ah)" />
+      <line x1="431" y1="154" x2="431" y2="177" class="ln" marker-end="url(#ah)" />
+      <line x1="431" y1="208" x2="431" y2="267" class="ln" marker-end="url(#ah)" />
+    </svg>
+  )
+}
+
+{
+  name === "record" && (
+    <svg class="fig" viewBox="0 0 520 320" role="img" aria-label="A run is pinned at start. A Test records every call and withholds the write. The Run reuses the Test's records and performs only the write.">
+      <rect x="20" y="16" width="480" height="46" rx="8" class="box" />
+      <text x="34" y="43" class="t0">pinned at start</text>
+      <rect x="150" y="28" width="104" height="22" rx="11" class="node k-accent" />
+      <text x="202" y="43" class="mid">flow revision</text>
+      <rect x="262" y="28" width="108" height="22" rx="11" class="node k-accent" />
+      <text x="316" y="43" class="mid">block versions</text>
+      <rect x="378" y="28" width="112" height="22" rx="11" class="node k-accent" />
+      <text x="434" y="43" class="mid">table revisions</text>
+
+      <text x="300" y="94" class="mid t0">Test</text>
+      <text x="430" y="94" class="mid t0">Run</text>
+      {calls.map((label, i) => {
+        const y = 122 + i * 38;
+        const write = i === calls.length - 1;
+        return (
+          <g>
+            <text x="20" y={y + 4}>{label}</text>
+            <line x1="176" y1={y} x2="280" y2={y} class="ln rule" />
+            {write ? (
+              <>
+                <rect x="289" y={y - 11} width="22" height="22" rx="4" class="ln dash" />
+                <text x="300" y={y + 28} class="mid t3">withheld</text>
+                <rect x="419" y={y - 11} width="22" height="22" rx="4" class="node k-egress" />
+                <path d={`M424 ${y} l4 4 l8 -9`} class="wire k-egress" />
+                <text x="430" y={y + 28} class="mid k-egress tc">written</text>
+              </>
+            ) : (
+              <>
+                <rect x="289" y={y - 11} width="22" height="22" rx="4" class="node k-ok" />
+                <path d={`M294 ${y} l4 4 l8 -9`} class="wire k-ok" />
+                <line x1="315" y1={y} x2="415" y2={y} class="wire k-ok dash" />
+                <rect x="419" y={y - 11} width="22" height="22" rx="4" class="wire k-ok dash" />
+              </>
+            )}
+          </g>
+        );
+      })}
+      <text x="365" y="94" class="mid t3">reused</text>
+    </svg>
+  )
+}
+
+{
+  name === "bounds" && (
+    <svg class="fig" viewBox="0 0 520 300" role="img" aria-label="The authoring agent can only submit edits through the checker. Inside the runtime, each model sits inside a block, and an Agent block runs in a sandbox.">
+      <defs>
+        <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0 0L8 4L0 8z" class="arrow" />
+        </marker>
+      </defs>
+      <circle cx="58" cy="125" r="24" class="node k-agent" />
+      <text x="58" y="129" class="mid t0">agent</text>
+      <text x="58" y="170" class="mid">writes flows</text>
+      <text x="58" y="188" class="mid t3">no shell</text>
+      <text x="58" y="204" class="mid t3">no file access</text>
+      <text x="116" y="116" class="mid">edits</text>
+      <line x1="84" y1="125" x2="146" y2="125" class="ln" marker-end="url(#ah)" />
+      <text x="162" y="60" class="end t0">checker</text>
+      <rect x="148" y="72" width="8" height="106" rx="2" class="gatebar" />
+
+      <rect x="176" y="24" width="328" height="252" rx="10" class="frame" />
+      <text x="190" y="46" class="t0">runtime</text>
+      <line x1="156" y1="125" x2="195" y2="125" class="ln" marker-end="url(#ah)" />
+
+      <rect x="196" y="70" width="84" height="110" rx="6" class="node k-block" />
+      <text x="238" y="90" class="mid t0">Block</text>
+      <circle cx="238" cy="134" r="22" class="core" />
+      <text x="238" y="138" class="mid">model</text>
+
+      <rect x="296" y="70" width="84" height="110" rx="6" class="node k-block" />
+      <text x="338" y="90" class="mid t0">Block</text>
+      <circle cx="338" cy="134" r="22" class="core" />
+      <text x="338" y="138" class="mid">model</text>
+
+      <rect x="396" y="70" width="92" height="110" rx="6" class="node k-agent" />
+      <text x="442" y="90" class="mid t0">Agent</text>
+      <rect x="406" y="100" width="72" height="70" rx="5" class="wire k-agent dash" />
+      <circle cx="442" cy="135" r="22" class="core" />
+      <text x="442" y="139" class="mid">model</text>
+
+      <line x1="280" y1="125" x2="295" y2="125" class="ln" />
+      <line x1="380" y1="125" x2="395" y2="125" class="ln" />
+      <text x="288" y="204" class="mid">one job each</text>
+      <text x="442" y="204" class="mid">sandbox</text>
+      <text x="442" y="220" class="mid t3">closed tools</text>
+      <text x="442" y="236" class="mid t3">network off</text>
+      <text x="300" y="258" class="mid t3">runs the flow as written</text>
+    </svg>
+  )
+}
+
+{
+  name === "origin" && (
+    <svg class="fig" viewBox="0 0 520 300" role="img" aria-label="A value read from a source passes through a model and is marked generated. The mark persists through a transform until a check against the source or a person's review clears it.">
+      <rect x="20" y="60" width="60" height="30" rx="6" class="node k-source" />
+      <text x="50" y="79" class="mid t0">Source</text>
+      <line x1="80" y1="75" x2="150" y2="75" class="wire k-source" />
+      <path d="M104 75 V30 H378 V60" class="wire k-source" />
+      <text x="240" y="23" class="mid k-source tc">sourced</text>
+
+      <rect x="150" y="60" width="64" height="30" rx="6" class="node k-block" />
+      <text x="182" y="79" class="mid t0">Block</text>
+      <line x1="214" y1="75" x2="250" y2="75" class="wire k-block dash" />
+      <rect x="250" y="63" width="84" height="24" rx="12" class="node k-transform" />
+      <text x="292" y="79" class="mid t0">Transform</text>
+      <line x1="334" y1="75" x2="346" y2="75" class="wire k-block dash" />
+      <text x="238" y="112" class="k-block tc">generated, and stays marked</text>
+
+      <rect x="346" y="60" width="64" height="30" rx="6" class="node k-gate" />
+      <text x="378" y="79" class="mid t0">Check</text>
+      <line x1="410" y1="75" x2="500" y2="75" class="wire k-ok" />
+      <text x="456" y="66" class="mid k-ok tc">verified</text>
+
+      <path d="M226 75 V185 H346" class="wire k-block dash" />
+      <rect x="346" y="170" width="64" height="30" rx="6" class="node k-gate" />
+      <text x="378" y="189" class="mid t0">Review</text>
+      <line x1="410" y1="185" x2="500" y2="185" class="wire k-ok" />
+      <text x="456" y="176" class="mid k-ok tc">reviewed</text>
+      <line x1="378" y1="200" x2="378" y2="214" class="ln" />
+      <circle cx="378" cy="222" r="6" class="person" />
+      <path d="M366 242 a12 11 0 0 1 24 0" class="person" />
+      <text x="400" y="238">a person</text>
+
+      <g transform="translate(20 284)">
+        <line x1="0" y1="-4" x2="20" y2="-4" class="wire k-source" />
+        <text x="26" y="0">sourced</text>
+        <line x1="100" y1="-4" x2="120" y2="-4" class="wire k-transform" />
+        <text x="126" y="0">computed</text>
+        <line x1="204" y1="-4" x2="224" y2="-4" class="wire k-block dash" />
+        <text x="230" y="0">generated</text>
+        <line x1="316" y1="-4" x2="336" y2="-4" class="wire k-ok" />
+        <text x="342" y="0">verified or reviewed</text>
+      </g>
+    </svg>
+  )
+}
+
+{
+  name === "iteration" && (
+    <svg class="fig" viewBox="0 0 520 300" role="img" aria-label="A first run has three wrong rows. One edit to the flow fixes them, and the fix is still in place on the next run with new inputs.">
+      <defs>
+        <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0 0L8 4L0 8z" class="arrow" />
+        </marker>
+      </defs>
+      {columns.map((col) => (
+        <g>
+          <text x={col.c} y="28" class="mid t0">{col.head}</text>
+          <line x1={col.c - 26} y1="59" x2={col.c + 26} y2="59" class="ln" />
+          <rect x={col.c - 52} y="50" width="26" height="18" rx="4" class="box" />
+          <rect x={col.c - 13} y="50" width="26" height="18" rx="4" class:list={col.fixed ? ["node", "k-accent"] : ["box"]} />
+          <rect x={col.c + 26} y="50" width="26" height="18" rx="4" class="box" />
+          <g transform={`translate(${col.c - 46} 96)`}>
+            {cells.map((cell) => (
+              <rect
+                x={cell.x}
+                y={cell.y}
+                width="20"
+                height="14"
+                rx="3"
+                class:list={["node", col.bad && cell.bad ? "k-bad" : "k-ok"]}
+              />
+            ))}
+          </g>
+          <text x={col.c} y="212" class:list={["mid", "tc", col.bad ? "k-bad" : "k-ok"]}>{col.foot}</text>
+          <circle cx={col.c} cy="258" r="4" class:list={col.fixed ? ["solid", "k-accent"] : ["dot"]} />
+          <text x={col.c} y="282" class="mid">{col.rev}</text>
+        </g>
+      ))}
+      <line x1="40" y1="258" x2="480" y2="258" class="ln track" />
+      <line x1="152" y1="140" x2="202" y2="140" class="ln" marker-end="url(#ah)" />
+      <line x1="318" y1="140" x2="368" y2="140" class="ln" marker-end="url(#ah)" />
+    </svg>
+  )
+}
+
+{
+  name === "machine" && (
+    <svg class="fig" viewBox="0 0 520 300" role="img" aria-label="The browser, terminal, server and data directory are on your machine. Model calls cross to the provider you connect.">
+      <defs>
+        <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0 0L8 4L0 8z" class="arrow" />
+        </marker>
+      </defs>
+      <rect x="16" y="20" width="360" height="260" rx="12" class="ln dash" />
+      <text x="32" y="44" class="t0">your machine</text>
+      <rect x="36" y="74" width="84" height="34" rx="6" class="box" />
+      <text x="78" y="95" class="mid">browser</text>
+      <rect x="36" y="128" width="84" height="34" rx="6" class="box" />
+      <text x="78" y="149" class="mid">terminal</text>
+      <line x1="120" y1="91" x2="165" y2="108" class="ln" />
+      <line x1="120" y1="145" x2="165" y2="128" class="ln" />
+      <rect x="166" y="86" width="110" height="64" rx="8" class="node k-accent" />
+      <text x="221" y="114" class="mid t0">Functionary</text>
+      <text x="221" y="131" class="mid">local server</text>
+      <line x1="221" y1="150" x2="221" y2="187" class="ln" marker-end="url(#ah)" />
+      <rect x="126" y="188" width="230" height="74" rx="8" class="box" />
+      <text x="140" y="210" class="t0">data directory</text>
+      <text x="140" y="230">flows, run records,</text>
+      <text x="140" y="246">receipts, results</text>
+
+      <line x1="276" y1="118" x2="419" y2="118" class="wire k-block" marker-end="url(#ah)" />
+      <text x="326" y="108" class="mid">model calls</text>
+      <rect x="420" y="92" width="88" height="52" rx="8" class="node k-block" />
+      <text x="464" y="114" class="mid t0">model</text>
+      <text x="464" y="130" class="mid t0">provider</text>
+      <text x="464" y="166" class="mid t3">you connect it</text>
+    </svg>
+  )
+}
+
+<style>
+  .bar {
+    fill: var(--border-2);
+  }
+  .bar.bad {
+    fill: var(--danger);
+  }
+  .strike {
+    stroke: var(--danger);
+    stroke-width: 1.25;
+  }
+  .rule {
+    stroke: var(--border-0);
+  }
+  .gatebar {
+    fill: var(--fg-2);
+  }
+  .frame {
+    fill: color-mix(in srgb, var(--bg-0) 60%, transparent);
+    stroke: var(--border-1);
+  }
+  .core {
+    fill: var(--bg-0);
+    stroke: var(--fg-3);
+    stroke-width: 1;
+  }
+  .person {
+    fill: none;
+    stroke: var(--cat-human);
+    stroke-width: 1.5;
+  }
+  .dot {
+    fill: var(--fg-3);
+  }
+  .track {
+    stroke: var(--border-1);
+  }
+</style>

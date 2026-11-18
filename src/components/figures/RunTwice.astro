@@ -1,0 +1,266 @@
+---
+/**
+ * The hero figure: one job, done twice.
+ *
+ * Left, an agent asked twice: two different paths through the sources and two
+ * answers. Right, a flow run twice: the two runs coincide. Geometry is
+ * generated at build time from fixed seeds, so the drawing never changes
+ * between builds.
+ */
+const W = 540;
+const H = 340;
+const COLS = 7;
+const ROWS = 4;
+const N = COLS * ROWS;
+
+type P = { x: number; y: number };
+
+function rng(seed: number) {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const gx = (c: number) => 50 + c * 56;
+const gy = (r: number) => 62 + r * 68;
+
+// The same 28 sources: scattered on the left, in order on the right.
+const jitter = rng(11);
+const scattered: P[] = [];
+const ordered: P[] = [];
+for (let c = 0; c < COLS; c++) {
+  for (let r = 0; r < ROWS; r++) {
+    ordered.push({ x: gx(c), y: gy(r) });
+    scattered.push({
+      x: gx(c) + (jitter() - 0.5) * 34,
+      y: gy(r) + (jitter() - 0.5) * 40,
+    });
+  }
+}
+
+/** A wandering visit: a subset of the sources, roughly left to right. */
+function wander(seed: number, count: number): number[] {
+  const r = rng(seed);
+  return scattered
+    .map((p, i) => ({ i, pick: r(), key: p.x + (r() - 0.5) * 120 }))
+    .sort((a, b) => a.pick - b.pick)
+    .slice(0, count)
+    .sort((a, b) => a.key - b.key)
+    .map((o) => o.i);
+}
+
+/** Catmull-Rom through the points, as cubic Béziers. */
+function spline(pts: P[]): string {
+  let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 };
+    const c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
+    d += ` C ${c1.x.toFixed(1)} ${c1.y.toFixed(1)}, ${c2.x.toFixed(1)} ${c2.y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
+const start: P = { x: 10, y: 170 };
+const answerA: P = { x: 486, y: 112 };
+const answerB: P = { x: 486, y: 228 };
+const visitA = wander(3, 11);
+const visitB = wander(29, 13);
+const pathA = spline([start, ...visitA.map((i) => scattered[i]), answerA]);
+const pathB = spline([start, ...visitB.map((i) => scattered[i]), answerB]);
+const inA = new Set(visitA);
+const inB = new Set(visitB);
+
+// The flow: down one column, up the next, through every source.
+const top = gy(0);
+const bot = gy(ROWS - 1);
+let serp = `M ${gx(0)} 22 L ${gx(0)} ${bot}`;
+for (let c = 1; c < COLS; c++) {
+  const down = c % 2 === 0;
+  serp += down
+    ? ` A 28 28 0 0 1 ${gx(c)} ${top} L ${gx(c)} ${bot}`
+    : ` A 28 28 0 0 0 ${gx(c)} ${bot} L ${gx(c)} ${top}`;
+}
+const resultX = gx(COLS - 1) + 56;
+serp += ` A 28 28 0 0 0 ${resultX} ${bot} L ${resultX} 204`;
+const failed = 17;
+---
+
+<div class="pair">
+  <figure class="plate">
+    <div class="ground">
+      <svg class="fig loose" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="An agent asked to do the same job twice reads different sources in a different order each time and returns two answers.">
+        {scattered.map((p, i) => (
+          <rect
+            x={p.x - 5}
+            y={p.y - 6}
+            width="10"
+            height="12"
+            rx="2"
+            class:list={["src", { a: inA.has(i), b: inB.has(i) }]}
+          />
+        ))}
+        <path d={pathA} class="run run-a" pathLength="1" />
+        <path d={pathB} class="run run-b" pathLength="1" />
+        <rect x={answerA.x} y={answerA.y - 13} width="44" height="26" rx="5" class="ans ans-a" />
+        <rect x={answerB.x} y={answerB.y - 13} width="44" height="26" rx="5" class="ans ans-b" />
+        <text x={answerA.x + 22} y={answerA.y + 4} class="mid t0">A</text>
+        <text x={answerB.x + 22} y={answerB.y + 4} class="mid t0">B</text>
+        <g transform="translate(14 322)">
+          <line x1="0" y1="-4" x2="18" y2="-4" class="run run-a still" />
+          <text x="24" y="0">first time, {visitA.length} of {N} sources</text>
+          <line x1="250" y1="-4" x2="268" y2="-4" class="run run-b still" />
+          <text x="274" y="0">second time, {visitB.length} of {N}</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>
+      <b>An agent, asked twice.</b> Different sources, a different order, two
+      answers. Neither tells you what it relied on.
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="ground">
+      <svg class="fig fixed" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="A flow run twice visits every source in the same order both times and produces one recorded result.">
+        <defs>
+          <mask id="rt-draw" maskUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
+            <path d={serp} class="draw" pathLength="1" />
+          </mask>
+        </defs>
+        <g mask="url(#rt-draw)">
+          <path d={serp} class="run run-a still" />
+          <path d={serp} class="run run-b still stripe" />
+        </g>
+        {ordered.map((p, i) => (
+          <rect
+            x={p.x - 5}
+            y={p.y - 6}
+            width="10"
+            height="12"
+            rx="2"
+            class:list={["src", "both", { failed: i === failed }]}
+          />
+        ))}
+        <rect x={resultX - 30} y="150" width="60" height="54" rx="6" class="ans ans-both" />
+        <line x1={resultX - 18} y1="166" x2={resultX + 18} y2="166" class="rec" />
+        <line x1={resultX - 18} y1="177" x2={resultX + 18} y2="177" class="rec" />
+        <line x1={resultX - 18} y1="188" x2={resultX + 6} y2="188" class="rec" />
+        <text x={resultX} y="140" class="mid t0">record</text>
+        <g transform="translate(14 322)">
+          <line x1="0" y1="-4" x2="18" y2="-4" class="run run-a still" />
+          <line x1="0" y1="-4" x2="18" y2="-4" class="run run-b still stripe" />
+          <text x="24" y="0">both runs, {N} of {N} sources</text>
+          <rect x="250" y="-10" width="10" height="12" rx="2" class="src both failed" />
+          <text x="268" y="0">1 failed, kept in the results</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>
+      <b>A flow, run twice.</b> Every source, the same order, and a record of
+      each call. You know what the result rests on.
+    </figcaption>
+  </figure>
+</div>
+
+<style>
+  .pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-20);
+  }
+  .src {
+    fill: var(--bg-3);
+    stroke: var(--border-1);
+    stroke-width: 1;
+  }
+  .src.a {
+    stroke: var(--accent-strong);
+  }
+  .src.b {
+    stroke: var(--jig);
+  }
+  .src.a.b,
+  .src.both {
+    fill: var(--bg-4);
+    stroke: var(--fg-1);
+  }
+  .src.failed {
+    fill: color-mix(in srgb, var(--danger) 30%, var(--bg-2));
+    stroke: var(--danger);
+  }
+  .run {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .run-a {
+    stroke: var(--accent-strong);
+  }
+  .run-b {
+    stroke: var(--jig);
+  }
+  .stripe {
+    stroke-dasharray: 10 10;
+    stroke-linecap: butt;
+  }
+  .ans {
+    fill: var(--bg-2);
+    stroke-width: 1.5;
+  }
+  .ans-a {
+    stroke: var(--accent-strong);
+  }
+  .ans-b {
+    stroke: var(--jig);
+  }
+  .ans-both {
+    stroke: var(--fg-1);
+  }
+  .rec {
+    stroke: var(--fg-2);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+  }
+  .draw {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 6;
+  }
+
+  /* One orchestrated moment: the runs draw themselves once on load. */
+  @media (prefers-reduced-motion: no-preference) {
+    .loose .run:not(.still),
+    .draw {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: draw 2.2s cubic-bezier(0.5, 0, 0.2, 1) forwards;
+    }
+    .loose .run-b:not(.still) {
+      animation-delay: 1.1s;
+    }
+    .draw {
+      animation-duration: 3.2s;
+      animation-delay: 0.3s;
+    }
+  }
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @media (max-width: 860px) {
+    .pair {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

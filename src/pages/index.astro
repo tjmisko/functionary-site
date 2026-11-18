@@ -1,280 +1,255 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Button from "../components/Button.astro";
-import Canvas from "../components/Canvas.astro";
-import FlowSource from "../components/FlowSource.astro";
-import Refusal from "../components/Refusal.astro";
-import RunTable from "../components/RunTable.astro";
-import Kinds from "../components/Kinds.astro";
-import { siteScan, scanBody, unchecked, checked } from "../lib/flows";
+import RunTwice from "../components/figures/RunTwice.astro";
+import FlowHero from "../components/figures/FlowHero.astro";
+import SectionFigure from "../components/figures/SectionFigure.astro";
+import JobGlyph from "../components/figures/JobGlyph.astro";
 
 const tasks = [
   {
+    job: "qc",
     name: "Report QC",
-    what: "Check a finished report against every source it cites. Surface what does not hold.",
-    failure: "An error the check missed because it sampled.",
+    what: "Open each cited source, find the passage behind the claim, and record any discrepancies.",
   },
   {
+    job: "validate",
     name: "Source Validation",
-    what: "Find candidate sources on a topic, grade each against your criteria, keep what passes.",
-    failure: "A weak source that slipped the criteria.",
+    what: "Check each source in a list or folder against a set of criteria and sort the results.",
   },
   {
+    job: "dataset",
     name: "Dataset Assembly",
-    what: "Pull figures from filings and data vendors into one model, each cell traceable to its figure.",
-    failure: "A number that no longer matches its source.",
+    what: "Extract figures from filings and data tables, put them in a common format, and attach the source to each entry.",
   },
   {
-    name: "Evidence Combing",
-    what: "Go through a thousand documents for evidence and counterevidence on a claim.",
-    failure: "An unvetted quote, or a document silently skipped.",
+    job: "evidence",
+    name: "Evidence Collection",
+    what: "Search a document collection for passages about a claim. Group them by what they support or contradict, with links back to the documents.",
   },
   {
+    job: "market",
     name: "Market Map",
-    what: "Find every major player in an industry, how each is positioned, and what changed.",
-    failure: "A missing player nobody notices is missing.",
+    what: "Compile a list of companies, collect the same facts about each, and arrange them in a comparison table.",
   },
   {
+    job: "revision",
     name: "Document Revision",
-    what: "Take a draft, gather what bears on it, and propose the changes as a redline.",
-    failure: "A change nobody can trace to a reason.",
+    what: "Match review comments and new information to the relevant passages in a draft. Prepare a redline with a reason for each change.",
   },
-];
+] as const;
 
-const scanSource = `fn scan(row: Row) -> Scanned {
-    let url    = Field::new(url_column).input(row);
-    let page   = Source::new(fetch_page).input(url.text);
-    let text   = Format::new(html_to_text).input(page.document);
-    let issues = Summarize::new(issues_on_this_page).input(text.text);
-    Scanned { issues: issues.text }
-}`;
+const sections = [
+  {
+    fig: "program",
+    title: "Program",
+    caption: "The checker stands between what the agent writes and what runs.",
+    paras: [
+      "The agent writes each job as a flow: a short program in a restricted subset of Rust. It chooses blocks, sets their settings, and connects outputs to inputs. A checker refuses everything else, so an improvised loop or a file read on the side never becomes a flow.",
+      "A conventional runtime executes the flow. The agent does not. The loops and branches that run are the ones written in the source, and the canvas is drawn from that same source, so what you read is what runs.",
+    ],
+  },
+  {
+    fig: "record",
+    title: "Run record",
+    caption: "A Test records every call. The Run reuses those records and performs only the write.",
+    paras: [
+      "A run pins what it will execute when it starts: the flow revision, the block versions, and the table revisions it reads. Each block call is recorded with its settings and its result, and each model call leaves a receipt. A source that failed to load stays in the results as a failed row with its cause.",
+      "Recorded results are reused. An interrupted run continues from its record, and model calls that finished are not made again. A Test executes the whole flow with its writes withheld; approve it, and those same recorded results are what get written.",
+    ],
+  },
+  {
+    fig: "bounds",
+    title: "Bounds",
+    caption: "Every model sits inside something that limits it.",
+    paras: [
+      "Each block does one job: summarize this page, pull the passages that bear on a question, fill these fields from this document. The model inside a block can only do what the block allows.",
+      "The agent that writes flows has no shell and no file access. Its changes are edits that must pass the checker. An agent placed inside a flow works with a closed set of tools in a sandbox, with the network off by default.",
+    ],
+  },
+  {
+    fig: "origin",
+    title: "Origin",
+    caption: "A model-written value stays marked until a check or a person clears it.",
+    paras: [
+      "Every value carries its origin: read from a source, computed, or written by a model. A model-written value stays marked through everything derived from it. Two things clear the mark: a deterministic check against the source text, or a person's review.",
+      "A review holds the run until a person answers. The approval is bound to the output it covered, and an agent cannot give it.",
+    ],
+  },
+  {
+    fig: "iteration",
+    title: "Iteration",
+    caption: "A correction is made once, in the flow, and holds for later runs.",
+    paras: [
+      "Describe the job. The agent writes the flow, runs it, reads the results, and revises it. You read the program and the results, change a setting or remove a block, and run again. A correction is an edit to the flow, so it holds for every later run.",
+      "When a flow starts to carry weight, add the controls you want: pin the tables it reads, put a review in the flow, require an approved revision before it runs unattended. Each one is opt-in. A flow can start on a schedule, a webhook or an inbound email.",
+    ],
+  },
+] as const;
 ---
 
 <BaseLayout>
   <section class="hero">
     <div class="container">
-      <h1 class="display">Delegate research to agents and keep every step in view.</h1>
-      <p class="lead measure">
-        Functionary runs research and analysis as a flow of steps you can
-        read. An agent drafts the flow. You check it, run it, and see where
-        each result came from.
-      </p>
-    </div>
-    <div class="container wide hero-canvas">
-      <Canvas flow={siteScan} run bare />
-      <p class="desktop-note">Functionary is a desktop tool. The canvas is best read on a larger screen.</p>
+      <div class="hero-text">
+        <h1 class="display">Agent Harness for Knowledge Work</h1>
+        <p class="lead">
+          Functionary is for the mechanical parts of knowledge work: gathering
+          sources, checking references, assembling data. An agent writes the
+          job as a program built from fixed blocks. A runtime executes it and
+          records every run, so the work can be reproduced and checked.
+        </p>
+        <div class="actions">
+          <Button href="/download" variant="primary">Download</Button>
+        </div>
+      </div>
+      <div class="hero-fig">
+        <FlowHero />
+      </div>
     </div>
   </section>
 
-  <section class="section">
+  <section class="band">
+    <div class="container thesis">
+      <h2>Process, Trust, Reproducibility</h2>
+      <div class="cols">
+        <p>
+          To trust work you did not do, you need to know how it was done:
+          what it relied on, and how you would reproduce it. An agent working
+          freely leaves a transcript of the steps it happened to take on that
+          one occasion. Ask again and the process is different.
+        </p>
+        <p>
+          Functionary gives the work a fixed process. The procedure is a
+          program you can read, each run is pinned to the revision it
+          executed, and every model call and outside read or write is
+          recorded. That matters for a job you run once as much as for one
+          you run every week, because it is what lets another person check
+          the result.
+        </p>
+      </div>
+      <div class="thesis-fig">
+        <RunTwice />
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
     <div class="container">
-      <div class="measure">
+      <div class="jobs-head">
         <h2>Jobs</h2>
-        <p class="stack-p">
-          The jobs an analyst, research assistant or junior consultant spends
-          days on. Each is dozens of small steps. None is hard. Any of them
-          can go wrong without anyone noticing.
+        <p>
+          Much of the time spent on research goes to moving and organizing
+          information: opening documents, finding passages, copying figures,
+          checking references, and filling in tables. These jobs repeat the
+          same few operations across dozens or hundreds of sources. No single
+          operation is hard, and one skipped source spoils the result.
         </p>
       </div>
       <ul class="tasks">
         {tasks.map((t) => (
           <li>
+            <JobGlyph job={t.job} />
             <span class="task-name">{t.name}</span>
             <p class="task-what">{t.what}</p>
-            <p class="task-fail"><span>Risk</span>{t.failure}</p>
           </li>
         ))}
       </ul>
     </div>
   </section>
 
-  <section class="section">
-    <div class="container split">
-      <div class="measure">
-        <h2>Provenance</h2>
-        <p class="stack-p">
-          A chat assistant gives you an answer. It does not give you the work
-          behind it. In research, one unvetted source or skipped step spoils
-          the deliverable, and nothing in the finished output shows where.
-        </p>
-        <p>
-          Functionary shows every step that ran. A value a model wrote stays
-          marked until a check against the source or a person clears it. The
-          knowledge base refuses anything nobody cleared.
-        </p>
-      </div>
-      <div class="pair">
-        <Canvas flow={unchecked} legend caption="A model-written table heads for the knowledge base. The dashed wire says a model wrote it, and the Write refuses it." />
-        <Canvas flow={checked} legend caption="A Check confirms each quote is in the filing. The wire after it is verified, and the Write accepts it." />
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="measure">
-        <h2>Canvas and source</h2>
-        <p class="stack-p">
-          The agent writes the flow as steps. The canvas is drawn from what it
-          wrote, and an edit on the canvas goes back into it. There is no
-          hidden code.
-        </p>
-        <p>
-          If the agent tries to write its own loop or read a file on the side,
-          the save is refused and the canvas keeps the last accepted flow.
-        </p>
-      </div>
-      <div class="bijection">
-        <div>
-          <p class="side">Canvas</p>
-          <Canvas flow={scanBody} />
+  {
+    sections.map((s) => (
+      <section class="band">
+        <div class="container row">
+          <div class="prose">
+            <h2>{s.title}</h2>
+            {s.paras.map((p) => (
+              <p>{p}</p>
+            ))}
+          </div>
+          <figure class="plate">
+            <div class="ground">
+              <SectionFigure name={s.fig} />
+            </div>
+            <figcaption>{s.caption}</figcaption>
+          </figure>
         </div>
-        <div>
-          <p class="side">Source</p>
-          <FlowSource code={scanSource} file="weekly-scan.rs" />
+      </section>
+    ))
+  }
+
+  <section class="band last">
+    <div class="container row">
+      <div class="prose">
+        <h2>Where it runs</h2>
+        <p>
+          Functionary runs on your machine as a local server, used from a
+          browser or a terminal. Flows, run records and results live in one
+          data directory. Model calls go to the provider you connect.
+        </p>
+        <div class="actions">
+          <Button href="/download" variant="primary">Download</Button>
         </div>
       </div>
-      <div class="refusal-wrap">
-        <Refusal />
-        <p class="fig-note">Refused: an improvised loop and a bare file read. The diagnostic names the step to use instead.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="measure">
-        <h2>Steps</h2>
-        <p class="stack-p">
-          Each step does one job: summarize this page, grade this source
-          against these criteria, pull the passages that bear on a question.
-          The model inside a step can only do what that step allows.
-        </p>
-        <p>
-          Every model call leaves a receipt. A page that failed to load is a
-          failed row in the result, not a blank. Test runs the whole flow and
-          holds back the writes, so you read the outcome before anything
-          leaves.
-        </p>
-      </div>
-      <div class="table-wrap">
-        <RunTable
-          title="Weekly scan"
-          subtitle="Run table · Test"
-          badge="result"
-          tint="var(--cat-synthesis)"
-          columns={["site", "fetched", "summary", "receipt"]}
-          rows={[
-            [{ text: "example-vendor.com/pricing" }, { text: "200 · 41 KB", origin: "sourced" }, { text: "Two plans removed since last scan; enterprise tier now quote-only.", origin: "generated" }, { text: "sha256:9f2a1c…" }],
-            [{ text: "competitor.io/changelog" }, { text: "200 · 128 KB", origin: "sourced" }, { text: "Three releases; one deprecates the export API.", origin: "generated" }, { text: "sha256:41bc07…" }],
-            [{ text: "partner.example/terms" }, { text: "403", status: "failed" }, { text: "", status: "missing" }, { text: "sha256:7d01e8…" }],
-          ]}
-          caption="One row per site. The third site refused the fetch, and the row says so instead of disappearing."
-        />
-      </div>
-      <div class="kinds-wrap">
-        <Kinds />
-        <p class="fig-note">The seven kinds of step, and the verbs under each.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="measure">
-        <h2>Iteration</h2>
-        <p class="stack-p">
-          Describe the job and the agent drafts the flow. Test it, read every
-          row, change a setting or delete a step, and run again. Next week it
-          runs on new inputs, and the fix is still there.
-        </p>
-        <p>
-          When a flow starts to carry weight, add the controls you want: pin
-          what it reads, name who reviews it, run it on a schedule.
-        </p>
-      </div>
-      <div class="ladder">
-        <div>
-          <h3>Iterate</h3>
-          <ul>
-            <li>Describe the job. The agent drafts the flow.</li>
-            <li>Test. Read every row. Change a setting, delete a step.</li>
-            <li>Run it again next week with new inputs.</li>
-          </ul>
+      <figure class="plate">
+        <div class="ground">
+          <SectionFigure name="machine" />
         </div>
-        <div>
-          <h3>Stabilize</h3>
-          <ul>
-            <li>Pin the tables and modules the flow reads.</li>
-            <li>Name who reviews its outputs.</li>
-            <li>Require an approved revision before an unattended run.</li>
-            <li>Start it on a schedule, a webhook or an inbound email.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section cta">
-    <div class="container measure">
-      <h2>Where it runs</h2>
-      <p class="stack-p">
-        Flows are files in a project you own. Runs, receipts and results stay
-        under one directory on your machine. Every model and every system the
-        flow reaches is a step on the canvas, so you can see what leaves.
-      </p>
-      <div class="actions">
-        <Button href="/how-it-works" variant="primary">Walkthrough</Button>
-        <Button href="/self-hosting" variant="ghost">Deployment</Button>
-      </div>
+        <figcaption>One directory on your machine. Model calls are what crosses the line.</figcaption>
+      </figure>
     </div>
   </section>
 </BaseLayout>
 
 <style>
   .hero {
-    padding-block: clamp(3.5rem, 8vh, 6rem) var(--section-pad);
+    padding-block: clamp(3rem, 7vh, 5rem) clamp(2.5rem, 5vh, 4rem);
+  }
+  .hero-text {
+    max-width: 44rem;
   }
   h1.display {
     font-size: clamp(2rem, 1.4rem + 1.6vw, 2.5rem);
     max-width: 28ch;
-    hyphens: manual;
-    overflow-wrap: normal;
   }
   .lead {
-    margin-top: var(--s-24);
+    margin-top: var(--s-20);
   }
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: var(--s-12);
-    margin-top: var(--s-32);
+    margin-top: var(--s-24);
   }
-  .hero-canvas {
-    max-width: 1680px;
-    margin-top: var(--s-32);
-  }
-  .desktop-note {
-    display: none;
-    margin-top: var(--s-12);
-    font-family: var(--font-mono);
-    font-size: var(--fs-11);
-    color: var(--fg-3);
+  .hero-fig {
+    margin-top: var(--s-40);
   }
 
-  h2 {
-    max-width: 24ch;
+  .band {
+    padding-block: clamp(3rem, 2rem + 4vw, 5rem);
+    border-top: 1px solid var(--border-0);
   }
-  .stack-p {
-    margin-bottom: var(--s-16);
-  }
-  .section p {
+  .band p {
     margin-top: var(--s-16);
   }
-  .after {
-    margin-top: var(--s-32);
+
+  .thesis .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-40);
+  }
+  .thesis-fig {
+    margin-top: var(--s-40);
+  }
+  .thesis .cols p {
+    font-size: var(--ms-lead);
+    line-height: 1.55;
   }
 
+  .jobs-head {
+    max-width: var(--measure-prose);
+  }
   .tasks {
     list-style: none;
     margin: var(--s-32) 0 0;
@@ -293,103 +268,26 @@ const scanSource = `fn scan(row: Row) -> Scanned {
     align-content: start;
   }
   .task-name {
+    margin-top: var(--s-4);
     font-family: var(--font-mono);
     font-size: var(--fs-12);
     font-weight: 700;
     color: var(--fg-0);
   }
-  .tasks p {
+  .tasks .task-what {
     margin: 0;
     font-size: var(--ms-small);
     color: var(--fg-1);
   }
-  .task-fail {
-    color: var(--fg-2);
-    padding-top: var(--s-8);
-    border-top: 1px solid var(--border-0);
-  }
-  .task-fail span {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: var(--fs-10);
-    color: var(--danger);
-    margin-bottom: 2px;
-  }
 
-  .split {
+  .row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    gap: var(--s-40);
-    align-items: start;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
   }
-  .pair {
-    display: grid;
-    gap: var(--s-24);
-    min-width: 0;
-  }
-  .bijection {
-    margin-top: var(--s-40);
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: var(--s-24);
-    align-items: start;
-  }
-  .side {
-    font-family: var(--font-mono);
-    font-size: var(--fs-11);
-    color: var(--fg-2);
-    margin: 0 0 var(--s-10);
-  }
-  .bijection > div {
-    min-width: 0;
-  }
-  .refusal-wrap {
-    margin-top: var(--s-32);
-    max-width: 56rem;
-  }
-  .fig-note {
-    font-size: var(--ms-small);
-    color: var(--fg-2);
-  }
-  .table-wrap,
-  .kinds-wrap {
-    margin-top: var(--s-40);
-  }
-
-  .ladder {
-    margin-top: var(--s-32);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--s-20);
-    max-width: 56rem;
-  }
-  .ladder div {
-    border-top: 2px solid var(--border-1);
-    padding-top: var(--s-12);
-  }
-  .ladder div:last-child {
-    border-top-color: var(--cat-human);
-  }
-  .ladder h3 {
-    font-family: var(--font-mono);
-    font-size: var(--fs-12);
-    font-weight: 700;
-    color: var(--fg-0);
-  }
-  .ladder ul {
-    margin: var(--s-10) 0 0;
-    padding-left: 1.1em;
-    display: grid;
-    gap: var(--s-6);
-    font-size: var(--ms-small);
-    color: var(--fg-1);
-  }
-  .ladder li::marker {
-    color: var(--fg-3);
-  }
-
-  .cta {
-    background: var(--bg-1);
+  .prose {
+    max-width: 32rem;
   }
 
   @media (max-width: 1000px) {
@@ -398,23 +296,17 @@ const scanSource = `fn scan(row: Row) -> Scanned {
     }
   }
   @media (max-width: 860px) {
-    .split,
-    .bijection,
-    .ladder {
+    .row,
+    .thesis .cols {
       grid-template-columns: minmax(0, 1fr);
     }
-    .desktop-note {
-      display: block;
+    .thesis .cols {
+      gap: 0;
     }
   }
   @media (max-width: 600px) {
     .tasks {
       grid-template-columns: minmax(0, 1fr);
-    }
-  }
-  @media (max-width: 480px) {
-    h1.display {
-      font-size: clamp(2rem, 1rem + 6vw, 2.55rem);
     }
   }
 </style>

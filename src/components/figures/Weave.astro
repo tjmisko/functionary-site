@@ -1,0 +1,178 @@
+---
+/**
+ * Hero candidate: the weave.
+ *
+ * Sixty sources on the left, one flow in the middle, sixty result rows on the
+ * right. Every row is tied back to its source by a thread; pointing at a row
+ * lights its thread. One row is lit by default so the still image reads.
+ */
+const W = 1120;
+const H = 444;
+const N = 60;
+const failed = new Set([13, 37, 51]);
+const review = new Set([8, 22, 29, 45]);
+const example = 22;
+
+const sources = Array.from({ length: N }, (_, i) => ({
+  x: 30 + Math.floor(i / 15) * 24,
+  y: 52 + (i % 15) * 23,
+}));
+const rowY = (i: number) => 44 + i * 6;
+const IN = { x: 396, y: 210 };
+const OUT = { x: 628, y: 210 };
+const TX = 730;
+const cols = [0, 1, 2, 3].map((c) => TX + c * 92);
+
+const items = sources.map((s, i) => {
+  const y = rowY(i) + 2;
+  return {
+    i,
+    s,
+    y,
+    state: failed.has(i) ? "failed" : review.has(i) ? "review" : "ok",
+    inD: `M ${s.x + 8} ${s.y} C ${s.x + 150} ${s.y}, ${IN.x - 120} ${IN.y}, ${IN.x} ${IN.y}`,
+    outD: `M ${OUT.x} ${OUT.y} C ${OUT.x + 70} ${OUT.y}, ${TX - 70} ${y}, ${TX - 6} ${y}`,
+  };
+});
+---
+
+<figure class="plate">
+  <div class="ground scroll">
+    <svg class="fig" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Sixty sources pass through one flow and become sixty rows of results. Each row is tied back to its source by a thread. Three sources failed and stay in the table as failed rows.">
+      <text x="24" y="28" class="t0">{N} sources</text>
+      <text x="512" y="158" class="mid t0">one flow</text>
+      <text x={cols[0]} y="28" class="t0">read</text>
+      <text x={cols[1]} y="28" class="t0">written by a model</text>
+      <text x={cols[3]} y="28" class="t0">checked</text>
+
+      {items.map((it) => (
+        <g class:list={["item", it.state, { eg: it.i === example }]}>
+          <path d={it.inD} class="thread" />
+          <path d={it.outD} class="thread" />
+          <rect x={it.s.x - 6} y={it.s.y - 7} width="12" height="14" rx="2" class="doc" />
+          <rect x={cols[0]} y={it.y - 2} width="86" height="4" rx="1" class="c read" />
+          <rect x={cols[1]} y={it.y - 2} width="86" height="4" rx="1" class="c gen" />
+          <rect x={cols[2]} y={it.y - 2} width="86" height="4" rx="1" class="c gen" />
+          <rect x={cols[3]} y={it.y - 2} width="86" height="4" rx="1" class="c chk" />
+          <rect x={it.s.x - 12} y={it.s.y - 11.5} width="24" height="23" class="hit" />
+          <rect x={TX - 8} y={it.y - 3} width="376" height="6" class="hit" />
+        </g>
+      ))}
+
+      <g class="k-source">
+        <rect x="396" y="195" width="66" height="30" rx="6" class="node" />
+        <text x="429" y="214" class="mid t0">Source</text>
+      </g>
+      <g class="k-block">
+        <rect x="479" y="195" width="66" height="30" rx="6" class="node" />
+        <text x="512" y="214" class="mid t0">Block</text>
+      </g>
+      <g class="k-gate">
+        <rect x="562" y="195" width="66" height="30" rx="6" class="node" />
+        <text x="595" y="214" class="mid t0">Check</text>
+      </g>
+      <line x1="462" y1="210" x2="479" y2="210" class="ln" />
+      <line x1="545" y1="210" x2="562" y2="210" class="ln" />
+
+      <g transform="translate(24 430)">
+        <rect x="0" y="-8" width="18" height="4" rx="1" class="lg ok" />
+        <text x="26" y="0">verified</text>
+        <rect x="100" y="-8" width="18" height="4" rx="1" class="lg review" />
+        <text x="126" y="0">held for review</text>
+        <rect x="250" y="-8" width="18" height="4" rx="1" class="lg failed" />
+        <text x="276" y="0">failed, kept</text>
+      </g>
+    </svg>
+  </div>
+</figure>
+
+<style>
+  .thread {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1;
+    opacity: 0.22;
+  }
+  .doc {
+    fill: var(--bg-3);
+    stroke: var(--border-2);
+  }
+  .c {
+    opacity: 0.75;
+  }
+  .read {
+    fill: var(--cat-source);
+  }
+  .gen {
+    fill: var(--cat-synthesis);
+  }
+  .chk,
+  .lg.ok {
+    fill: var(--success);
+  }
+  .review .chk,
+  .lg.review {
+    fill: var(--jig);
+  }
+  .failed .thread {
+    stroke: var(--danger);
+    opacity: 0.5;
+  }
+  .failed .doc {
+    stroke: var(--danger);
+    fill: color-mix(in srgb, var(--danger) 30%, var(--bg-2));
+  }
+  .failed .read,
+  .lg.failed {
+    fill: var(--danger);
+  }
+  .failed .gen,
+  .failed .chk {
+    fill: var(--bg-4);
+  }
+  .hit {
+    fill: transparent;
+    cursor: crosshair;
+  }
+
+  /* Point at a row or a source and its thread lights. */
+  .item.eg .thread,
+  .item:hover .thread {
+    stroke: var(--accent-fg);
+    stroke-width: 1.75;
+    opacity: 1;
+  }
+  .item.eg .doc,
+  .item:hover .doc {
+    stroke: var(--accent-fg);
+    fill: var(--accent-muted);
+  }
+  .item.eg .c,
+  .item:hover .c {
+    opacity: 1;
+    stroke: var(--accent-fg);
+    stroke-width: 0.75;
+  }
+  svg:hover .item.eg:not(:hover) .thread {
+    stroke: var(--accent);
+    stroke-width: 1;
+    opacity: 0.22;
+  }
+  svg:hover .item.eg:not(:hover) .doc {
+    stroke: var(--border-2);
+    fill: var(--bg-3);
+  }
+  svg:hover .item.eg:not(:hover) .c {
+    stroke: none;
+    opacity: 0.75;
+  }
+
+  @media (max-width: 860px) {
+    .scroll {
+      overflow-x: auto;
+    }
+    .scroll .fig {
+      min-width: 820px;
+    }
+  }
+</style>

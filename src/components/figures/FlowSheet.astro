@@ -1,0 +1,92 @@
+---
+/**
+ * A finished flow revision drawn statically, as one SVG group. The lifecycle
+ * figure stacks several of these to show replicated runs. (Not `<use>`: the
+ * figure's styles are scoped by an ancestor class, which a use-element shadow
+ * tree cannot see.)
+ * Markup mirrors the animated nodes in Lifecycle.astro; styling comes from
+ * the same global `.lifecycle` rules.
+ */
+interface Props {
+  class?: string;
+  style?: string;
+  rev: {
+    name: string | null;
+    nodes: any[];
+    wires: string[];
+    ports: { x: number; y: number }[];
+    before: string;
+    after: string | null;
+    branch: string[];
+  };
+}
+const { class: className, style, rev } = Astro.props;
+
+const hex = (cx: number, cy: number, r: number) => {
+  const h = r * 0.87;
+  return `M ${cx - r} ${cy} L ${cx - r / 2} ${cy - h} L ${cx + r / 2} ${cy - h} L ${cx + r} ${cy} L ${cx + r / 2} ${cy + h} L ${cx - r / 2} ${cy + h} Z`;
+};
+const header = (x: number, y: number, w: number) =>
+  `M ${x} ${y + 20} V ${y + 10} a 10 10 0 0 1 10 -10 H ${x + w - 10} a 10 10 0 0 1 10 10 V ${y + 20} Z`;
+---
+
+<g class={className} style={style}>
+  <rect x="220" y="84" width="610" height="332" rx="10" class="file sheet" />
+  <path d="M220 104 V94 a10 10 0 0 1 10 -10 H306 V104 z" class="tab" />
+  <text x="232" y="99" class="t0">flow.rs</text>
+  {rev.wires.map((d) => (
+    <path d={d} class="ln" />
+  ))}
+  {rev.nodes.map((n) => (
+    <>
+      {n.k === "map" && (
+        <g class="k-jig">
+          <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="4" class="mapfill" />
+          <path d={`M ${n.x + 12} ${n.y} H ${n.x} V ${n.y + n.h} H ${n.x + 12}`} class="wire bracket" />
+          <path d={`M ${n.x + n.w - 12} ${n.y} H ${n.x + n.w} V ${n.y + n.h} H ${n.x + n.w - 12}`} class="wire bracket" />
+          <text x={n.x + 20} y={n.y + 5} class="tc">Map, per row</text>
+        </g>
+      )}
+      {n.k === "mini" && (
+        <g class={n.tone === "source" ? "k-source" : "k-egress"}>
+          <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="1.5" class="node square" />
+          {n.label ? (
+            <text x={n.x + n.w / 2} y={n.y + n.h / 2 + 4} class="mid t0">{n.label}</text>
+          ) : (
+            <line x1={n.x + 6} y1={n.y + n.h / 2} x2={n.x + n.w - 8} y2={n.y + n.h / 2} class="wire rule" />
+          )}
+        </g>
+      )}
+      {n.k === "text" && <text x={n.x} y={n.y}>{n.text}</text>}
+      {n.k === "block" && (
+        <g class="k-block">
+          <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" class="body" />
+          <path d={header(n.x, n.y, n.w)} class="solid" />
+          <text x={n.x + 9} y={n.y + 14} class="head">{n.label}</text>
+          <circle cx={n.x + n.w - 10} cy={n.y + 10} r="3" class="modeldot" />
+        </g>
+      )}
+      {n.k === "pill" && (
+        <g class="k-transform">
+          <rect x={n.x} y={n.y} width={n.w} height="26" rx="13" class="pill" />
+          <circle cx={n.x + 12} cy={n.y + 13} r="3" class="solid" />
+          <text x={n.x + 21} y={n.y + 17} class="t0">{n.label}</text>
+        </g>
+      )}
+      {n.k === "gate" && (
+        <g class={n.human ? "k-gate" : "k-ok"}>
+          <path d={hex(n.cx, n.cy, n.r)} class="hexa" />
+          <text x={n.cx} y={n.human ? n.cy + n.r + 13 : n.cy - n.r - 5} class="mid tc">{n.label}</text>
+        </g>
+      )}
+    </>
+  ))}
+  {rev.ports.map((p) => (
+    <circle cx={p.x} cy={p.y} r="3.5" class="port" />
+  ))}
+  <path d={rev.before} class="work" />
+  {rev.after && <path d={rev.after} class="work done" />}
+  {rev.branch.map((d) => (
+    <path d={d} class="work done" />
+  ))}
+</g>

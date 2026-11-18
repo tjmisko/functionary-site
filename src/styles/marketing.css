@@ -38,6 +38,105 @@
      block-ontology reference rendering uses this value. Remove when tokens.css
      is re-vendored with --cat-agent. */
   --cat-agent: rgba(214, 92, 171, 0.9);
+
+  /* App tokens the vendored file predates (web/src/style.css). */
+  --border-2: #4a525d;
+  --jig: #d9a441;
+}
+
+/* =========================================================
+   Figures. Schematic drawings, never renderings of the app.
+   Drawn on the app's graph-paper ground in its category colours.
+   ========================================================= */
+.plate {
+  margin: 0;
+}
+.plate .ground {
+  border: 1px solid var(--border-0);
+  border-radius: 10px;
+  background-color: var(--bg-1);
+  background-image:
+    linear-gradient(var(--canvas-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--canvas-grid) 1px, transparent 1px);
+  background-size: 20px 20px;
+  padding: var(--s-12);
+}
+.plate figcaption {
+  margin-top: var(--s-10);
+  font-size: var(--ms-small);
+  color: var(--fg-2);
+  line-height: 1.5;
+}
+.plate figcaption b {
+  color: var(--fg-0);
+  font-weight: 600;
+}
+
+.fig {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.fig text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--fg-2);
+}
+.fig .t0 {
+  fill: var(--fg-0);
+}
+.fig .t3 {
+  fill: var(--fg-3);
+}
+.fig .mid {
+  text-anchor: middle;
+}
+.fig .end {
+  text-anchor: end;
+}
+.fig .ln {
+  fill: none;
+  stroke: var(--border-2);
+  stroke-width: 1.25;
+}
+.fig .box {
+  fill: var(--bg-2);
+  stroke: var(--border-1);
+  stroke-width: 1;
+}
+.fig .dash {
+  stroke-dasharray: 4 4;
+}
+.fig .arrow {
+  fill: var(--border-2);
+}
+/* A kind colour: set --c on the element, then stroke / tint / fill with it. */
+.fig .k-source { --c: var(--cat-source); }
+.fig .k-block { --c: var(--cat-synthesis); }
+.fig .k-agent { --c: var(--cat-agent); }
+.fig .k-transform { --c: var(--cat-transformation); }
+.fig .k-jig { --c: var(--jig); }
+.fig .k-gate { --c: var(--cat-human); }
+.fig .k-egress { --c: var(--cat-action); }
+.fig .k-ok { --c: var(--success); }
+.fig .k-bad { --c: var(--danger); }
+.fig .k-accent { --c: var(--accent-strong); }
+.fig .node {
+  fill: color-mix(in srgb, var(--c) 16%, var(--bg-2));
+  stroke: var(--c);
+  stroke-width: 1.25;
+}
+.fig .solid {
+  fill: var(--c);
+}
+.fig .wire {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 1.5;
+}
+.fig .tc {
+  fill: var(--c);
 }
 
 /* =========================================================

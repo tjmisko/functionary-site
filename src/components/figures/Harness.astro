@@ -1,0 +1,158 @@
+---
+/**
+ * Hero candidate: the harness.
+ *
+ * One line of work. On the left it wanders freely. On the right the same
+ * line runs through a channel of blocks: wild only inside the blocks that
+ * hold a model, straight between them, with a receipt under every block.
+ * Geometry is generated at build time from fixed seeds.
+ */
+import { rng, spline, type P } from "../../lib/draw";
+
+const W = 1120;
+const H = 380;
+const MID = 190;
+
+// Free zone.
+const r = rng(41);
+const free: P[] = [{ x: 16, y: MID }];
+for (let i = 1; i <= 26; i++) {
+  const t = i / 27;
+  free.push({
+    x: Math.min(300, Math.max(16, 20 + t * 280 + (r() - 0.5) * 130)),
+    y: Math.min(338, Math.max(52, MID + (r() - 0.5) * 290)),
+  });
+}
+const docs: P[] = Array.from({ length: 16 }, () => ({
+  x: 30 + r() * 262,
+  y: 60 + r() * 270,
+}));
+
+// The channel.
+const spec = [
+  { k: "source", label: "Source", w: 90, wild: 0 },
+  { k: "block", label: "Block", w: 120, wild: 9 },
+  { k: "block", label: "Block", w: 120, wild: 9 },
+  { k: "agent", label: "Agent", w: 140, wild: 14 },
+  { k: "gate", label: "Check", w: 90, wild: 0 },
+  { k: "egress", label: "Write", w: 90, wild: 0 },
+] as const;
+const GAP = 22;
+const TOP = 110;
+const BOX_H = 160;
+let x = 340;
+const blocks = spec.map((s) => {
+  const b = { ...s, x };
+  x += s.w + GAP;
+  return b;
+});
+const checkAt = blocks.findIndex((b) => b.k === "gate");
+
+function through(b: (typeof blocks)[number], seed: number): P[] {
+  if (!b.wild) return [{ x: b.x + b.w, y: MID }];
+  const q = rng(seed);
+  const pad = b.k === "agent" ? 22 : 14;
+  const pts: P[] = [];
+  for (let i = 0; i < b.wild; i++) {
+    const t = (i + 0.5) / b.wild;
+    pts.push({
+      x: Math.min(b.x + b.w - pad, Math.max(b.x + pad, b.x + pad + t * (b.w - 2 * pad) + (q() - 0.5) * 46)),
+      y: TOP + 36 + q() * (BOX_H - 56),
+    });
+  }
+  return [...pts, { x: b.x + b.w, y: MID }];
+}
+
+// One continuous line up to the Check, a second one after it.
+const before: P[] = [...free, { x: blocks[0].x, y: MID }];
+blocks.slice(0, checkAt).forEach((b, i) => before.push(...through(b, 100 + i)));
+before.push({ x: blocks[checkAt].x, y: MID });
+const last = blocks[blocks.length - 1];
+const after = `M ${blocks[checkAt].x} ${MID} H ${last.x + last.w + 8}`;
+---
+
+<figure class="plate">
+  <div class="ground scroll">
+    <svg class="fig" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="A line of agent work wanders freely on the left. On the right the same line passes through a row of blocks, wandering only inside the blocks that hold a model, with a receipt recorded under each block.">
+      <text x="16" y="30" class="t0">an agent, working freely</text>
+      <text x="340" y="30" class="t0">the same work, inside a flow</text>
+
+      {docs.map((p) => (
+        <rect x={p.x - 5} y={p.y - 6} width="10" height="12" rx="2" class="doc" />
+      ))}
+
+      {blocks.map((b) => (
+        <g class={`k-${b.k}`}>
+          <rect x={b.x} y={TOP} width={b.w} height={BOX_H} rx="8" class="node cell" />
+          {b.k === "agent" && (
+            <rect x={b.x + 10} y={TOP + 26} width={b.w - 20} height={BOX_H - 36} rx="6" class="wire dash" />
+          )}
+          <text x={b.x + b.w / 2} y={TOP + 18} class="mid t0">{b.label}</text>
+          <rect x={b.x + b.w / 2 - 5} y="300" width="10" height="10" rx="2" class="solid" />
+          <line x1={b.x + b.w / 2} y1={TOP + BOX_H} x2={b.x + b.w / 2} y2="300" class="drop" />
+        </g>
+      ))}
+      <line x1="340" y1="305" x2={last.x + last.w} y2="305" class="rail" />
+      <text x="340" y="334">a receipt for every call</text>
+      <text x={last.x + last.w} y="334" class="end k-ok tc">checked against the source</text>
+
+      <path d={spline(before, 0.6)} class="work" pathLength="1" />
+      <path d={after} class="work done" pathLength="1" />
+    </svg>
+  </div>
+</figure>
+
+<style>
+  .doc {
+    fill: var(--bg-3);
+    stroke: var(--border-1);
+  }
+  .cell {
+    fill: color-mix(in srgb, var(--c) 9%, var(--bg-1));
+  }
+  .drop {
+    stroke: var(--c);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+    opacity: 0.6;
+  }
+  .rail {
+    stroke: var(--border-1);
+    stroke-width: 1;
+  }
+  .work {
+    fill: none;
+    stroke: var(--accent-strong);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .work.done {
+    stroke: var(--success);
+    stroke-width: 2.5;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .work {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: draw 4.2s cubic-bezier(0.45, 0, 0.3, 1) 0.2s forwards;
+    }
+    .work.done {
+      animation-duration: 0.7s;
+      animation-delay: 4.3s;
+    }
+  }
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @media (max-width: 860px) {
+    .scroll {
+      overflow-x: auto;
+    }
+    .scroll .fig {
+      min-width: 820px;
+    }
+  }
+</style>
