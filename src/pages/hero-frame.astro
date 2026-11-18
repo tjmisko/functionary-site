@@ -1,0 +1,22 @@
+---
+/**
+ * The hero figure alone, for the capture harness (scripts/hero-frames.mjs).
+ * `?t=<seconds>` freezes it at that moment. Internal: noindex, not linked.
+ * Delete it with /heroes before launch.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import FlowHero from "../components/figures/FlowHero.astro";
+---
+
+<BaseLayout title="Hero frame. Functionary" description="Internal: the hero figure at one moment.">
+  <meta name="robots" content="noindex" slot="head" />
+  <div class="container shot">
+    <FlowHero />
+  </div>
+</BaseLayout>
+
+<style>
+  .shot {
+    padding-block: var(--s-16);
+  }
+</style>
