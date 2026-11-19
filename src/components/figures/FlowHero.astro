@@ -36,7 +36,7 @@ const SW = 700;
  */
 const GAPS = {
   ask: 0.3, // you write a prompt
-  agentIn: 2.9, // the prompt is handed over; the agent takes the whole job
+  agentIn: 3.3, // the prompt is handed over; the agent takes the whole job
   again: 3.6, // asked again, it works differently
   skills: 3.2, // skills: named stages the agent is steered through
   problem: 3.8, // it follows them more or less
@@ -190,8 +190,26 @@ const PROMPT = {
 const RULES = ["AGENTS.md", "tool permissions"].map((name, i) => ({ name, i, x: 826, y: 44 + i * 20 }));
 /** Effects the tool permissions rule out: the ones the guided run never takes. */
 const denied = pool.map((spot, i) => ({ spot, i })).filter((s) => s.spot.kind === "write" && ![10, 12, 13, 15].includes(s.i));
-const DOCK = { x: 500 - (PROMPT.w * PROMPT.k) / 2, y: AGENT0.y - (PROMPT.h * PROMPT.k) / 2 };
-const DOCK_AT = T.ask + 1.7;
+/** Pinned, the same card holds only the question: its first two lines, smaller, in the same place across the page. */
+const DOCK = { x: 358, y: AGENT0.y - 26, w: 284, h: 46, rx: 7, k: 0.72, line: AGENT0.y - 8 };
+const PROMPT_LINE = { x: PROMPT.x + 22, y: PROMPT.y + 62, dy: 24 };
+/** Each line is typed in turn; a blank line is a short pause. */
+const TYPE0 = T.ask + 0.35;
+const typed = PROMPT.lines.reduce<{ line: string; i: number; t: number; d: number }[]>((acc, line, i) => {
+  const prev = acc[acc.length - 1];
+  const t = prev ? prev.t + prev.d + 0.03 : TYPE0;
+  return [...acc, { line, i, t, d: line ? 0.2 : 0.06 }];
+}, []);
+const DOCK_AT = T.ask + 2.1;
+const DOCK_DUR = 0.8;
+const promptCss = `@keyframes fh-promptcard {
+  from { x: ${PROMPT.x}px; y: ${PROMPT.y}px; width: ${PROMPT.w}px; height: ${PROMPT.h}px; rx: 12px; }
+  to { x: ${DOCK.x}px; y: ${DOCK.y}px; width: ${DOCK.w}px; height: ${DOCK.h}px; rx: ${DOCK.rx}px; }
+}
+@keyframes fh-promptdock {
+  from { transform: translate(0px, 0px) scale(1); }
+  to { transform: translate(0px, ${DOCK.line - PROMPT_LINE.y}px) scale(${DOCK.k}); }
+}`;
 /** Skills: files beside the prompt. Each marks out a stage of the job; the agent follows it loosely. */
 const ZONE = { y: 190, h: 120 };
 const SKILLS = [
@@ -240,8 +258,8 @@ function glowTrack(name: string, states: (Glow & { t: number })[]) {
 type Box = { x: number; y: number; w: number; h: number };
 const CY = 250; // the brief, main row
 const DR = CY + 78; // the brief, lower row
-const LR = 172; // the whole-job sheet, top row: sources, then evidence
-const LC = 330; // the whole-job sheet, bottom row: data, then the brief
+const LR = 182; // the whole-job sheet, top row: sources, then evidence
+const LC = 338; // the whole-job sheet, bottom row: data, then the brief
 const MIDY = 62; // a module's main row, from the top of its sheet
 const BRIEF = { title: "Research brief", file: "brief.rs", note: "revision 2", x: SX, y: 160, w: SW, h: 196, tab: 118 };
 const LONG = { x: SX, y: 84, w: 962, h: 332 };
@@ -296,8 +314,8 @@ const FS: Mod = {
   w: 406,
   h: 112,
   tab: 104,
-  home: { x: 150, y: 30 },
-  long: { x: 130, y: LR - MIDY },
+  home: { x: -138, y: 30 },
+  long: { x: 80, y: LR - MIDY },
   call: CALLS.sources,
   boxAt: T.s1,
   calloutAt: T.call,
@@ -322,7 +340,7 @@ const FS: Mod = {
     { x: 216, y: MIDY },
     { x: 340, y: MIDY },
   ],
-  callout: { x: 70, y: 9, w: 272, h: 99 },
+  callout: { x: 74, y: 11, w: 268, h: 97 },
 };
 
 // Weigh evidence: one passage, tested three ways side by side, then a Model fills the record.
@@ -337,11 +355,11 @@ const WE: Mod = {
   title: "Weigh evidence",
   label: "weigh evidence",
   file: "weigh_evidence.rs",
-  w: 452,
+  w: 408,
   h: 112,
   tab: 118,
-  home: { x: 564, y: 30 },
-  long: { x: 568, y: LR - MIDY },
+  home: { x: 276, y: 30 },
+  long: { x: 424, y: LR - MIDY },
   boxAt: T.s2,
   calloutAt: T.call + 0.2,
   coreT: [S(2, 0.1), S(3), S(3, 0.05), S(3, 0.1), S(3, 0.15)],
@@ -350,28 +368,28 @@ const WE: Mod = {
   core: [
     { k: "block", label: "Quote", x: 78, y: MIDY - 24, w: 54, h: 48 },
     ...TESTS.map((t) => ({ k: "chip" as const, tone: t.tone, label: t.label, x: 148, y: t.y - 8, w: 84, h: 16 })),
-    { k: "block", label: "Model<Evidence>", x: 248, y: MIDY - 24, w: 104, h: 48 },
+    { k: "block", label: "Model", x: 248, y: MIDY - 24, w: 60, h: 48 },
   ],
   coreWires: TESTS.flatMap((t) => [fanOut(t.y), fanBack(t.y)]),
   extra: [
     { k: "arg", label: "document", x: 8, y: 38, w: 56, h: 18 },
     { k: "arg", label: "question", x: 8, y: 68, w: 56, h: 18 },
-    { k: "arg", label: "Evidence", x: 372, y: MIDY - 9, w: 66, h: 18 },
+    { k: "arg", label: "Evidence", x: 328, y: MIDY - 9, w: 66, h: 18 },
   ],
-  extraWires: [argIn(47), argIn(77), `M 352 ${MIDY} H 372`],
+  extraWires: [argIn(47), argIn(77), `M 308 ${MIDY} H 328`],
   ports: [
     { x: 78, y: MIDY },
     { x: 132, y: MIDY },
     { x: 248, y: MIDY },
-    { x: 352, y: MIDY },
+    { x: 308, y: MIDY },
   ],
-  callout: { x: 72, y: 28, w: 286, h: 66 },
+  callout: { x: 72, y: 28, w: 242, h: 66 },
 };
 /** One repeat's path through Weigh evidence, in the module's own coordinates. */
 const throughModule = (amp: number, seed: number) =>
   `M 64 ${MIDY} L 82 ${MIDY}${seg(meander(82, 128, MIDY + 4, amp, seed))} L 132 ${MIDY} ` +
   TESTS.map((t, i) => `${fanOut(t.y)} ${t.tone === "model" ? `M 190 ${t.y}${seg(meander(190, 226, t.y, 5, seed + 7 + i))} L 232 ${t.y}` : ""} ${fanBack(t.y)}`).join(" ") +
-  ` M 248 ${MIDY} L 254 ${MIDY}${seg(meander(254, 346, MIDY + 6, amp, seed + 31))} L 372 ${MIDY}`;
+  ` M 248 ${MIDY} L 254 ${MIDY}${seg(meander(254, 302, MIDY + 6, amp, seed + 31))} L 328 ${MIDY}`;
 
 // Prepare data: three files pulled from URLs, each parsed, filtered, reshaped and checked on its own;
 // then joined with a units table, and a person reviews the combined frame.
@@ -385,7 +403,7 @@ const PD: Mod = {
   tab: 104,
   // centred under the brief
   home: { x: SX + (SW - 542) / 2, y: 366 },
-  long: { x: 202, y: LC - 68 },
+  long: { x: 310, y: LC - 68 },
   call: CALLS.data,
   boxAt: T.s1,
   calloutAt: T.call + 0.4,
@@ -426,35 +444,47 @@ const tabPath = (x: number, y: number, tab: number) => `M${x} ${y + 20} V${y + 1
 // laid out on one sheet (`lx`, on the row LR), and when each is first written.
 const ACTIONS = [-26, 0, 26].map((dy, i) => ({ label: ["Write", "Commit", "Notify"][i], cy: CY + dy }));
 const kept: { n: FlowNode; lx: number; ly: number; at: number }[] = [
-  { n: { k: "source", label: "Document", x: 242, y: CY - 12, w: 62, h: 24 }, lx: 558, ly: LR, at: S(1) },
-  { n: { k: "block", label: "Grade", x: 404, y: CY - 24, w: 52, h: 48 }, lx: 946, ly: LR, at: S(2, 0.2) },
-  { n: { k: "gate", label: "Check", cx: 496, cy: CY, r: 11 }, lx: 1032, ly: LR, at: S(1, 0.1) },
-  { n: { k: "block", label: "Test", x: 548, y: CY - 24, w: 50, h: 48 }, lx: 720, ly: LC, at: S(2) },
-  { n: { k: "block", label: "Draft", x: 630, y: CY - 24, w: 52, h: 48 }, lx: 830, ly: LC, at: S(3) },
-  { n: { k: "gate", label: "Review", cx: 712, cy: CY, r: 11, human: true, above: true }, lx: 944, ly: LC, at: S(2, 0.1) },
-  ...ACTIONS.map((a, i) => ({ n: { k: "mini" as const, tone: "egress" as const, label: a.label, x: 762, y: a.cy - 10, w: 58, h: 20 }, lx: 984, ly: LC, at: S(1, 0.1 + i * 0.05) })),
+  { n: { k: "source", label: "Document", x: 242, y: CY - 12, w: 62, h: 24 }, lx: 432, ly: LR, at: S(1) },
+  { n: { k: "block", label: "Grade", x: 404, y: CY - 24, w: 52, h: 48 }, lx: 740, ly: LR, at: S(2, 0.2) },
+  { n: { k: "gate", label: "Check", cx: 496, cy: CY, r: 11 }, lx: 812, ly: LR, at: S(1, 0.1) },
+  { n: { k: "block", label: "Test", x: 548, y: CY - 24, w: 50, h: 48 }, lx: 856, ly: LR, at: S(2) },
+  { n: { k: "block", label: "Draft", x: 630, y: CY - 24, w: 52, h: 48 }, lx: 922, ly: LR, at: S(3) },
+  { n: { k: "gate", label: "Review", cx: 712, cy: CY, r: 11, human: true, above: true }, lx: 1004, ly: LR, at: S(2, 0.1) },
+  ...ACTIONS.map((a, i) => ({ n: { k: "mini" as const, tone: "egress" as const, label: a.label, x: 762, y: a.cy - 10, w: 58, h: 20 }, lx: 1046, ly: LR, at: S(1, 0.1 + i * 0.05) })),
 ];
 const keptNodes = kept.map((k) => k.n);
-const keptStyle = (i: number) => {
-  const n = kept[i].n;
-  const from = "cx" in n ? n.cx : n.x;
-  return `--tx:${kept[i].lx - from}px; --ty:${kept[i].ly - CY}px; animation: fh-in 0.4s ${kept[i].at.toFixed(2)}s both, fh-unshift ${PULL}s ${T.pull.toFixed(2)}s ${EASE} both`;
-};
+/** How far the far end of the brief's line sits to the left at step 1, before the per-source steps are written out. */
+const NEAR = -150;
+const keptNear = [0, 0, NEAR, 0, 0, 0, NEAR, NEAR, NEAR];
+const keptTracks = kept.map((k, i) => {
+  const from = "cx" in k.n ? k.n.cx : k.n.x;
+  const tx = k.lx - from;
+  const ty = k.ly - CY;
+  const name = `fh-kept${i}`;
+  return {
+    name,
+    css: `@keyframes ${name} {
+  0%, ${pct(T.s2)} { transform: translate(${tx + keptNear[i]}px, ${ty}px); animation-timing-function: ${EASE}; }
+  ${pct(T.s2 + MORPH)}, ${pct(T.pull)} { transform: translate(${tx}px, ${ty}px); animation-timing-function: ${EASE}; }
+  ${pct(T.pull + PULL)}, 100% { transform: translate(0px, 0px); }
+}`,
+  };
+});
+const keptStyle = (i: number) => `animation: fh-in 0.4s ${kept[i].at.toFixed(2)}s both, ${keptTracks[i].name} ${T.end}s linear both`;
+// Prepare data's review gate does the same: close to the agent at step 1, then out to the end of the row.
+const PD_NEAR = -200;
+const pdReviewCss = `@keyframes fh-pdreview {
+  0%, ${pct(T.s2)} { transform: translate(${PD_NEAR}px, 0px); animation-timing-function: ${EASE}; }
+  ${pct(T.s2 + MORPH)}, 100% { transform: translate(0px, 0px); }
+}`;
 /** The wires that join the pieces while the whole job is on one sheet, and when each is drawn. */
-const WRAP_Y = 251;
-/** The connections between the four parts of the job. They are there from the first frame and do not change. */
-const baseWires = [
-  `M 459 ${LR} H 540`,
-  `M 1043 ${LR} H 1076 C 1106 ${LR}, 1106 ${WRAP_Y}, 1076 ${WRAP_Y} H 775 C 752 ${WRAP_Y}, 745 ${WRAP_Y + 8}, 745 ${LC - 24}`,
-  `M 661 ${LC} H 720`,
-];
 const longWires = [
-  { d: `M 540 ${LR} H 558`, at: T.s2 + 1.0 },
-  { d: `M 620 ${LR} H 646`, at: S(2, 0.2) },
-  { d: `M 920 ${LR} H 946`, at: S(3, 0.2) },
-  { d: `M 998 ${LR} H 1021`, at: S(2, 0.3) },
-  { d: `M 770 ${LC} H 830 M 882 ${LC} H 933`, at: S(3, 0.2) },
-  ...[-26, 0, 26].map((dy) => ({ d: wire(955, LC, 984, LC + dy), at: S(2, 0.3) })),
+  { d: `M 420 ${LR} H 432`, at: T.s2 + 1.0 },
+  { d: `M 494 ${LR} H 502`, at: S(2, 0.2) },
+  { d: `M 732 ${LR} H 740`, at: S(3, 0.2) },
+  { d: `M 792 ${LR} H 801`, at: S(2, 0.3) },
+  { d: `M 906 ${LR} H 922 M 974 ${LR} H 993`, at: S(3, 0.2) },
+  ...[-26, 0, 26].map((dy) => ({ d: wire(1015, LR, 1046, LR + dy), at: S(2, 0.3) })),
 ];
 
 // What Replicate goes round, in the brief: the module call and the grading.
@@ -587,32 +617,37 @@ const opens = [
 // are written out together, in three steps; at each step every agent block is left with less.
 const centred = (b: Box): Glow => ({ cx: b.x + b.w / 2, cy: b.y + b.h / 2, w: b.w, h: b.h });
 const CARD_H = 84;
+const CARD_W = 208;
+// To begin with the four sit close together: sources, evidence and the brief in a line, the data under the evidence.
 const CARDS: Box[] = [
-  { x: 208, y: LR - CARD_H / 2, w: 251, h: CARD_H },
-  { x: 540, y: LR - CARD_H / 2, w: 530, h: CARD_H },
-  { x: 210, y: LC - CARD_H / 2, w: 451, h: CARD_H },
-  { x: 720, y: LC - CARD_H / 2, w: 322, h: CARD_H },
+  { x: 200, y: LR - CARD_H / 2, w: CARD_W, h: CARD_H },
+  { x: 458, y: LR - CARD_H / 2, w: CARD_W, h: CARD_H },
+  { x: 458, y: LC - CARD_H / 2, w: CARD_W, h: CARD_H },
+  { x: 716, y: LR - CARD_H / 2, w: CARD_W, h: CARD_H },
 ];
 /** An agent block's header band, as the canvas draws it. */
 const BAND = 13;
 /** Each agent block at steps 1 and 2. By step 3 it is gone. */
 const cloudSteps: Glow[][] = [
-  [{ cx: 352, cy: LR, w: 152, h: 60 }, { cx: 400, cy: LR, w: 68, h: 42 }],
-  [{ cx: 819, cy: LR, w: 378, h: 24 }, { cx: 823, cy: LR, w: 230, h: 46 }],
-  [{ cx: 455, cy: LC, w: 350, h: 82 }, { cx: 494, cy: LC, w: 128, h: 82 }],
-  [{ cx: 847, cy: LC, w: 254, h: 82 }, { cx: 852, cy: LC, w: 140, h: 50 }],
+  [{ cx: 302, cy: LR, w: 152, h: 60 }, { cx: 350, cy: LR, w: 68, h: 42 }],
+  [{ cx: 572, cy: LR, w: 136, h: 24 }, { cx: 648, cy: LR, w: 168, h: 46 }],
+  [{ cx: 463, cy: LC, w: 150, h: 82 }, { cx: 602, cy: LC, w: 128, h: 82 }],
+  [{ cx: 793, cy: LR, w: 186, h: 82 }, { cx: 949, cy: LR, w: 70, h: 50 }],
 ];
 const stagePrompts = [
   ["Screen and filter the hits", "Filter"],
   ["", "Judge the passage"],
   ["Clean and join the files", "Reshape and check"],
-  ["Test the claim, then draft the brief", "Draft"],
+  ["Test the claim, then draft", "Draft"],
 ];
 const bandOf = (g: Glow): Glow => ({ cx: g.cx, cy: g.cy - g.h / 2 + BAND / 2, w: g.w, h: BAND });
 const stages = SKILLS.map((s, i) => {
   const card = CARDS[i];
+  const zone = { cx: s.x + s.w / 2, cy: ZONE.y + ZONE.h / 2, w: s.w, h: ZONE.h };
+  // The block starts as the skill's zone and is drawn in to a block; then it is left with less at each step.
   const track = [
-    { t: 0, ...centred(card) },
+    { t: 0, ...zone },
+    { t: T.flow, ...centred(card) },
     { t: T.s1, ...cloudSteps[i][0] },
     { t: T.s2, ...cloudSteps[i][1] },
   ];
@@ -644,43 +679,67 @@ const link = (x1: number, y1: number, x2: number, y2: number, ends: "both" | "fr
   ports: [...(ends === "both" || ends === "from" ? [{ x: x1, y: y1 }] : []), ...(ends === "both" || ends === "to" ? [{ x: x2, y: y2 }] : [])],
 });
 // While the four are whole blocks: the question comes in to the two that start the job, and the brief goes out.
-const blockLinks: Link[] = [link(LONG.x, 250, 208, LR, "to"), link(LONG.x, 250, 210, LC, "to"), link(1042, LC, LONG.x + LONG.w, LC, "from")];
-const blockPorts: P[] = [...blockLinks.flatMap((l) => l.ports), { x: 459, y: LR }, { x: 540, y: LR }, { x: 1070, y: LR }, { x: 745, y: LC - CARD_H / 2 }, { x: 661, y: LC }, { x: 720, y: LC }];
+const blockLinks: Link[] = [link(LONG.x, 250, CARDS[0].x, LR, "to"), link(LONG.x, 250, CARDS[2].x, LC, "to"), link(CARDS[3].x + CARD_W, LR, LONG.x + LONG.w, LR, "from")];
+const blockPorts: P[] = [...blockLinks.flatMap((l) => l.ports), { x: 408, y: LR }, { x: 458, y: LR }, { x: 666, y: LR }, { x: 716, y: LR }, { x: 666, y: LC }, { x: 716, y: LR + 20 }];
+/** The three connections between the parts. Each is one line that stretches as the blocks at its ends move apart. */
+const DATA_IN = 16; // the brief's second input, below the first, for the data
+const joinTracks = [
+  { d: `M 408 ${LR} H 458`, ...glowTrack("fh-join0", [{ t: 0, cx: 433, cy: LR, w: 50, h: 1 }, { t: T.s1, cx: 414.5, cy: LR, w: 11, h: 1 }]) },
+  {
+    d: `M 666 ${LR} H 716`,
+    ...glowTrack("fh-join1", [
+      { t: 0, cx: 691, cy: LR, w: 50, h: 1 },
+      { t: T.s1, cx: 686.5, cy: LR, w: 27, h: 1 },
+      { t: T.s2, cx: 839.5, cy: LR, w: 33, h: 1 },
+    ]),
+  },
+  // the data comes up and into the left side of the brief's block, at a second input port
+  {
+    // it runs along its own row, climbs just short of the block, and turns in to the port
+    d: `M 666 ${LC} C 706 ${LC}, 709.5 ${LC - 30}, 709.5 ${LR + 20 + 40} C 709.5 ${LR + 20 + 10}, 712 ${LR + 20}, 716 ${LR + 20}`,
+    ...glowTrack("fh-join2", [
+      { t: 0, cx: 691, cy: (LC + LR + 20) / 2, w: 50, h: LC - LR - 20 },
+      { t: T.s1, cx: (569 + 700) / 2, cy: (LC + LR + 20) / 2, w: 700 - 569, h: LC - LR - 20 },
+      { t: T.s2, cx: (769 + 856) / 2, cy: (LC + LR + DATA_IN) / 2, w: 856 - 769, h: LC - LR - DATA_IN },
+    ]),
+  },
+];
 // At steps 1 and 2 each agent block is wired to the fixed steps on either side of it.
 const LANE_Y = [LR - 32, LR, LR + 32];
 const DATA_Y = [LC - 28, LC, LC + 28];
 const stepLinks: Link[][] = [
   [
-    ...[LR - 24, LR, LR + 24].map((y) => link(266, y, 276, y, "to")),
-    link(428, LR, 437, LR, "from"),
-    ...LANE_Y.flatMap((y) => [link(620, y, 630, y, "to"), link(1008, y, 1021, LR, "from")]),
-    ...DATA_Y.map((y) => link(268, y, 280, y, "to")),
-    link(630, LC, 639, LC, "from"),
-    link(712, LC, 720, LC, "to"),
-    ...[-26, 0, 26].map((dy) => link(974, LC + dy, 984, LC + dy, "from")),
+    ...[LR - 24, LR, LR + 24].map((y) => link(216, y, 226, y, "to")),
+    link(378, LR, 387, LR, "from"),
+    ...LANE_Y.flatMap((y) => [link(494, y, 504, y, "to"), link(640, y, 651, LR, "from")]),
+    link(692, LR, 700, LR, "to"),
+    link(692, LR + 20, 700, LR + 20, "to"),
+    ...[-26, 0, 26].map((dy) => link(886, LR + dy, 896, LR + dy, "from")),
+    ...DATA_Y.map((y) => link(376, y, 388, y, "to")),
+    link(538, LC, 547, LC, "from"),
   ],
   [
-    link(358, LR, 366, LR, "to"),
-    link(434, LR, 437, LR, "from"),
-    link(700, LR, 708, LR, "to"),
-    link(938, LR, 946, LR, "from"),
-    ...DATA_Y.map((y) => link(420, y, 430, y, "to")),
-    link(558, LC, 568, LC, "from"),
-    link(770, LC, 782, LC, "to"),
-    link(922, LC, 933, LC, "from"),
+    link(312, LR, 316, LR, "to"),
+    link(384, LR, 387, LR, "from"),
+    link(556, LR, 564, LR, "to"),
+    link(732, LR, 740, LR, "from"),
+    link(906, LR, 914, LR, "to"),
+    link(984, LR, 993, LR, "from"),
+    ...DATA_Y.map((y) => link(528, y, 538, y, "to")),
+    link(666, LC, 676, LC, "from"),
   ],
 ];
 // What the whole-job sheet has that the brief redraws: the Map round the per-source steps, and Refine.
-const bigMap: FlowNode[] = [{ k: "mapjig", label: "Map", rule: "each source", x: 540, y: LR - 50, w: 530, h: 100, funnel: 10 }];
-const stageRefine: FlowNode[] = [{ k: "jig", label: "Refine", x: 800, y: LC - 40, w: 112, h: 90 }];
-const stageLoop = `M 944 ${LC + 11} C 944 ${LC + 42}, 856 ${LC + 44}, 856 ${LC + 26} M 851.5 ${LC + 32} L 856 ${LC + 26} L 860.5 ${LC + 32}`;
+const bigMap: FlowNode[] = [{ k: "mapjig", label: "Map", rule: "each source", x: 420, y: LR - 50, w: 416, h: 100, funnel: 10 }];
+const stageRefine: FlowNode[] = [{ k: "jig", label: "Refine", x: 916, y: LR - 40, w: 116, h: 90 }];
+const stageLoop = `M 1004 ${LR + 11} C 1004 ${LR + 42}, 948 ${LR + 44}, 948 ${LR + 26} M 943.5 ${LR + 32} L 948 ${LR + 26} L 952.5 ${LR + 32}`;
 // Weigh evidence is first drawn once per source: three lanes, each a document and a narrow agent. A Map closes them into one.
 const LANE_CLOUD = cloudSteps[1][0];
 const sideDocs = [0, 2].map((i) => ({
-  nodes: [{ k: "source", label: "Document", x: 558, y: LANE_Y[i] - 12, w: 62, h: 24 }] as FlowNode[],
+  nodes: [{ k: "source", label: "Document", x: 432, y: LANE_Y[i] - 12, w: 62, h: 24 }] as FlowNode[],
   style: `--ty:${LR - LANE_Y[i]}px; animation: fh-in 0.4s ${S(1).toFixed(2)}s both, fh-shift 0.9s ${T.s2.toFixed(2)}s ${EASE} both, fh-out 0.3s ${(T.s2 + 0.75).toFixed(2)}s forwards`,
 }));
-const laneFan = LANE_Y.map((y) => `M 540 ${LR} C 549 ${LR}, 549 ${y}, 558 ${y}`);
+const laneFan = LANE_Y.map((y) => `M 420 ${LR} C 426 ${LR}, 426 ${y}, 432 ${y}`);
 const sideLanes = [0, 2].map((i) => {
   const track = [
     { t: 0, cx: LANE_CLOUD.cx, cy: LANE_Y[i], w: LANE_CLOUD.w, h: LANE_CLOUD.h },
@@ -845,15 +904,21 @@ const cards = [
 
 // ---- camera ---------------------------------------------------------------
 const FACE = "translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) scale(1)";
+// While the modules are out beside the brief the view slides right, so the three of them sit in the middle of the page.
+const PAN = `translate3d(${((204 / W) * 100).toFixed(2)}cqw, 0, 0) rotateX(0deg) rotateY(0deg) scale(1)`;
 const TILT = "translate3d(1cqw, -1cqw, 0) rotateX(-13deg) rotateY(20deg) scale(1)";
 const css = `
 @keyframes fh-cam {
-  0%, ${pct(T.lift)} { transform: ${FACE}; animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }
+  0%, ${pct(T.pull)} { transform: ${FACE}; animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }
+  ${pct(T.pull + PULL)}, ${pct(T.tuck)} { transform: ${PAN}; animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }
+  ${pct(T.tuck + 0.9)}, ${pct(T.lift)} { transform: ${FACE}; animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }
   ${pct(T.lift + LIFT)}, ${pct(T.settle)} { transform: ${TILT}; animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }
   ${pct(T.settle + SETTLE)}, 100% { transform: ${FACE}; }
 }
-${[...stages.flatMap((st) => [st.box, st.cloud, st.band]), ...sideLanes.flatMap((g) => [g.cloud, g.band]), mainGlow].map((g) => g.css).join("\n")}
+${[...stages.flatMap((st) => [st.box, st.cloud, st.band]), ...sideLanes.flatMap((g) => [g.cloud, g.band]), mainGlow, ...joinTracks, ...keptTracks].map((g) => g.css).join("\n")}
+${pdReviewCss}
 ${lookCss}
+${promptCss}
 .fh .world { animation: fh-cam ${T.end}s linear both; }
 .fh .clock { animation: fh-clock ${T.end}s linear both; }
 .fh .lift { animation: fh-lift ${LIFT}s ${T.lift}s cubic-bezier(0.6, 0, 0.2, 1) both, fh-drop ${SETTLE}s ${T.settle}s cubic-bezier(0.6, 0, 0.2, 1) forwards; }
@@ -887,7 +952,12 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
                   <stop offset="1" stop-color="var(--cat-agent)" stop-opacity="0" />
                 </radialGradient>
                 <filter id="fh-feather" x="-20%" y="-60%" width="140%" height="220%">
-                  <feGaussianBlur stdDeviation="2.6" />
+                  <!-- only the outline is softened: the block's own alpha, blurred, fades the outer edge inward; the band stays crisp -->
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="2.4" result="soft" />
+                  <feComponentTransfer in="soft" result="edge">
+                    <feFuncA type="linear" slope="2" intercept="-1" />
+                  </feComponentTransfer>
+                  <feComposite in="SourceGraphic" in2="edge" operator="in" />
                 </filter>
               </defs>
 
@@ -921,8 +991,8 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
 
               <!-- the wires to and from the agent blocks: the row's, then the regions', then each step's -->
               <g class="t" style={`animation: fh-in 0.4s ${(T.flow + 0.7).toFixed(2)}s both, fh-out 0.2s ${T.pull.toFixed(2)}s forwards`}>
-                {baseWires.map((d) => (
-                  <path d={d} class="ln" />
+                {joinTracks.map((j) => (
+                  <path d={j.d} class="ln sheetmorph" style={`transform-origin:${j.base.cx}px ${j.base.cy}px; animation: ${j.anim}`} />
                 ))}
               </g>
               <g class="t" style={win(T.flow + 0.7, T.s1)}>
@@ -938,9 +1008,9 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
                 </g>
               ))}
               <!-- the agent that had the whole job goes into one of the four blocks -->
-              <rect x={mainGlow.base.cx - mainGlow.base.w / 2} y={mainGlow.base.cy - mainGlow.base.h / 2} width={mainGlow.base.w} height={mainGlow.base.h} rx="40" fill="url(#fh-glow)" class="t" style={`transform-origin:${mainGlow.base.cx}px ${mainGlow.base.cy}px; ${win(DOCK_AT + 0.3, T.flow + 0.5)}, ${mainGlow.anim}`} />
+              <rect x={mainGlow.base.cx - mainGlow.base.w / 2} y={mainGlow.base.cy - mainGlow.base.h / 2} width={mainGlow.base.w} height={mainGlow.base.h} rx="40" fill="url(#fh-glow)" class="t" style={`transform-origin:${mainGlow.base.cx}px ${mainGlow.base.cy}px; ${win(DOCK_AT + 0.3, T.flow + 0.6)}, ${mainGlow.anim}`} />
               <!-- the agent blocks, as the canvas draws them: one soft-edged surface, a header band and a body. Each is left with less at every step, and goes. -->
-              {[...stages.map((st) => ({ ...st, t0: T.flow + 0.3, t1: T.s3 + 0.2 })), ...sideLanes.map((g) => ({ ...g, t0: T.s1 + 0.5, t1: T.s2 + 0.75 }))].map((a) => (
+              {[...stages.map((st) => ({ ...st, t0: T.flow, t1: T.s3 + 0.2 })), ...sideLanes.map((g) => ({ ...g, t0: T.s1 + 0.5, t1: T.s2 + 0.75 }))].map((a) => (
                 <g class="t" filter="url(#fh-feather)" style={win(a.t0, a.t1)}>
                   <rect x={a.cloud.base.cx - a.cloud.base.w / 2} y={a.cloud.base.cy - a.cloud.base.h / 2} width={a.cloud.base.w} height={a.cloud.base.h} rx="3" class="agentbody" style={`transform-origin:${a.cloud.base.cx}px ${a.cloud.base.cy}px; animation: ${a.cloud.anim}`} />
                   <rect x={a.band.base.cx - a.band.base.w / 2} y={a.band.base.cy - a.band.base.h / 2} width={a.band.base.w} height={a.band.base.h} rx="3" class="agentband" style={`transform-origin:${a.band.base.cx}px ${a.band.base.cy}px; animation: ${a.band.anim}`} />
@@ -948,7 +1018,6 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
               ))}
               {stages.map((st) => (
                 <g class="t" style={win(T.flow + 0.5, T.s1)}>
-                  <text x={st.card.x + 8} y={st.card.y + 9.5} class="agenthead">{st.title}</text>
                   {st.fields.map(([name, value], j) => (
                     <>
                       <text x={st.card.x + 12} y={st.card.y + 35 + j * 17} class="agentfield">{name}</text>
@@ -972,11 +1041,13 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
               <!-- each skill's region: first a stage of the agent's work, then an agent of its own in a row, then a region of the flow -->
               {stages.map((st) => (
                 <>
-                  <rect x={st.box.base.cx - st.box.base.w / 2} y={st.box.base.cy - st.box.base.h / 2} width={st.box.base.w} height={st.box.base.h} rx="26" class="t zone sheetmorph" style={`transform-origin:${st.box.base.cx}px ${st.box.base.cy}px; animation: fh-in 0.4s ${(T.skills + 0.9 + st.i * 0.1).toFixed(2)}s both, fh-out 0.4s ${(T.flow + 0.3).toFixed(2)}s forwards, ${st.box.anim}`} />
+                  <rect x={st.box.base.cx - st.box.base.w / 2} y={st.box.base.cy - st.box.base.h / 2} width={st.box.base.w} height={st.box.base.h} rx="26" class="t zone sheetmorph" style={`transform-origin:${st.box.base.cx}px ${st.box.base.cy}px; animation: fh-in 0.4s ${(T.skills + 0.9 + st.i * 0.1).toFixed(2)}s both, fh-out 0.4s ${(T.flow + 0.6).toFixed(2)}s forwards, ${st.box.anim}`} />
                 </>
               ))}
               {SKILLS.map((s) => (
-                <text x={s.chipX + 7} y={s.chipY} class="t skilltext zonetext" style={`--tx:${s.x + 14 - s.chipX - 7}px; --ty:${ZONE.y - 7 - s.chipY}px; animation: fh-in 0.15s ${(T.skills + 0.4 + s.i * 0.1).toFixed(2)}s both, fh-shift 0.8s ${(T.skills + 0.45 + s.i * 0.1).toFixed(2)}s ${EASE} both, fh-out 0.35s ${T.flow.toFixed(2)}s forwards`}>{s.name}</text>
+                <g class="t" style={`--tx:${CARDS[s.i].x + 8 - s.x - 14}px; --ty:${CARDS[s.i].y + 9.5 - ZONE.y + 7}px; animation: fh-in 0.15s ${(T.skills + 0.4 + s.i * 0.1).toFixed(2)}s both, fh-shift ${MORPH}s ${T.flow.toFixed(2)}s ${EASE} both, fh-out 0.3s ${T.s1.toFixed(2)}s forwards`}>
+                  <text x={s.chipX + 7} y={s.chipY} class="skilltext zonetext" style={`--tx:${s.x + 14 - s.chipX - 7}px; --ty:${ZONE.y - 7 - s.chipY}px; animation: fh-shift 0.8s ${(T.skills + 0.45 + s.i * 0.1).toFixed(2)}s ${EASE} both`}>{s.name}</text>
+                </g>
               ))}
 
               <!-- a beam from each call to its module, behind everything -->
@@ -1044,7 +1115,7 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
                     {m.coreWires.map((d, i) => (
                       <path d={d} class="t ln" style={win(m.wireT[i])} />
                     ))}
-                    <FlowNodes nodes={m.core} cls="t" styleAt={(i) => win(m.coreT[i])} />
+                    <FlowNodes nodes={m.core} cls="t" styleAt={(i) => (m === PD && i === m.core.length - 1 ? `${win(m.coreT[i])}, fh-pdreview ${T.end}s linear both` : win(m.coreT[i]))} />
                   </g>
                 </g>
               ))}
@@ -1112,13 +1183,6 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
               {chips.map((c) => (
                 <text x={c.x} y={c.y} class="t agenthead" style={win(c.t0, c.t1)}>{c.text}</text>
               ))}
-              <!-- the opening prompt once it has been read: its question, on the top edge of the agent's region -->
-              <g class="t" style={win(DOCK_AT + 0.6, T.flow)}>
-                <rect x="358" y={AGENT0.y - 26} width="284" height="46" rx="7" class="promptcard" />
-                <text x="372" y={AGENT0.y - 8} class="promptline">Write a research brief: what does a</text>
-                <text x="372" y={AGENT0.y + 8} class="promptline">four-day week do to output per hour? …</text>
-              </g>
-
               <!-- the agent's name, over its run line -->
               <text x="500" y="168" class="t mid t0 agentname" style={win(DOCK_AT + 0.6, T.flow)}>Agent</text>
               <!-- skills: files beside the prompt -->
@@ -1140,13 +1204,20 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
               {denied.map((s) => (
                 <path d={`M ${s.spot.x - 6} ${s.spot.y - 6} L ${s.spot.x + 6} ${s.spot.y + 6} M ${s.spot.x + 6} ${s.spot.y - 6} L ${s.spot.x - 6} ${s.spot.y + 6}`} class="t deny" style={win(T.skills + 1.0 + s.i * 0.04, T.flow)} />
               ))}
-              <!-- the prompt, written large, then pinned to the agent it is handed to -->
-              <g class="t" style={`--tx:${DOCK.x - PROMPT.x}px; --ty:${DOCK.y - PROMPT.y}px; --k:${PROMPT.k}; transform-origin:${PROMPT.x}px ${PROMPT.y}px; animation: fh-in 0.35s ${(T.ask + 0.2).toFixed(2)}s both, fh-pull 0.85s ${DOCK_AT.toFixed(2)}s ${EASE} both, fh-out 0.3s ${(DOCK_AT + 0.6).toFixed(2)}s forwards`}>
-                <rect x={PROMPT.x} y={PROMPT.y} width={PROMPT.w} height={PROMPT.h} rx="12" class="promptcard" />
-                <text x={PROMPT.x + 22} y={PROMPT.y + 30} class="prompthead">prompt</text>
-                {PROMPT.lines.map((line, i) => (
-                  <text x={PROMPT.x + 22} y={PROMPT.y + 62 + i * 24} class="t prompttext" style={win(T.ask + 0.4 + i * 0.16)}>{line}</text>
-                ))}
+              <!-- the prompt: typed out large, then the same card drawn in round its question and pinned to the agent it is handed to -->
+              <g class="t" style={win(T.ask + 0.2, T.flow)}>
+                <rect x={PROMPT.x} y={PROMPT.y} width={PROMPT.w} height={PROMPT.h} rx="12" class="promptcard" style={`animation: fh-promptcard ${DOCK_DUR}s ${DOCK_AT.toFixed(2)}s ${EASE} both`} />
+                <g style={`transform-origin:${PROMPT_LINE.x}px ${PROMPT_LINE.y}px; animation: fh-promptdock ${DOCK_DUR}s ${DOCK_AT.toFixed(2)}s ${EASE} both`}>
+                  <text x={PROMPT_LINE.x} y={PROMPT.y + 30} class="t prompthead" style={win(T.ask + 0.2, DOCK_AT - 0.05)}>prompt</text>
+                  {typed.map((l) => (
+                    <g class={l.i > 1 ? "t" : undefined} style={l.i > 1 ? `animation: fh-in 0.01s ${T.ask.toFixed(2)}s both, fh-out 0.22s ${(DOCK_AT - 0.05 + (PROMPT.lines.length - l.i) * 0.02).toFixed(2)}s forwards` : undefined}>
+                      <text x={PROMPT_LINE.x} y={PROMPT_LINE.y + l.i * PROMPT_LINE.dy} class="prompttext typed" style={`animation: fh-type ${l.d}s ${l.t.toFixed(2)}s steps(${Math.max(l.line.length, 1)}, end) both`}>
+                        {l.line}
+                        {l.i === 1 && <tspan class="t" style={win(DOCK_AT + DOCK_DUR - 0.2)}> …</tspan>}
+                      </text>
+                    </g>
+                  ))}
+                </g>
               </g>
 
               <!-- Replicate goes round the judgement blocks -->
@@ -1540,6 +1611,11 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
     from { opacity: 0; transform: scale(0.1); }
     to { opacity: 1; transform: scale(1); }
   }
+  /* A line of the prompt being typed: uncovered a character at a time. */
+  @keyframes fh-type {
+    from { clip-path: inset(-6px 100% -6px 0); }
+    to { clip-path: inset(-6px -4px -6px 0); }
+  }
   @keyframes fh-pull {
     from { transform: translate(0px, 0px) scale(1); }
     to { transform: translate(var(--tx), var(--ty)) scale(var(--k)); }
@@ -1572,6 +1648,10 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
     perspective: 420cqw;
     perspective-origin: 50% 45%;
     overflow: hidden;
+  }
+  /* The modules sit left of the drawing's own edge while the view is slid right. */
+  .fh .world svg.fig {
+    overflow: visible;
   }
   .fh .world {
     position: relative;
