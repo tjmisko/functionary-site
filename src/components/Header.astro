@@ -2,6 +2,7 @@
 import Button from "./Button.astro";
 
 const nav = [
+  { href: "/design", label: "Design" },
   { href: "/download", label: "Download" },
   { href: "/blog", label: "Blog" },
 ];
@@ -44,6 +45,10 @@ const isActive = (href: string) =>
     border-bottom: 1px solid var(--border-0);
     background: color-mix(in srgb, var(--bg-1) 78%, transparent);
     backdrop-filter: blur(var(--blur-toolbar));
+  }
+  /* A full-bleed page sets --bar-w so the bar's ends line up with its canvas; elsewhere the bar keeps the reading width. */
+  .bar.container {
+    max-width: var(--bar-w, var(--container));
   }
   .bar {
     display: flex;

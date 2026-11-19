@@ -34,6 +34,25 @@ const header = (x: number, y: number, w: number) =>
         <text x={n.x + 20} y={n.y + 4} class="tc">{n.label}</text>
       </g>
     )}
+    {n.k === "mapjig" && (
+      <g class="k-jig">
+        <path d={`M ${n.x} ${n.y} L ${n.x + (n.funnel ?? 14)} ${n.y + n.h * 0.12} V ${n.y + n.h * 0.88} L ${n.x} ${n.y + n.h} Z`} class="funnel" />
+        <path d={`M ${n.x + n.w} ${n.y} L ${n.x + n.w - (n.funnel ?? 14)} ${n.y + n.h * 0.12} V ${n.y + n.h * 0.88} L ${n.x + n.w} ${n.y + n.h} Z`} class="funnel" />
+        <rect x={n.x + (n.funnel ?? 14)} y={n.y} width={n.w - 2 * (n.funnel ?? 14)} height={n.h} class="mapbody" />
+        <path d={`M ${n.x + (n.funnel ?? 14)} ${n.y} H ${n.x + n.w - (n.funnel ?? 14)} M ${n.x + (n.funnel ?? 14)} ${n.y + n.h} H ${n.x + n.w - (n.funnel ?? 14)}`} class="wire mapline" />
+        <text x={n.x + (n.funnel ?? 14) + 6} y={n.y - 5} class="tc"><tspan class="maptitle">{n.label}</tspan><tspan class="maprule" dx="6">{n.rule}</tspan></text>
+      </g>
+    )}
+    {n.k === "rows" && (
+      <g class="k-source">
+        <rect x={n.x} y={n.y} width={n.w} height={14 + n.n * 14} rx="2" class="rowsbox" />
+        <path d={`M ${n.x} ${n.y + 14} V ${n.y + 2} a2 2 0 0 1 2 -2 H ${n.x + n.w - 2} a2 2 0 0 1 2 2 V ${n.y + 14} Z`} class="solid" />
+        <text x={n.x + 7} y={n.y + 10.5} class="rowstitle">{n.title}</text>
+        {Array.from({ length: n.n - 1 }, (_, i) => (
+          <line x1={n.x} y1={n.y + 28 + i * 14} x2={n.x + n.w} y2={n.y + 28 + i * 14} class="rowsline" />
+        ))}
+      </g>
+    )}
     {n.k === "agent" && (
       <>
         <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="40" fill={`url(#${glow})`} />
@@ -57,6 +76,41 @@ const header = (x: number, y: number, w: number) =>
       </g>
     )}
     {n.k === "text" && <text x={n.x} y={n.y}>{n.text}</text>}
+    {n.k === "module" && (
+      <g class="k-module">
+        <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="8" class="module" />
+        {n.label.includes("\n") ? (
+          n.label.split("\n").map((line, i) => (
+            <text x={n.x + n.w / 2} y={n.y + (n.h > 40 ? 13 : 14) + i * 11} class="mid t0">{line}</text>
+          ))
+        ) : (
+          <text x={n.x + n.w / 2} y={n.h > 34 ? n.y + 13 : n.y + n.h / 2 + 4} class="mid t0">{n.label}</text>
+        )}
+      </g>
+    )}
+    {n.k === "chip" && (
+      <g class={n.tone === "model" ? "k-block" : "k-ok"}>
+        <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="6" class="chip" />
+        <rect x={n.x} y={n.y + 3} width="3" height={n.h - 6} rx="1.5" class="solid" />
+        <text x={n.x + 9} y={n.y + n.h / 2 + 4} class="t0">{n.label}</text>
+        {n.tone === "model" && <circle cx={n.x + n.w - 7} cy={n.y + 6} r="2.2" class="modeldot" />}
+      </g>
+    )}
+    {n.k === "arg" && (
+      <g>
+        <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={n.h / 2} class="arg" />
+        <text x={n.x + n.w / 2} y={n.y + n.h / 2 + 4} class="mid">{n.label}</text>
+      </g>
+    )}
+    {n.k === "table" && (
+      <g class="k-source">
+        <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="2" class="node square" />
+        <rect x={n.x} y={n.y} width={n.w} height="9" class="tablehead" />
+        <line x1={n.x + n.w / 3} y1={n.y} x2={n.x + n.w / 3} y2={n.y + 9} class="wire rule" />
+        <line x1={n.x + (2 * n.w) / 3} y1={n.y} x2={n.x + (2 * n.w) / 3} y2={n.y + 9} class="wire rule" />
+        <text x={n.x + n.w / 2} y={n.y + (n.h + 9) / 2 + 4} class="mid t0">{n.label}</text>
+      </g>
+    )}
     {n.k === "block" && (
       <g class="k-block">
         <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" class="body" />
@@ -75,7 +129,7 @@ const header = (x: number, y: number, w: number) =>
     {n.k === "gate" && (
       <g class={n.human ? "k-gate" : "k-ok"}>
         <path d={hex(n.cx, n.cy, n.r)} class="hexa" />
-        <text x={n.cx} y={n.human ? n.cy + n.r + 13 : n.cy - n.r - 5} class="mid tc">{n.label}</text>
+        <text x={n.cx} y={n.human && !n.above ? n.cy + n.r + 13 : n.cy - n.r - 5} class="mid tc">{n.label}</text>
       </g>
     )}
   </g>

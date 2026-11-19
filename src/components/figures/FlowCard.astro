@@ -1,0 +1,99 @@
+---
+/**
+ * One flow as a card with two faces: the drawn flow on the front and its Rust
+ * source on the back. The hero lays a card over each sheet and turns it over
+ * to show that the picture and the program are the same file.
+ *
+ * The front is a static copy of the finished sheet, cropped by its viewBox,
+ * so the card can take the sheet's place without a visible change.
+ */
+import type { FlowNode } from "../../lib/flow-nodes";
+import FlowNodes from "./FlowNodes.astro";
+
+interface Props {
+  /** the sheet's box in figure units */
+  box: { x: number; y: number; w: number; h: number };
+  name: string;
+  /** the file name, shown with the source */
+  file: string;
+  note: string;
+  tab: number;
+  module: boolean;
+  nodes: FlowNode[];
+  wires: string[];
+  ports: { x: number; y: number }[];
+  work: string[];
+  done: string[];
+  reps: { d: string; dim: string }[];
+  jig: { x: number; y: number; w: number; h: number; label: string } | null;
+  aside: { text: string; x: number; y: number } | null;
+  source: string[][];
+  style?: string;
+  coverStyle?: string;
+  /** when the faces are shown; kept off the card so its 3D is not flattened */
+  faceStyle?: string;
+}
+const { box, name, file, note, tab, module, nodes, wires, ports, work, done, reps, jig, aside, source, style, coverStyle, faceStyle } = Astro.props;
+const viewBox = `${box.x - 1} ${box.y - 1} ${box.w + 2} ${box.h + 2}`;
+
+/** Split a line of Rust into coloured tokens. */
+type Kind = "" | "kw" | "ty" | "blk" | "const" | "fn" | "mt" | "pn";
+function tokens(line: string): { text: string; kind: Kind }[] {
+  const out: { text: string; kind: Kind }[] = [];
+  const re = /\b(fn|let|struct)\b|\b([A-Z][A-Z0-9_]+)\b|\b([A-Z][A-Za-z0-9]*)\b(?=::)|\b([A-Z][A-Za-z0-9]*)\b|\b([a-z_][a-z0-9_]*)(?=\()|([{}()<>:;,.=\-]+)/g;
+  let last = 0;
+  for (const m of line.matchAll(re)) {
+    const at = m.index!;
+    if (at > last) out.push({ text: line.slice(last, at), kind: "" });
+    const kind: Kind = m[1] ? "kw" : m[2] ? "const" : m[3] ? "blk" : m[4] ? "ty" : m[5] ? (line[at - 1] === "." ? "mt" : "fn") : "pn";
+    out.push({ text: m[0], kind });
+    last = at + m[0].length;
+  }
+  if (last < line.length) out.push({ text: line.slice(last), kind: "" });
+  return out;
+}
+const LINE = 8.3;
+const COLS = [box.x + 14, box.x + 362];
+---
+
+<div class="cover t" style={coverStyle}></div>
+<div class="card" style={style} aria-hidden="true">
+  <div class="face front t" style={faceStyle}>
+    <svg class="fig" viewBox={viewBox}>
+      <rect x={box.x} y={box.y} width={box.w} height={box.h} rx="10" class:list={["file", { modfile: module }]} />
+      <path d={`M${box.x} ${box.y + 20} V${box.y + 10} a10 10 0 0 1 10 -10 H${box.x + tab} V${box.y + 20} z`} class="tab" />
+      <text x={box.x + 12} y={box.y + 15} class="t0">{name}</text>
+      <text x={box.x + box.w - 10} y={box.y + 15} class="end">{note}</text>
+      {wires.map((d) => <path d={d} class="ln" />)}
+      <FlowNodes nodes={nodes} />
+      {ports.map((p) => <circle cx={p.x} cy={p.y} r="3.5" class="port" />)}
+      {work.map((d) => <path d={d} class="work" />)}
+      {done.map((d) => <path d={d} class="work done" />)}
+      {jig && (
+        <g class="k-jig">
+          <rect x={jig.x} y={jig.y} width={jig.w} height={jig.h} rx="4" class="jigfill strong" />
+          <path d={`M ${jig.x + 12} ${jig.y} H ${jig.x} V ${jig.y + jig.h} H ${jig.x + 12}`} class="wire bracket" />
+          <path d={`M ${jig.x + jig.w - 12} ${jig.y} H ${jig.x + jig.w} V ${jig.y + jig.h} H ${jig.x + jig.w - 12}`} class="wire bracket" />
+          <text x={jig.x + 20} y={jig.y + 4} class="tc">{jig.label}</text>
+        </g>
+      )}
+      {reps.map((r) => <path d={r.d} class="work rep" style={`--dim:${r.dim}`} />)}
+      {aside && <text x={aside.x} y={aside.y} class="k-jig tc end">{aside.text}</text>}
+    </svg>
+  </div>
+  <div class="face back t" style={faceStyle}>
+    <svg class="fig" viewBox={viewBox}>
+      <rect x={box.x} y={box.y} width={box.w} height={box.h} rx="10" class:list={["file", "code", { modfile: module }]} />
+      <path d={`M${box.x} ${box.y + 20} V${box.y + 10} a10 10 0 0 1 10 -10 H${box.x + tab} V${box.y + 20} z`} class="tab" />
+      <text x={box.x + 12} y={box.y + 15} class="t0">{file}</text>
+      <text x={box.x + box.w - 10} y={box.y + 15} class="end">source</text>
+      {source.map((col, c) =>
+        col.map((line, i) => (
+          <text x={COLS[c]} y={box.y + 31 + i * LINE} class="src" xml:space="preserve">
+            {tokens(line).map((tk) => <tspan class={tk.kind}>{tk.text}</tspan>)}
+          </text>
+        )),
+      )}
+    </svg>
+  </div>
+</div>

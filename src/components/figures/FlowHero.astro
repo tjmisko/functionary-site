@@ -22,30 +22,66 @@
 import { rng, spline, type P } from "../../lib/draw";
 import type { FlowNode } from "../../lib/flow-nodes";
 import FlowNodes from "./FlowNodes.astro";
+import FlowCard from "./FlowCard.astro";
 
 const W = 1120;
-const H = 476;
+const H = 500;
+/** The sheet a flow is drawn on: left edge and width. */
+const SX = 150;
+const SW = 700;
 
-const T = {
-  ask: 0.3,
-  agent: 0.9,
-  write1: 1.5, // no flow yet: the agent takes the job itself
-  run1: 2.0,
-  react1: 4.2,
-  write2: 6.0, // the agent writes the first flow
-  run2: 7.6,
-  react2: 9.6,
-  write3: 11.2, // the flow is revised
-  run3: 12.8,
-  mark: 15.0, // Replicate goes round the judgement blocks
-  lift: 16.4, // the camera tilts; the lanes lift off the sheet
-  reps: 18.0, // each lane runs
-  settle: 21.0, // the camera returns; the lanes settle into one bundle
-  read: 22.4, // where the repeats disagree
-  end: 25.0,
+/**
+ * The timeline: each moment, and the seconds since the one before it. To make
+ * a beat longer or shorter, change its gap; everything after it moves along.
+ */
+const GAPS = {
+  ask: 0.3, // you write a prompt
+  agentIn: 2.9, // the prompt is handed over; the agent takes the whole job
+  again: 3.6, // asked again, it works differently
+  skills: 3.2, // skills: named stages the agent is steered through
+  problem: 3.8, // it follows them more or less
+  flow: 4.2, // the four skills become four agents in a row on one sheet
+  place: 2.6, // they move to where the job needs them
+  s1: 1.8, // step 1: every part's ends are fixed
+  s2: 3.0, // step 2: its structure; the per-source lanes close through a Map
+  s3: 3.2, // step 3: what is left becomes blocks
+  write3: 3.0, // the whole job is one flow
+  call: 3.6, // three parts of it are procedures in their own right
+  pull: 2.6, // each travels, unchanged, to a sheet of its own; the rest closes up into the brief
+  tuck: 4.6, // the modules tuck away behind their calls
+  run3: 0.6, // the brief runs
+  look: 3.2, // a person reads the flow: goes from step to step
+  open: 4.5, // and opens one: Prepare data
+  flip: 2.6, // the brief and the open module turn over to show their source
+  unflip: 3.2, // and turn back
+  close: 1.4, // the module closes
+  mark: 0.6, // Replicate goes round the judgement blocks; Weigh evidence opens
+  lift: 2.6, // the camera turns; the lanes lift off the sheet
+  reps: 1.6, // each lane runs
+  settle: 3.4, // the camera returns; the lanes settle into one bundle
+  read: 1.4, // where the repeats disagree
+  hide: 4.4, // the point about the paths is made; they go
+  deliver: 0.8, // what is delivered: the brief, its data and its method, from a recorded run
+  share: 4.6, // and a colleague can reproduce and check it
+  end: 4.0,
 };
+type Moment = keyof typeof GAPS;
+const T = {} as Record<Moment, number>;
+{
+  let t = 0;
+  for (const key of Object.keys(GAPS) as Moment[]) {
+    t = Math.round((t + GAPS[key]) * 100) / 100;
+    T[key] = t;
+  }
+}
+const pct = (t: number) => `${((t / T.end) * 100).toFixed(3)}%`;
+/** When something written at step `k` (1 to 3) of the flow's build first shows, plus a stagger. */
+const S = (k: number, d = 0) => [T.s1, T.s2, T.s3][k - 1] + 0.3 + d;
+/** Seconds an agent's run line takes to draw. */
+const WANDER = 1.8;
 const LIFT = 1.4;
 const SETTLE = 1.3;
+const FLIP = 0.7;
 
 const win = (t0: number, t1?: number | null) =>
   `animation: fh-in 0.4s ${t0.toFixed(2)}s both` + (t1 != null ? `, fh-out 0.35s ${t1.toFixed(2)}s forwards` : "");
@@ -56,48 +92,39 @@ const cls = (base: string, t1?: number | null) => (t1 == null ? `${base} final` 
 
 // ---- drawing helpers ------------------------------------------------------
 
-/** A looping, wandering path from (x0, y) to (x1, y), staying within ±amp. */
-function curl(x0: number, x1: number, y: number, amp: number, seed: number): P[] {
+/**
+ * An agent's path from (x0, y) to (x1, y), within about ±amp: uneven swings
+ * with an occasional loop. Between a tight coil and a zigzag.
+ */
+function meander(x0: number, x1: number, y: number, amp: number, seed: number): P[] {
   const q = rng(seed);
   const L = x1 - x0;
-  const per = Math.min(40, Math.max(15, amp * 0.42));
-  const n = Math.max(2, Math.round(L / per));
-  const ph = [q() * 6.28, q() * 6.28, q() * 6.28, q() * 6.28];
-  const f = 1 + q() * 1.2;
-  const steps = n * 10;
+  const waves = Math.max(1, L / 85) * (0.8 + 0.5 * q());
+  const ph = [q() * 6.28, q() * 6.28];
+  const count = L < 90 ? (q() < 0.7 ? 1 : 0) : Math.max(1, Math.round(L / 130 + (q() - 0.5)));
+  const loops = Array.from({ length: count }, (_, i) => ({
+    c: (i + 0.5 + (q() - 0.5) * 0.6) / count,
+    r: amp * (0.26 + 0.2 * q()),
+    w: Math.min(0.45, (34 + q() * 14) / L),
+    dir: q() < 0.5 ? -1 : 1,
+  }));
+  const steps = Math.max(28, Math.round(L / 3.5));
   const pts: P[] = [];
   for (let i = 0; i <= steps; i++) {
     const s = i / steps;
-    const env = Math.pow(Math.sin(Math.PI * s), 0.55);
-    const wander =
-      amp * 0.6 * env * (0.65 * Math.sin(2 * Math.PI * f * s + ph[0]) + 0.35 * Math.sin(2 * Math.PI * (f + 1.9) * s + ph[1]));
-    const size = 0.55 + 0.45 * Math.sin(2 * Math.PI * 1.4 * s + ph[2]) * Math.sin(2 * Math.PI * 0.6 * s + ph[3]);
-    const r = amp * 0.6 * env * size;
-    const rx = per * (0.55 + 0.6 * size) * (0.4 + 0.6 * env);
-    const th = 2 * Math.PI * n * s;
-    pts.push({ x: x0 + s * L + rx * Math.sin(th), y: y + wander + r * Math.cos(th + ph[2]) });
+    const env = Math.pow(Math.sin(Math.PI * s), 0.6);
+    let px = x0 + s * L;
+    let py = y + amp * 0.62 * env * (0.7 * Math.sin(2 * Math.PI * waves * s + ph[0]) + 0.3 * Math.sin(2 * Math.PI * waves * 2.3 * s + ph[1]));
+    for (const loop of loops) {
+      const u = (s - loop.c) / loop.w + 0.5;
+      if (u <= 0 || u >= 1) continue;
+      px -= loop.r * Math.sin(2 * Math.PI * u);
+      py += loop.dir * loop.r * (1 - Math.cos(2 * Math.PI * u));
+    }
+    pts.push({ x: px, y: Math.min(y + amp, Math.max(y - amp, py)) });
   }
   pts[0] = { x: x0, y };
   pts[pts.length - 1] = { x: x1, y };
-  return pts;
-}
-/**
- * One functionary's way through a block: a few broad swings from (x0, y) to
- * (x1, y), within ±amp. Sparser than `curl`, so five of them laid over each
- * other can still be told apart.
- */
-function wander(x0: number, x1: number, y: number, amp: number, seed: number): P[] {
-  const q = rng(seed);
-  const L = x1 - x0;
-  const m = 4 + Math.floor(q() * 2);
-  const pts: P[] = [{ x: x0, y }];
-  let side = q() < 0.5 ? -1 : 1;
-  for (let i = 1; i < m; i++) {
-    const back = (q() - 0.5) * L * 0.42;
-    pts.push({ x: Math.min(x1 - 3, Math.max(x0 + 3, x0 + (L * i) / m + back)), y: y + side * amp * (0.45 + 0.55 * q()) });
-    if (q() < 0.75) side = -side;
-  }
-  pts.push({ x: x1, y });
   return pts;
 }
 /** A spline's curve commands, without its leading move. */
@@ -107,192 +134,726 @@ const wire = (x1: number, y1: number, x2: number, y2: number) => {
   return `M ${x1} ${y1} C ${x1 + d} ${y1}, ${x2 - d} ${y2}, ${x2} ${y2}`;
 };
 
-// ---- flow revisions -------------------------------------------------------
-type Rev = {
-  name: string | null;
-  nodes: FlowNode[];
-  wires: string[];
+
+// Before any flow exists, the agent works by tool calls: it reads sources as
+// it goes, and near the end it writes and takes effect.
+// One fixed set of sources and possible effects. Each time the agent is asked
+// it takes a different route and touches a different part of the set.
+type Spot = P & { kind: "read" | "write" };
+const pool: Spot[] = [];
+{
+  const q = rng(23);
+  const place = (kind: Spot["kind"], n: number, xa: number, xb: number) => {
+    let placed = 0;
+    for (let tries = 0; placed < n && tries < 400; tries++) {
+      const spot = { kind, x: xa + q() * (xb - xa), y: 150 + q() * 212 };
+      if (pool.every((o) => Math.hypot(o.x - spot.x, (o.y - spot.y) * 1.6) > 44)) {
+        pool.push(spot);
+        placed++;
+      }
+    }
+  };
+  place("read", 9, 188, 610);
+  place("write", 8, 470, 824);
+}
+/** The arrowed calls one run makes to the spots it uses. */
+function calls(pts: P[], used: number[], t0: number, dur: number) {
+  return used.map((id) => {
+    const spot = pool[id];
+    let best = 0;
+    pts.forEach((pt, i) => {
+      if (Math.hypot(pt.x - spot.x, pt.y - spot.y) < Math.hypot(pts[best].x - spot.x, pts[best].y - spot.y)) best = i;
+    });
+    const at = pts[best];
+    // Stop the arrow at the box's edge, not its middle.
+    const dx = at.x - spot.x;
+    const dy = at.y - spot.y;
+    const k = Math.min(1, 13 / Math.max(1e-6, Math.abs(dx)), 7.5 / Math.max(1e-6, Math.abs(dy)));
+    const edge = { x: spot.x + dx * k, y: spot.y + dy * k };
+    const [from, to] = spot.kind === "read" ? [edge, at] : [at, edge];
+    return { spot, d: `M ${from.x.toFixed(1)} ${from.y.toFixed(1)} L ${to.x.toFixed(1)} ${to.y.toFixed(1)}`, t: t0 + (best / (pts.length - 1)) * dur };
+  });
+}
+// ---- act 1: working with an agent today -------------------------------------
+/** The agent's region before any flow exists: it has the whole sheet. */
+const AGENT0 = { x: 156, y: 92, w: 688, h: 316 };
+/** The prompt, written large. It then pins to the top edge of the agent's region, at half size. */
+const PROMPT = {
+  x: 350,
+  y: 138,
+  w: 420,
+  h: 225,
+  k: 0.5,
+  lines: ["Write a research brief: what does a", "four-day week do to output per hour?", "", "Review the published literature.", "Analyse hours and output data from", "the OECD, Eurostat and the BLS.", "Cite a source for every claim."],
+};
+/** Other guidance people give an agent today, beside its skills. */
+const RULES = ["AGENTS.md", "tool permissions"].map((name, i) => ({ name, i, x: 826, y: 44 + i * 20 }));
+/** Effects the tool permissions rule out: the ones the guided run never takes. */
+const denied = pool.map((spot, i) => ({ spot, i })).filter((s) => s.spot.kind === "write" && ![10, 12, 13, 15].includes(s.i));
+const DOCK = { x: 500 - (PROMPT.w * PROMPT.k) / 2, y: AGENT0.y - (PROMPT.h * PROMPT.k) / 2 };
+const DOCK_AT = T.ask + 1.7;
+/** Skills: files beside the prompt. Each marks out a stage of the job; the agent follows it loosely. */
+const ZONE = { y: 190, h: 120 };
+const SKILLS = [
+  { name: "find-sources", x: 176, w: 155 },
+  { name: "weigh-evidence", x: 341, w: 155 },
+  { name: "prepare-data", x: 506, w: 155 },
+  { name: "write-brief", x: 671, w: 155 },
+].map((s, i) => ({ ...s, i, chipX: 722, chipY: 44 + i * 20 }));
+// With skills the agent works stage by stage, but a skill is prose it interprets: its path pushes past every boundary a little.
+const skilledPts: P[] = [
+  { x: 152, y: 250 },
+  ...meander(184, 324, 250, 100, 311),
+  // Weighing evidence is where it reasons and infers intent, so there its path is at its least steady.
+  ...meander(349, 420, 250, 150, 327),
+  ...meander(420, 489, 250, 140, 333),
+  ...meander(514, 654, 250, 96, 341),
+  ...meander(679, 836, 250, 108, 355),
+];
+const freeRuns = [
+  { pts: meander(152, 846, 250, 100, 61), used: [0, 1, 3, 4, 6, 8, 9, 11, 12, 14, 16], t: T.agentIn + 0.6, out: T.again + 0.2 },
+  { pts: meander(152, 846, 250, 100, 193), used: [1, 2, 4, 5, 7, 10, 11, 13, 15], t: T.again + 0.4, out: T.skills + 0.9 },
+  { pts: skilledPts, used: [0, 2, 3, 5, 6, 8, 10, 12, 13, 15], t: T.skills + 1.5, out: T.flow },
+].map((r) => ({ ...r, d: `M 152 250${seg(r.pts)} L 866 250`, calls: calls(r.pts, r.used, r.t, WANDER) }));
+
+// ---- helpers for the flow's agent regions and their prompts ------------------
+const MORPH = 0.9;
+const EASE = "cubic-bezier(0.6, 0, 0.2, 1)";
+/** One agent region, followed through the figure: where it is and how big, from each moment on. */
+type Glow = { cx: number; cy: number; w: number; h: number };
+function glowTrack(name: string, states: (Glow & { t: number })[]) {
+  const b = states[0];
+  const tf = (s: Glow) => `translate(${(s.cx - b.cx).toFixed(1)}px, ${(s.cy - b.cy).toFixed(1)}px) scale(${(s.w / b.w).toFixed(4)}, ${(s.h / b.h).toFixed(4)})`;
+  const frames = states.map((s, i) => {
+    const from = i === 0 ? "0%" : pct(s.t + MORPH);
+    const to = states[i + 1] ? pct(states[i + 1].t) : "100%";
+    return `  ${from}, ${to} { transform: ${tf(s)}; animation-timing-function: ${EASE}; }`;
+  });
+  return { name, base: b, css: `@keyframes ${name} {\n${frames.join("\n")}\n}`, anim: `${name} ${T.end}s linear both` };
+}
+
+// ---- the whole job: one long flow, then the same shapes factored into modules ----
+// A module's blocks are drawn once, in coordinates from the top-left of its
+// sheet. In the long flow they sit inline; when the flow is factored they
+// travel, unchanged, to the module's sheet. The steps that stay in the brief
+// travel the same way to where the brief has them.
+type Box = { x: number; y: number; w: number; h: number };
+const CY = 250; // the brief, main row
+const DR = CY + 78; // the brief, lower row
+const LR = 172; // the whole-job sheet, top row: sources, then evidence
+const LC = 330; // the whole-job sheet, bottom row: data, then the brief
+const MIDY = 62; // a module's main row, from the top of its sheet
+const BRIEF = { title: "Research brief", file: "brief.rs", note: "revision 2", x: SX, y: 160, w: SW, h: 196, tab: 118 };
+const LONG = { x: SX, y: 84, w: 962, h: 332 };
+const PULL = 1.1;
+
+// The module calls in the brief.
+const CALLS = {
+  sources: { x: 158, y: CY - 22, w: 64, h: 44 },
+  evidence: { x: 316, y: CY - 22, w: 78, h: 44 },
+  data: { x: 436, y: DR - 18, w: 64, h: 36 },
+};
+/** A beam from a call to its open module, clear of both sets of rounded corners. */
+const beam = (call: Box, sheet: Box) =>
+  sheet.y > call.y
+    ? `M ${call.x + 8} ${call.y + call.h} L ${sheet.x + 10} ${sheet.y} H ${sheet.x + sheet.w - 10} L ${call.x + call.w - 8} ${call.y + call.h} Z`
+    : `M ${call.x + 8} ${call.y} L ${sheet.x + 10} ${sheet.y + sheet.h} H ${sheet.x + sheet.w - 10} L ${call.x + call.w - 8} ${call.y} Z`;
+
+type Mod = {
+  title: string;
+  label: string;
+  file: string;
+  w: number;
+  h: number;
+  tab: number;
+  /** where its sheet sits beside the brief, and where the same origin is while it is inline in the long flow */
+  home: P;
+  long: P;
+  call: Box;
+  /** the blocks that are in the long flow too */
+  core: FlowNode[];
+  coreWires: string[];
+  /** what a module adds: its arguments, its result, and jigs */
+  extra: FlowNode[];
+  extraWires: string[];
   ports: P[];
-  before: string;
-  after: string | null;
-  branch: string[];
-  flag: P | null;
-  in: number;
-  out: number | null;
-  run: number;
-  flagAt: number | null;
+  callout: Box;
+  /** when it first shows at all, when it is marked out as a procedure, and when each block and wire is written */
+  boxAt: number;
+  calloutAt: number;
+  coreT: number[];
+  wireT: number[];
+};
+const argIn = (y: number) => `M 64 ${y} C 72 ${y}, 70 ${MIDY}, 78 ${MIDY}`;
+
+// Find sources: several searches fan out, every hit is screened against a rubric,
+// and what passes is filtered and reviewed by a person into one table.
+const SEARCHES = ["papers", "reports", "datasets"].map((label, j) => ({ label, y: MIDY + (j - 1) * 24 }));
+const FS: Mod = {
+  title: "Find sources",
+  label: "find sources",
+  file: "find_sources.rs",
+  w: 406,
+  h: 112,
+  tab: 104,
+  home: { x: 150, y: 30 },
+  long: { x: 130, y: LR - MIDY },
+  call: CALLS.sources,
+  boxAt: T.s1,
+  calloutAt: T.call,
+  core: [
+    ...SEARCHES.map((s): FlowNode => ({ k: "source", label: s.label, x: 78, y: s.y - 9, w: 58, h: 18 })),
+    { k: "mapjig", label: "Map", rule: "each hit", x: 142, y: 24, w: 90, h: 76, funnel: 8 },
+    { k: "block", label: "Screen", x: 158, y: MIDY - 24, w: 58, h: 48 },
+    { k: "pill", label: "Filter", x: 236, y: MIDY - 13, w: 68 },
+    { k: "gate", label: "Review", cx: 318, cy: MIDY, r: 11, human: true },
+  ],
+  coreT: [S(1), S(1, 0.05), S(1, 0.1), S(2), S(2, 0.1), S(3), S(1, 0.15)],
+  coreWires: [...SEARCHES.map((s) => `M 136 ${s.y} C 147 ${s.y}, 147 ${MIDY}, 158 ${MIDY}`), `M 216 ${MIDY} H 236`, `M 304 ${MIDY} H 307`],
+  wireT: [S(2, 0.1), S(2, 0.1), S(2, 0.1), S(3, 0.1), S(3, 0.1)],
+  extra: [
+    { k: "arg", label: "question", x: 8, y: 38, w: 56, h: 18 },
+    { k: "arg", label: "rubric", x: 8, y: 80, w: 56, h: 18 },
+    { k: "arg", label: "Sources", x: 340, y: MIDY - 9, w: 56, h: 18 },
+  ],
+  extraWires: [...SEARCHES.map((s) => `M 64 47 C 72 47, 70 ${s.y}, 78 ${s.y}`), `M 64 92 C 116 110, 154 108, 172 86`, `M 329 ${MIDY} H 340`],
+  ports: [
+    { x: 158, y: MIDY },
+    { x: 216, y: MIDY },
+    { x: 340, y: MIDY },
+  ],
+  callout: { x: 70, y: 9, w: 272, h: 99 },
 };
 
-// Four small sources, stacked, converging on one entry point.
-const DY = [-39, -13, 13, 39];
-const stack = (cy: number): FlowNode[] =>
-  DY.map((dy) => ({ k: "mini" as const, tone: "source" as const, label: null, x: 240, y: cy + dy - 9, w: 44, h: 18 }));
-const fanIn = (cy: number, tx: number) => DY.map((dy) => `M 284 ${cy + dy} C ${tx - 22} ${cy + dy}, ${tx - 26} ${cy}, ${tx} ${cy}`);
-const stackPorts = (cy: number): P[] => DY.map((dy) => ({ x: 284, y: cy + dy }));
+// Weigh evidence: one passage, tested three ways side by side, then a Model fills the record.
+const TESTS = [
+  { label: "CheckQuote", tone: "check" as const, y: MIDY - 19 },
+  { label: "Stance", tone: "model" as const, y: MIDY },
+  { label: "Figures", tone: "model" as const, y: MIDY + 19 },
+];
+const fanOut = (y: number) => `M 132 ${MIDY} C 140 ${MIDY}, 140 ${y}, 148 ${y}`;
+const fanBack = (y: number) => `M 232 ${y} C 240 ${y}, 240 ${MIDY}, 248 ${MIDY}`;
+const WE: Mod = {
+  title: "Weigh evidence",
+  label: "weigh evidence",
+  file: "weigh_evidence.rs",
+  w: 452,
+  h: 112,
+  tab: 118,
+  home: { x: 564, y: 30 },
+  long: { x: 568, y: LR - MIDY },
+  boxAt: T.s2,
+  calloutAt: T.call + 0.2,
+  coreT: [S(2, 0.1), S(3), S(3, 0.05), S(3, 0.1), S(3, 0.15)],
+  wireT: TESTS.flatMap(() => [S(3, 0.2), S(3, 0.2)]),
+  call: CALLS.evidence,
+  core: [
+    { k: "block", label: "Quote", x: 78, y: MIDY - 24, w: 54, h: 48 },
+    ...TESTS.map((t) => ({ k: "chip" as const, tone: t.tone, label: t.label, x: 148, y: t.y - 8, w: 84, h: 16 })),
+    { k: "block", label: "Model<Evidence>", x: 248, y: MIDY - 24, w: 104, h: 48 },
+  ],
+  coreWires: TESTS.flatMap((t) => [fanOut(t.y), fanBack(t.y)]),
+  extra: [
+    { k: "arg", label: "document", x: 8, y: 38, w: 56, h: 18 },
+    { k: "arg", label: "question", x: 8, y: 68, w: 56, h: 18 },
+    { k: "arg", label: "Evidence", x: 372, y: MIDY - 9, w: 66, h: 18 },
+  ],
+  extraWires: [argIn(47), argIn(77), `M 352 ${MIDY} H 372`],
+  ports: [
+    { x: 78, y: MIDY },
+    { x: 132, y: MIDY },
+    { x: 248, y: MIDY },
+    { x: 352, y: MIDY },
+  ],
+  callout: { x: 72, y: 28, w: 286, h: 66 },
+};
+/** One repeat's path through Weigh evidence, in the module's own coordinates. */
+const throughModule = (amp: number, seed: number) =>
+  `M 64 ${MIDY} L 82 ${MIDY}${seg(meander(82, 128, MIDY + 4, amp, seed))} L 132 ${MIDY} ` +
+  TESTS.map((t, i) => `${fanOut(t.y)} ${t.tone === "model" ? `M 190 ${t.y}${seg(meander(190, 226, t.y, 5, seed + 7 + i))} L 232 ${t.y}` : ""} ${fanBack(t.y)}`).join(" ") +
+  ` M 248 ${MIDY} L 254 ${MIDY}${seg(meander(254, 346, MIDY + 6, amp, seed + 31))} L 372 ${MIDY}`;
 
-// Before any flow exists, the agent finds its own sources.
-const scatter = rng(17);
-const loose: FlowNode[] = Array.from({ length: 9 }, (_, i) => ({
-  k: "mini" as const,
-  tone: "source" as const,
-  label: null,
-  x: 252 + scatter() * 250,
-  y: 130 + scatter() * 230,
-  w: 26,
-  h: 15,
-  dim: i % 3 === 2,
-}));
+// Prepare data: three files pulled from URLs, each parsed, filtered, reshaped and checked on its own;
+// then joined with a units table, and a person reviews the combined frame.
+const FILES = ["hours", "output", "pay"].map((label, j) => ({ label, j, y: 68 + (j - 1) * 28 }));
+const PD: Mod = {
+  title: "Prepare data",
+  label: "prepare data",
+  file: "prepare_data.rs",
+  w: 542,
+  h: 124,
+  tab: 104,
+  // centred under the brief
+  home: { x: SX + (SW - 542) / 2, y: 366 },
+  long: { x: 202, y: LC - 68 },
+  call: CALLS.data,
+  boxAt: T.s1,
+  calloutAt: T.call + 0.4,
+  core: [
+    ...FILES.flatMap((f): FlowNode[] => [
+      { k: "source", label: f.label, x: 8, y: f.y - 10, w: 58, h: 20 },
+      { k: "pill", label: "Parse", x: 78, y: f.y - 13, w: 62 },
+      { k: "pill", label: "Filter", x: 150, y: f.y - 13, w: 68 },
+      { k: "pill", label: "Reshape", x: 228, y: f.y - 13, w: 76 },
+      { k: "gate", label: f.j ? "" : "Check", cx: 320, cy: f.y, r: 9 },
+    ]),
+    { k: "pill", label: "Join", x: 366, y: 55, w: 56 },
+    { k: "table", label: "units", x: 368, y: 92, w: 52, h: 24 },
+    { k: "gate", label: "Review", cx: 448, cy: 68, r: 11, human: true },
+  ],
+  coreT: [...FILES.flatMap((f) => [S(1, f.j * 0.05), S(2, f.j * 0.05), S(2, 0.1 + f.j * 0.05), S(3, f.j * 0.05), S(3, 0.1 + f.j * 0.05)]), S(2, 0.2), S(2, 0.25), S(1, 0.15)],
+  coreWires: [
+    ...FILES.flatMap((f) => [`M 66 ${f.y} H 78 M 140 ${f.y} H 150`, `M 218 ${f.y} H 228 M 304 ${f.y} H 311`, `M 329 ${f.y} C 348 ${f.y}, 348 68, 366 68`]),
+    "M 394 92 V 81",
+    "M 422 68 H 437",
+  ],
+  wireT: [...FILES.flatMap(() => [S(2, 0.1), S(3, 0.1), S(3, 0.2)]), S(2, 0.3), S(2, 0.3)],
+  extra: [{ k: "arg", label: "Dataset", x: 474, y: 59, w: 58, h: 18 }],
+  extraWires: ["M 459 68 H 474"],
+  ports: [
+    { x: 366, y: 68 },
+    { x: 474, y: 68 },
+  ],
+  callout: { x: 2, y: 13, w: 466, h: 107 },
+};
+/** Weigh evidence opens again for the repeats, below the brief, once Prepare data has closed. */
+const WE_OPEN: P = { x: 150, y: 372 };
+const MODS = [FS, WE, PD];
+const homeBox = (m: Mod): Box => ({ x: m.home.x, y: m.home.y, w: m.w, h: m.h });
+const tabPath = (x: number, y: number, tab: number) => `M${x} ${y + 20} V${y + 10} a10 10 0 0 1 10 -10 H${x + tab} V${y + 20} z`;
 
-const actions = [
-  { label: "Write", cy: 200 },
-  { label: "Commit", cy: 250 },
-  { label: "Notify", cy: 300 },
+// The steps that stay in the brief: where the brief has them, where they sit while the whole job is
+// laid out on one sheet (`lx`, on the row LR), and when each is first written.
+const ACTIONS = [-26, 0, 26].map((dy, i) => ({ label: ["Write", "Commit", "Notify"][i], cy: CY + dy }));
+const kept: { n: FlowNode; lx: number; ly: number; at: number }[] = [
+  { n: { k: "source", label: "Document", x: 242, y: CY - 12, w: 62, h: 24 }, lx: 558, ly: LR, at: S(1) },
+  { n: { k: "block", label: "Grade", x: 404, y: CY - 24, w: 52, h: 48 }, lx: 946, ly: LR, at: S(2, 0.2) },
+  { n: { k: "gate", label: "Check", cx: 496, cy: CY, r: 11 }, lx: 1032, ly: LR, at: S(1, 0.1) },
+  { n: { k: "block", label: "Test", x: 548, y: CY - 24, w: 50, h: 48 }, lx: 720, ly: LC, at: S(2) },
+  { n: { k: "block", label: "Draft", x: 630, y: CY - 24, w: 52, h: 48 }, lx: 830, ly: LC, at: S(3) },
+  { n: { k: "gate", label: "Review", cx: 712, cy: CY, r: 11, human: true, above: true }, lx: 944, ly: LC, at: S(2, 0.1) },
+  ...ACTIONS.map((a, i) => ({ n: { k: "mini" as const, tone: "egress" as const, label: a.label, x: 762, y: a.cy - 10, w: 58, h: 20 }, lx: 984, ly: LC, at: S(1, 0.1 + i * 0.05) })),
+];
+const keptNodes = kept.map((k) => k.n);
+const keptStyle = (i: number) => {
+  const n = kept[i].n;
+  const from = "cx" in n ? n.cx : n.x;
+  return `--tx:${kept[i].lx - from}px; --ty:${kept[i].ly - CY}px; animation: fh-in 0.4s ${kept[i].at.toFixed(2)}s both, fh-unshift ${PULL}s ${T.pull.toFixed(2)}s ${EASE} both`;
+};
+/** The wires that join the pieces while the whole job is on one sheet, and when each is drawn. */
+const WRAP_Y = 251;
+/** The connections between the four parts of the job. They are there from the first frame and do not change. */
+const baseWires = [
+  `M 459 ${LR} H 540`,
+  `M 1043 ${LR} H 1076 C 1106 ${LR}, 1106 ${WRAP_Y}, 1076 ${WRAP_Y} H 775 C 752 ${WRAP_Y}, 745 ${WRAP_Y + 8}, 745 ${LC - 24}`,
+  `M 661 ${LC} H 720`,
+];
+const longWires = [
+  { d: `M 540 ${LR} H 558`, at: T.s2 + 1.0 },
+  { d: `M 620 ${LR} H 646`, at: S(2, 0.2) },
+  { d: `M 920 ${LR} H 946`, at: S(3, 0.2) },
+  { d: `M 998 ${LR} H 1021`, at: S(2, 0.3) },
+  { d: `M 770 ${LC} H 830 M 882 ${LC} H 933`, at: S(3, 0.2) },
+  ...[-26, 0, 26].map((dy) => ({ d: wire(955, LC, 984, LC + dy), at: S(2, 0.3) })),
 ];
 
-// The judgement blocks that Replicate goes round, in revision 2.
-const JIG = { x: 332, y: 202, w: 246, h: 96 };
+// What Replicate goes round, in the brief: the module call and the grading.
+const JIG = { x: 308, y: CY - 42, w: 166, h: 84 };
 const jigNodes: FlowNode[] = [
-  { k: "block", label: "Extract", x: 340, y: 212, w: 72, h: 76 },
-  { k: "pill", label: "Format", x: 422, y: 237, w: 68 },
-  { k: "block", label: "Grade", x: 500, y: 212, w: 70, h: 76 },
+  { k: "module", label: "Weigh\nevidence", ...CALLS.evidence },
+  { k: "block", label: "Grade", x: 404, y: CY - 24, w: 52, h: 48 },
 ];
-const jigWires = [wire(412, 250, 422, 250), wire(490, 250, 500, 250)];
+/** What the brief gains when it is factored: a call for each module, and its jigs. */
+const briefNew: FlowNode[] = [
+  { k: "mapjig", label: "Map", rule: "each source", x: 232, y: CY - 56, w: 302, h: 112, funnel: 10 },
+  { k: "jig", label: "Refine", x: 624, y: CY - 42, w: 116, h: 98 },
+  { k: "module", label: "Find\nsources", ...CALLS.sources },
+  { k: "module", label: "Weigh\nevidence", ...CALLS.evidence },
+  { k: "module", label: "Prepare\ndata", ...CALLS.data },
+];
+// The dataset is the Test's second input.
+const dataWire = `M 500 ${DR} C 530 ${DR}, 518 ${CY + 16}, 548 ${CY + 16}`;
+// Refine holds Draft and Review: a reviewer's comments send the draft round again.
+const refineArc = `M 712 ${CY + 11} C 712 ${CY + 48}, 656 ${CY + 50}, 656 ${CY + 26}`;
+const refineLoop = `${refineArc} M 651.5 ${CY + 32} L 656 ${CY + 26} L 660.5 ${CY + 32}`;
+const branchWires = ACTIONS.map((a) => wire(723, CY, 762, a.cy));
+const briefWires = [`M 222 ${CY} H 242`, `M 304 ${CY} H 316`, `M 394 ${CY} H 404`, `M 456 ${CY} H 485`, `M 507 ${CY} H 548`, dataWire, `M 598 ${CY} H 630`, `M 682 ${CY} H 701`, refineLoop, ...branchWires];
+const briefPorts: P[] = [
+  { x: 222, y: CY },
+  { x: 316, y: CY },
+  { x: 394, y: CY },
+  { x: 456, y: CY },
+  { x: 548, y: CY },
+  { x: 548, y: CY + 16 },
+  { x: 500, y: DR },
+  { x: 598, y: CY },
+  { x: 630, y: CY },
+  { x: 682, y: CY },
+  ...ACTIONS.map((a) => ({ x: 762, y: a.cy })),
+];
+const briefNodes = [...briefNew, ...keptNodes];
+/** The brief's run: straight on the wires, uneven inside the blocks that make a judgement. */
+const briefRun = {
+  before:
+    `M 222 ${CY} L 242 ${CY} M 304 ${CY} L 316 ${CY} M 394 ${CY} L 408 ${CY}${seg(meander(408, 452, CY + 6, 14, 85))} L 485 ${CY} ${dataWire} ` +
+    `M 548 ${CY} L 552 ${CY}${seg(meander(552, 594, CY + 6, 14, 88))} L 634 ${CY}${seg(meander(634, 678, CY + 6, 14, 83))} L 701 ${CY} ${refineArc} M 630 ${CY} L 634 ${CY}${seg(meander(634, 678, CY + 6, 14, 87))} L 701 ${CY}`,
+  after: `M 507 ${CY} H 548`,
+  dur: 1.5,
+};
 
-const revs: Rev[] = [
-  {
-    name: null,
-    nodes: [{ k: "agent", x: 226, y: 92, w: 600, h: 316 }, ...loose],
-    wires: [],
-    ports: [],
-    before: `M 222 250${seg(curl(222, 826, 250, 118, 61))} L 846 250`,
-    after: null,
-    branch: [],
-    flag: { x: 700, y: 150 },
-    in: T.write1,
-    out: T.write2,
-    run: T.run1,
-    flagAt: T.react1 + 0.7,
-  },
-  {
-    name: "revision 1",
-    nodes: [
-      { k: "text", text: "Sources", x: 240, y: 194 },
-      ...stack(250),
-      { k: "jig", label: "Map, per row", x: 322, y: 124, w: 310, h: 258 },
-      { k: "block", label: "Extract", x: 338, y: 210, w: 86, h: 80 },
-      { k: "agent", x: 434, y: 144, w: 192, h: 218 },
-      { k: "gate", label: "Check", cx: 678, cy: 250, r: 24 },
-      { k: "mini", tone: "egress", label: "Write", x: 746, y: 236, w: 62, h: 28 },
+// The flows as source. Hand-written in the style of the flow language on the
+// product's F110 branch; not checked against its checker.
+const SOURCE: Record<string, string[][]> = {
+  "brief.rs": [
+    [
+      "fn judge(doc: Document) -> Graded {",
+      "    let found = weigh_evidence(doc, QUESTION, EVIDENCE);",
+      "    let grade = JudgeGrade::new(GRADE).input(found);",
+      "    Graded { found: found, grade: grade.verdict }",
+      "}",
+      "",
+      "fn each(row: Source) -> Checked {",
+      "    let doc = DocumentSource::new(row.url);",
+      "    let runs = Replicate::new(FIVE).state(doc.document).runs(judge);",
+      "    let ok = Check::new(AGREE).input(runs);",
+      "    Checked { runs: runs, ok: ok.bool }",
+      "}",
+      "",
+      "fn redraft(draft: Text) -> Text {",
+      "    let next = Draft::new(BRIEF).input(draft);",
+      "    Review::new(COMMENTS).input(next)",
+      "}",
     ],
-    wires: [...fanIn(250, 338), wire(424, 250, 454, 250), wire(604, 250, 654, 250), wire(702, 250, 746, 250)],
-    ports: [...stackPorts(250), { x: 338, y: 250 }, { x: 424, y: 250 }, { x: 746, y: 250 }],
-    before: `${fanIn(250, 338).join(" ")} M 338 250 L 342 250${seg(curl(342, 420, 258, 22, 71))} L 454 250${seg(curl(454, 604, 250, 84, 72))} L 654 250`,
-    after: "M 654 250 H 746",
-    branch: [],
-    flag: { x: 580, y: 176 },
-    in: T.write2,
-    out: T.write3,
-    run: T.run2,
-    flagAt: T.react2 + 0.5,
-  },
+    [
+      "fn flow() {",
+      "    let found = find_sources(QUESTION, SOURCES);",
+      "    let facts = Map::new(PER_SOURCE).over(found).map(each);",
+      "    let data = prepare_data(DATASET);",
+      "    let tested = Model::<Finding>::new(HYPOTHESIS)",
+      "        .input(Claims { facts, data });",
+      "    let brief = Refine::new(UNTIL_APPROVED).state(tested)",
+      "        .body(redraft).check(approved);",
+      "    let file = Write::new(REPORT).input(brief);",
+      "    let saved = KnowledgeWrite::new(FINDINGS).input(tested);",
+      "    let sent = Notify::new(TEAM).input(brief);",
+      "}",
+    ],
+  ],
+  "prepare_data.rs": [
+    [
+      "fn clean(url: Url) -> Frame {",
+      "    let rows = Parse::new(PARSE).input(UrlSource::new(url));",
+      "    let kept = Filter::new(VALID).input(rows.table);",
+      "    let tidy = Reshape::new(LONG).input(kept.table);",
+      "    Check::new(SCHEMA).input(tidy.table)",
+      "}",
+      "fn prepare_data(cfg: DataSettings) -> Dataset {",
+      "    let frames = [clean(HOURS), clean(OUTPUT), clean(PAY)];",
+      "    let joined = Join::new(cfg.join).inputs(frames).with(UNITS);",
+      "    Review::new(cfg.review).input(joined.table)",
+      "}",
+    ],
+  ],
+};
+
+// ---- reading the flow: a person goes from step to step, and opens one ----------
+const LOOK = [
+  { x: 34, y: 216, t: T.look },
+  { x: 190, y: 208, t: T.look + 0.9 }, // Find sources
+  { x: 573, y: 206, t: T.look + 2.6 }, // Test
+  { x: 418, y: 330, t: T.open - 0.2 }, // Prepare data, which they open
+];
+const lookRings = [
+  { ...CALLS.sources, t0: LOOK[1].t, t1: LOOK[1].t + 1.0 },
+  { x: 548, y: CY - 24, w: 50, h: 48, t0: LOOK[2].t, t1: LOOK[2].t + 1.0 },
+  { ...CALLS.data, t0: LOOK[3].t, t1: T.close },
+];
+const lookCss = `@keyframes fh-look {\n${LOOK.map((p, i) => `  ${i === 0 ? "0%, " : ""}${pct(p.t)}${LOOK[i + 1] ? `, ${pct(LOOK[i + 1].t - 0.8)}` : ", 100%"} { transform: translate(${p.x}px, ${p.y}px); animation-timing-function: ${EASE}; }`).join("\n")}\n}`;
+/** Modules that open again on their own beside the brief. */
+const opens = [
   {
-    name: "revision 2",
-    nodes: [
-      { k: "text", text: "Sources", x: 240, y: 194 },
-      ...stack(250),
-      { k: "jig", label: "Map, per row", x: 322, y: 150, w: 320, h: 206 },
-      ...jigNodes,
-      { k: "gate", label: "Check", cx: 612, cy: 250, r: 19 },
-      { k: "gate", label: "Review", cx: 686, cy: 250, r: 22, human: true },
-      ...actions.map((a) => ({ k: "mini" as const, tone: "egress" as const, label: a.label, x: 754, y: a.cy - 13, w: 64, h: 26 })),
-    ],
-    wires: [
-      ...fanIn(250, 340),
-      ...jigWires,
-      wire(570, 250, 593, 250),
-      "M 328 250 C 342 330, 560 334, 602 266",
-      wire(631, 250, 664, 250),
-      ...actions.map((a) => wire(708, 250, 754, a.cy)),
-    ],
-    ports: [...stackPorts(250), { x: 340, y: 250 }, { x: 412, y: 250 }, { x: 500, y: 250 }, { x: 570, y: 250 }, ...actions.map((a) => ({ x: 754, y: a.cy }))],
-    before: `${fanIn(250, 340).join(" ")} M 340 250 L 344 250${seg(curl(344, 408, 258, 20, 81))} L 422 250 M 490 250 L 504 250${seg(curl(504, 566, 258, 20, 82))} L 593 250`,
-    after: "M 593 250 H 664",
-    branch: actions.map((a) => wire(708, 250, 754, a.cy)),
-    flag: null,
-    in: T.write3,
-    out: null,
-    run: T.run3,
-    flagAt: null,
+    m: PD,
+    at: PD.home,
+    cls: "t",
+    style: `transform-origin:${CALLS.data.x + CALLS.data.w / 2}px ${CALLS.data.y + CALLS.data.h}px; animation: fh-pop 0.5s ${T.open.toFixed(2)}s ${EASE} both, fh-out 0.3s ${T.close.toFixed(2)}s forwards`,
   },
+  // Weigh evidence, for the repeats. It closes as the camera turns back.
+  { m: WE, at: WE_OPEN, cls: "t", style: win(T.mark - 0.2, T.settle + 0.2) },
+];
+
+// ---- the flow takes shape -------------------------------------------------------
+// The four skills become four agent blocks, wired as the job runs: sources, then evidence, on the top row;
+// the data, then the brief, on the bottom row. The blocks and their wires stay where they are. Then all four
+// are written out together, in three steps; at each step every agent block is left with less.
+const centred = (b: Box): Glow => ({ cx: b.x + b.w / 2, cy: b.y + b.h / 2, w: b.w, h: b.h });
+const CARD_H = 84;
+const CARDS: Box[] = [
+  { x: 208, y: LR - CARD_H / 2, w: 251, h: CARD_H },
+  { x: 540, y: LR - CARD_H / 2, w: 530, h: CARD_H },
+  { x: 210, y: LC - CARD_H / 2, w: 451, h: CARD_H },
+  { x: 720, y: LC - CARD_H / 2, w: 322, h: CARD_H },
+];
+/** An agent block's header band, as the canvas draws it. */
+const BAND = 13;
+/** Each agent block at steps 1 and 2. By step 3 it is gone. */
+const cloudSteps: Glow[][] = [
+  [{ cx: 352, cy: LR, w: 152, h: 60 }, { cx: 400, cy: LR, w: 68, h: 42 }],
+  [{ cx: 819, cy: LR, w: 378, h: 24 }, { cx: 823, cy: LR, w: 230, h: 46 }],
+  [{ cx: 455, cy: LC, w: 350, h: 82 }, { cx: 494, cy: LC, w: 128, h: 82 }],
+  [{ cx: 847, cy: LC, w: 254, h: 82 }, { cx: 852, cy: LC, w: 140, h: 50 }],
+];
+const stagePrompts = [
+  ["Screen and filter the hits", "Filter"],
+  ["", "Judge the passage"],
+  ["Clean and join the files", "Reshape and check"],
+  ["Test the claim, then draft the brief", "Draft"],
+];
+const bandOf = (g: Glow): Glow => ({ cx: g.cx, cy: g.cy - g.h / 2 + BAND / 2, w: g.w, h: BAND });
+const stages = SKILLS.map((s, i) => {
+  const card = CARDS[i];
+  const track = [
+    { t: 0, ...centred(card) },
+    { t: T.s1, ...cloudSteps[i][0] },
+    { t: T.s2, ...cloudSteps[i][1] },
+  ];
+  return {
+    i,
+    title: s.name.replace("-", " ").replace(/^./, (c) => c.toUpperCase()),
+    card,
+    fields: [
+      ["Tools", `${[3, 2, 4, 2][i]} Allowed`],
+      ["Network", i === 3 ? "Off" : "On"],
+      ["Max Steps", `${[40, 60, 30, 20][i]}`],
+    ],
+    // the skill's zone, drawn in to the block's outline
+    box: glowTrack(`fh-box${i}`, [
+      { t: 0, cx: s.x + s.w / 2, cy: ZONE.y + ZONE.h / 2, w: s.w, h: ZONE.h },
+      { t: T.flow, ...centred(card) },
+    ]),
+    // The agent block: one surface, a body and a header band, followed to the last step.
+    cloud: glowTrack(`fh-agent${i}`, track),
+    band: glowTrack(`fh-agentband${i}`, track.map((g) => ({ t: g.t, ...bandOf(g) }))),
+  };
+});
+// The agent that began with the whole job goes into the Weigh evidence block.
+const mainGlow = glowTrack("fh-glow-main", [{ t: 0, cx: 500, cy: 250, w: AGENT0.w, h: AGENT0.h }, { t: T.flow, ...centred(CARDS[1]) }]);
+// Wires that end on a port at a block's edge.
+type Link = { d: string; ports: P[] };
+const link = (x1: number, y1: number, x2: number, y2: number, ends: "both" | "from" | "to" | "none" = "both"): Link => ({
+  d: y1 === y2 ? `M ${x1} ${y1} H ${x2}` : `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`,
+  ports: [...(ends === "both" || ends === "from" ? [{ x: x1, y: y1 }] : []), ...(ends === "both" || ends === "to" ? [{ x: x2, y: y2 }] : [])],
+});
+// While the four are whole blocks: the question comes in to the two that start the job, and the brief goes out.
+const blockLinks: Link[] = [link(LONG.x, 250, 208, LR, "to"), link(LONG.x, 250, 210, LC, "to"), link(1042, LC, LONG.x + LONG.w, LC, "from")];
+const blockPorts: P[] = [...blockLinks.flatMap((l) => l.ports), { x: 459, y: LR }, { x: 540, y: LR }, { x: 1070, y: LR }, { x: 745, y: LC - CARD_H / 2 }, { x: 661, y: LC }, { x: 720, y: LC }];
+// At steps 1 and 2 each agent block is wired to the fixed steps on either side of it.
+const LANE_Y = [LR - 32, LR, LR + 32];
+const DATA_Y = [LC - 28, LC, LC + 28];
+const stepLinks: Link[][] = [
+  [
+    ...[LR - 24, LR, LR + 24].map((y) => link(266, y, 276, y, "to")),
+    link(428, LR, 437, LR, "from"),
+    ...LANE_Y.flatMap((y) => [link(620, y, 630, y, "to"), link(1008, y, 1021, LR, "from")]),
+    ...DATA_Y.map((y) => link(268, y, 280, y, "to")),
+    link(630, LC, 639, LC, "from"),
+    link(712, LC, 720, LC, "to"),
+    ...[-26, 0, 26].map((dy) => link(974, LC + dy, 984, LC + dy, "from")),
+  ],
+  [
+    link(358, LR, 366, LR, "to"),
+    link(434, LR, 437, LR, "from"),
+    link(700, LR, 708, LR, "to"),
+    link(938, LR, 946, LR, "from"),
+    ...DATA_Y.map((y) => link(420, y, 430, y, "to")),
+    link(558, LC, 568, LC, "from"),
+    link(770, LC, 782, LC, "to"),
+    link(922, LC, 933, LC, "from"),
+  ],
+];
+// What the whole-job sheet has that the brief redraws: the Map round the per-source steps, and Refine.
+const bigMap: FlowNode[] = [{ k: "mapjig", label: "Map", rule: "each source", x: 540, y: LR - 50, w: 530, h: 100, funnel: 10 }];
+const stageRefine: FlowNode[] = [{ k: "jig", label: "Refine", x: 800, y: LC - 40, w: 112, h: 90 }];
+const stageLoop = `M 944 ${LC + 11} C 944 ${LC + 42}, 856 ${LC + 44}, 856 ${LC + 26} M 851.5 ${LC + 32} L 856 ${LC + 26} L 860.5 ${LC + 32}`;
+// Weigh evidence is first drawn once per source: three lanes, each a document and a narrow agent. A Map closes them into one.
+const LANE_CLOUD = cloudSteps[1][0];
+const sideDocs = [0, 2].map((i) => ({
+  nodes: [{ k: "source", label: "Document", x: 558, y: LANE_Y[i] - 12, w: 62, h: 24 }] as FlowNode[],
+  style: `--ty:${LR - LANE_Y[i]}px; animation: fh-in 0.4s ${S(1).toFixed(2)}s both, fh-shift 0.9s ${T.s2.toFixed(2)}s ${EASE} both, fh-out 0.3s ${(T.s2 + 0.75).toFixed(2)}s forwards`,
+}));
+const laneFan = LANE_Y.map((y) => `M 540 ${LR} C 549 ${LR}, 549 ${y}, 558 ${y}`);
+const sideLanes = [0, 2].map((i) => {
+  const track = [
+    { t: 0, cx: LANE_CLOUD.cx, cy: LANE_Y[i], w: LANE_CLOUD.w, h: LANE_CLOUD.h },
+    { t: T.s2, cx: LANE_CLOUD.cx, cy: LR, w: LANE_CLOUD.w, h: LANE_CLOUD.h },
+  ];
+  return { i, cloud: glowTrack(`fh-agent-lane${i}`, track), band: glowTrack(`fh-agentband-lane${i}`, track.map((g) => ({ t: g.t, ...bandOf(g) }))) };
+});
+/** Each agent block's title once the writing-out starts: its job, in a line. The lines get shorter as the blocks do. */
+const titleAt = (g: Glow) => ({ x: g.cx - g.w / 2 + 7, y: g.cy - g.h / 2 + 9.5 });
+const chips = [
+  ...[0, 1].flatMap((k) =>
+    stagePrompts
+      .map((p, i) => ({ text: p[k], ...titleAt(cloudSteps[i][k]), t0: [T.s1, T.s2][k] + 0.7, t1: [T.s2, T.s3][k] }))
+      .filter((c) => c.text),
+  ),
+  ...LANE_Y.map((y, i) => ({ text: "Weigh this source", ...titleAt({ ...LANE_CLOUD, cy: y }), t0: T.s1 + 0.7 + i * 0.08, t1: T.s2 })),
 ];
 
 // ---- results --------------------------------------------------------------
-const RX = 868;
-const rowY = (i: number) => 124 + i * 24;
+const RX = 880;
+/** A result is a document: a page with a folded corner and a few lines. */
+const page = (x: number, y: number, w: number, h: number, v = 0) => {
+  const c = Math.min(7, w * 0.3);
+  return {
+    sheet: `M ${x} ${y} H ${x + w - c} L ${x + w} ${y + c} V ${y + h} H ${x} Z`,
+    marks: `M ${x + w - c} ${y} V ${y + c} H ${x + w} ` + [0.4, 0.58, 0.76].map((f, i) => `M ${x + w * 0.16} ${y + h * f} H ${x + w * (i === (2 + v) % 3 ? 0.58 : v && i === 2 ? 0.7 : 0.84)}`).join(" "),
+  };
+};
+/** Where the i-th result of a single run sits: two columns of documents. */
+const docAt = (i: number) => ({ x: RX + (i % 2) * 80, y: CY - 96 + Math.floor(i / 2) * 50, w: 62, h: 42 });
+const OK8 = ["ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok"];
+// Before there is a flow, the job has three outputs: the brief, the data behind it, and the method that was followed.
+// Nothing judges them yet. From one run to the next each is only the same, or different.
+const OX = 884;
+const OW = 66;
+const OUTS = [
+  { key: "brief", label: "brief", y: 158, h: 54 },
+  { key: "data", label: "data", y: 228, h: 45 },
+  { key: "method", label: "methodology", y: 289, h: 54 },
+];
+/** One output's outline and inner marks. `v` varies what is in it, for a run that came out differently. */
+function outShape(key: string, y: number, h: number, v: number) {
+  if (key === "data") {
+    const lit = [[], [[1, 1], [2, 2]], [[0, 2], [2, 1], [1, 3]]][v % 3];
+    return {
+      sheet: `M ${OX} ${y} H ${OX + OW} V ${y + h} H ${OX} Z`,
+      marks: [9, 18, 27, 36].map((r) => `M ${OX} ${y + r} H ${OX + OW}`).join(" ") + ` M ${OX + 22} ${y} V ${y + h} M ${OX + 44} ${y} V ${y + h}`,
+      cells: lit.map(([c, r]) => ({ x: OX + c * 22 + 2, y: y + r * 9 + 2, w: 18, h: 5 })),
+    };
+  }
+  if (key === "method") {
+    const pg = page(OX, y, OW, h);
+    const ends = [0.84, 0.62, 0.76, 0.5];
+    return {
+      sheet: pg.sheet,
+      marks: `M ${OX + OW - 7} ${y} V ${y + 7} H ${OX + OW} ` + [0.36, 0.56, 0.76].map((f, i) => `M ${OX + 8} ${y + h * f} h 3 M ${OX + 16} ${y + h * f} H ${OX + OW * ends[(i + v) % 4]}`).join(" "),
+      cells: [],
+    };
+  }
+  return { ...page(OX, y, OW, h, v), cells: [] };
+}
+const outRuns = [
+  { t: T.agentIn + 1.7, out: T.again + 0.3, s: ["same", "same", "same"], mark: null, unmark: null },
+  { t: T.again + 1.5, out: T.skills + 1.2, s: ["diff", "diff", "diff"], mark: null, unmark: null },
+  { t: T.skills + 2.7, out: T.flow + 0.3, s: ["same", "diff", "diff"], mark: T.problem + 0.3, unmark: T.flow },
+].map((run, r) => ({ ...run, items: OUTS.map((o, i) => ({ ...o, state: run.s[i], shape: outShape(o.key, o.y, o.h, run.s[i] === "diff" ? r : 0) })) }));
 const runs = [
-  { t: T.run1 + 0.7, out: T.run2 + 0.7, s: ["ok", "bad", "ok", "review", "bad", "ok", "bad", "ok"], mark: T.react1 + 0.2, unmark: T.write2 + 0.4 },
-  { t: T.run2 + 0.7, out: T.run3 + 0.7, s: ["ok", "ok", "ok", "review", "ok", "ok", "bad", "ok"], mark: T.react2 + 0.2, unmark: T.write3 + 0.4 },
-  { t: T.run3 + 0.7, out: T.lift, s: ["ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok"], mark: null, unmark: null },
+  { t: T.run3 + 1.6, out: T.lift, s: OK8, mark: null, unmark: null },
+];
+const resultsShown = [
+  [T.agentIn + 1.5, T.flow + 0.3],
+  [T.run3 + 1.5, T.lift],
 ];
 
-const arcD = "M 943 330 C 943 436, 800 450, 540 450 S 40 436, 40 304";
+const arcD = "M 955 358 C 955 452, 800 470, 540 470 S 34 440, 34 304";
 const arcs = [
-  { t: T.react1 + 0.4, dur: 1.2, out: T.run2 },
-  { t: T.react2 + 0.3, dur: 1.0, out: T.run3 },
+  { t: T.problem + 0.5, dur: 1.2, out: T.flow + 0.3 },
 ];
 
 const captions = [
-  { t: 0.2, out: T.write1, text: "You hand the job to an agent." },
-  { t: T.write1, out: T.react1, text: "With no flow yet, it finds sources and does the work its own way." },
-  { t: T.react1, out: T.write2, text: "You react to the results, and to how it got them." },
-  { t: T.write2, out: T.run2, text: "The agent writes what worked into a flow." },
-  { t: T.run2, out: T.react2, text: "The runtime executes the flow and records the run." },
-  { t: T.react2, out: T.write3, text: "You react again. The agent revises the flow." },
-  { t: T.write3, out: T.mark, text: "Each revision fixes more of the process and of how the information is framed." },
-  { t: T.mark, out: T.reps, text: "Some blocks are judgement calls. Replicate repeats just those blocks on the same input." },
-  { t: T.reps, out: T.settle, text: "Each repeat follows the same wires and finds its own way through the blocks." },
-  { t: T.settle, out: null, text: "Where the repeats disagree, the answer depends on who did the work." },
+  { t: 0.2, out: T.agentIn, text: "Today, an agent gets its job as a prompt." },
+  { t: T.agentIn, out: T.again, text: "How the work gets done is left to the agent." },
+  { t: T.again, out: T.skills, text: "Were you to run it again, the result might come out differently." },
+  { t: T.skills, out: T.problem, text: "Skills, an AGENTS.md and tool permissions all help to steer it." },
+  { t: T.problem, out: T.flow, text: "But guidance is prose the agent interprets, not a program it runs. The work still varies." },
+  { t: T.flow, out: T.s1, text: "In Functionary, a second agent, the authoring agent, works with you to turn that guidance into a flow." },
+  { t: T.s1, out: T.s2, text: "A flow names what may be read and written, and fixes what each part must return." },
+  { t: T.s2, out: T.s3, text: "Work that repeats is written once. Steps that need no judgement become plain code." },
+  { t: T.s3, out: T.write3, text: "What is left to a model is a few narrow jobs, each in a block of its own." },
+  { t: T.write3, out: T.call, text: "The whole job is now one program. The runtime executes it and records every step." },
+  { t: T.call, out: T.pull, text: "Parts of it are procedures in their own right." },
+  { t: T.pull, out: T.tuck, text: "Each becomes a module: written once, and called wherever it is needed." },
+  { t: T.tuck, out: T.look, text: "What you have now is the process that produces the answer, not only the answer." },
+  { t: T.look, out: T.flip, text: "Every step is legible. Go to any one, open it, and see exactly what it does." },
+  { t: T.flip, out: T.close, text: "Underneath, it is code: a small Rust program that encodes the process." },
+  { t: T.close, out: T.reps, text: "Some steps are judgement calls. Replicate runs them several times on the same input." },
+  { t: T.reps, out: T.settle, text: "Same input, same wires, five independent passes." },
+  { t: T.settle, out: T.deliver, text: "Where the passes disagree, the method leaves room for more than one answer. That is the part to understand better." },
+  { t: T.deliver, out: T.share, text: "The answer now arrives with its data, its method and a record of every step." },
+  { t: T.share, out: null, text: "Work a colleague can reproduce and check. Work you can stand behind." },
 ];
 
 // ---- replicate ------------------------------------------------------------
 const REPS = 5;
 /** Depth between lanes, in hundredths of the figure's width. */
-const DZ = 5.3;
+const DZ = 4.5;
 /** Which repeat lands apart from the others in the lane the camera watches. */
 const ODD = 3;
 const lanes = Array.from({ length: REPS }, (_, j) => {
   const q = rng(300 + j * 7);
-  const a1 = 22 + q() * 10;
-  const a2 = 22 + q() * 10;
+  const a1 = 8 + q() * 3;
+  const a2 = 18 + q() * 8;
   return {
     j,
     k: j + 1,
     path:
-      `M ${JIG.x} 250 L 344 250${seg(wander(344, 408, 252, a1, 410 + j * 13))} L 422 250 ` +
-      `M 490 250 L 504 250${seg(wander(504, 566, 252, a2, 520 + j * 17))} L ${JIG.x + JIG.w} 250`,
+      `M ${JIG.x} ${CY} L 320 ${CY}${seg(meander(320, 390, CY + 12, a1 * 0.75, 410 + j * 13))} ` +
+      `L 406 ${CY}${seg(meander(406, 458, CY + 2, a2, 520 + j * 17))} L ${JIG.x + JIG.w} ${CY}`,
+    inModule: throughModule(12 + q() * 5, 610 + j * 41),
     t: T.reps + j * 0.2,
     odd: j === ODD,
   };
 });
 const RUN = 1.7;
 
-const MX = 856;
-const gridY = (i: number) => 150 + i * 24;
+const MX = 880;
+const gridY = (i: number) => CY - 93 + i * 24;
 const differs = new Set([`1:${ODD}`, "4:1", "4:4", "6:2", `6:${ODD}`]);
 const agree = (i: number) => REPS - [...differs].filter((d) => d.startsWith(`${i}:`)).length;
 const rowsN = 8;
 const beats = captions.slice(1).map((c) => (c.t / T.end) * 100);
 
+// ---- cards: each sheet again, as a card that turns over to show its source
+const cards = [
+  { at: { x: BRIEF.x, y: BRIEF.y }, box: { x: BRIEF.x, y: BRIEF.y, w: BRIEF.w, h: BRIEF.h }, name: BRIEF.title, file: BRIEF.file, note: BRIEF.note, tab: BRIEF.tab, module: false, nodes: briefNodes, wires: briefWires, ports: briefPorts },
+  { at: PD.home, box: { x: 0, y: 0, w: PD.w, h: PD.h }, name: PD.title, file: PD.file, note: "module", tab: PD.tab, module: true, nodes: [...PD.core, ...PD.extra], wires: [...PD.coreWires, ...PD.extraWires], ports: PD.ports },
+].map((sh) => {
+  const place = `left:${(sh.at.x / W) * 100}%; top:${(sh.at.y / H) * 100}%; width:${(sh.box.w / W) * 100}%; height:${(sh.box.h / H) * 100}%`;
+  const shown = `fh-in 0.12s ${(T.flip - 0.12).toFixed(2)}s both, fh-out 0.12s ${(T.unflip + FLIP + 0.05).toFixed(2)}s forwards`;
+  return {
+    box: sh.box,
+    name: sh.name,
+    file: sh.file,
+    note: sh.note,
+    tab: sh.tab,
+    module: sh.module,
+    nodes: sh.nodes,
+    wires: sh.wires,
+    ports: sh.ports,
+    work: [] as string[],
+    done: [] as string[],
+    reps: [] as { d: string; dim: string }[],
+    jig: null,
+    aside: null,
+    source: SOURCE[sh.file],
+    coverStyle: `${place}; animation: ${shown}`,
+    faceStyle: `animation: ${shown}`,
+    // Both cards turn at the same moment.
+    style: `${place}; animation: fh-flip ${FLIP}s ${T.flip.toFixed(2)}s linear both, fh-unflip ${FLIP}s ${T.unflip.toFixed(2)}s linear forwards`,
+  };
+});
+
 // ---- camera ---------------------------------------------------------------
-const pct = (t: number) => `${((t / T.end) * 100).toFixed(3)}%`;
-const FACE = "translate3d(0, 0, 0) rotateX(0deg) rotateZ(0deg) scale(1)";
-const TILT = "translate3d(1cqw, 10cqw, 0) rotateX(62deg) rotateZ(-9deg) scale(1)";
+const FACE = "translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) scale(1)";
+const TILT = "translate3d(1cqw, -1cqw, 0) rotateX(-13deg) rotateY(20deg) scale(1)";
 const css = `
 @keyframes fh-cam {
   0%, ${pct(T.lift)} { transform: ${FACE}; animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }
   ${pct(T.lift + LIFT)}, ${pct(T.settle)} { transform: ${TILT}; animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }
   ${pct(T.settle + SETTLE)}, 100% { transform: ${FACE}; }
 }
+${[...stages.flatMap((st) => [st.box, st.cloud, st.band]), ...sideLanes.flatMap((g) => [g.cloud, g.band]), mainGlow].map((g) => g.css).join("\n")}
+${lookCss}
 .fh .world { animation: fh-cam ${T.end}s linear both; }
 .fh .clock { animation: fh-clock ${T.end}s linear both; }
 .fh .lift { animation: fh-lift ${LIFT}s ${T.lift}s cubic-bezier(0.6, 0, 0.2, 1) both, fh-drop ${SETTLE}s ${T.settle}s cubic-bezier(0.6, 0, 0.2, 1) forwards; }
@@ -303,14 +864,9 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
 
 <figure class="plate fh">
   <style is:inline set:html={css}></style>
-  <div data-hero-stage data-total={T.end}>
+  <div data-hero-stage data-total={T.end} data-beats={JSON.stringify(captions.map((c) => [c.t, c.out ?? T.end]))}>
     <div class="ground scroll">
       <div class="frame" style={`--dz:${DZ}cqw; --reps:${REPS}`}>
-        <div class="caps">
-          {captions.map((c) => (
-            <p class={cls("t cap", c.out)} style={win(c.t, c.out)}>{c.text}</p>
-          ))}
-        </div>
         <div class="viewport">
           <div class="world">
             <!-- the flow sheet, z = 0 -->
@@ -319,67 +875,279 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
                 <marker id="fh-ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
                   <path d="M0 0L8 4L0 8z" class="arrow" />
                 </marker>
+                <marker id="fh-ah-read" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M0 0L8 4L0 8z" class="k-source solid" />
+                </marker>
+                <marker id="fh-ah-write" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M0 0L8 4L0 8z" class="k-egress solid" />
+                </marker>
                 <radialGradient id="fh-glow">
                   <stop offset="0" stop-color="var(--cat-agent)" stop-opacity="0.34" />
                   <stop offset="0.55" stop-color="var(--cat-agent)" stop-opacity="0.2" />
                   <stop offset="1" stop-color="var(--cat-agent)" stop-opacity="0" />
                 </radialGradient>
+                <filter id="fh-feather" x="-20%" y="-60%" width="140%" height="220%">
+                  <feGaussianBlur stdDeviation="2.6" />
+                </filter>
               </defs>
 
               <!-- you -->
               <g class="you">
-                <circle cx="40" cy="238" r="7" />
-                <path d="M27 262 a13 12 0 0 1 26 0" />
-                <text x="40" y="286" class="mid t0">you</text>
+                <circle cx="34" cy="238" r="7" />
+                <path d="M21 262 a13 12 0 0 1 26 0" />
               </g>
-              <line x1="60" y1="250" x2="110" y2="250" class="ln d" pathLength="1" style={draw(T.ask, 0.5)} marker-end="url(#fh-ah)" />
+              <!-- with no flow there is only the agent at work; the authoring agent arrives with the flow -->
+              <line x1="50" y1="250" x2="146" y2="250" class="ln d" pathLength="1" style={draw(DOCK_AT + 0.3, 0.5, T.flow)} marker-end="url(#fh-ah)" />
+              <!-- you and the authoring agent work back and forth; it writes the flow -->
+              <line x1="50" y1="245" x2="70" y2="245" class="ln d final" pathLength="1" style={draw(T.flow + 0.2, 0.3)} marker-end="url(#fh-ah)" />
+              <line x1="72" y1="255" x2="52" y2="255" class="ln d final" pathLength="1" style={draw(T.flow + 0.5, 0.3)} marker-end="url(#fh-ah)" />
+              <g class="t final k-agent" style={win(T.flow + 0.2)}>
+                <circle cx="104" cy="250" r="30" class="authorfill" />
+                <circle cx="104" cy="250" r="30" fill="url(#fh-glow)" />
+                <circle cx="104" cy="250" r="30" class="authorring" />
+                <text x="104" y="253" class="mid t0 authortext">Authoring</text>
+                <text x="104" y="265" class="mid t0 authortext">Agent</text>
+              </g>
+              <line x1="136" y1="250" x2="147" y2="250" class="ln d final" pathLength="1" style={draw(T.flow + 0.4, 0.3)} marker-end="url(#fh-ah)" />
 
-              <!-- agent -->
-              <g class="t final k-agent" style={win(T.agent)}>
-                <circle cx="140" cy="250" r="26" class="node" />
-                <text x="140" y="254" class="mid t0">agent</text>
+              <!-- one sheet from the first flow to the end: wide while the whole job is laid out on it, then drawn in round the brief -->
+              <rect x={LONG.x} y={LONG.y} width={LONG.w} height={LONG.h} rx="10" class="t final file sheetmorph" style={`transform-origin:${LONG.x}px ${LONG.y}px; --ty:${BRIEF.y - LONG.y}px; --kx:${(BRIEF.w / LONG.w).toFixed(4)}; --ky:${(BRIEF.h / LONG.h).toFixed(4)}; animation: fh-in 0.4s ${(T.flow + 0.2).toFixed(2)}s both, fh-sheet ${PULL}s ${T.pull.toFixed(2)}s ${EASE} both`} />
+              <g class="t final tabmove" style={`--ty:${BRIEF.y - LONG.y}px; animation: fh-in 0.4s ${(T.flow + 0.2).toFixed(2)}s both, fh-shift ${PULL}s ${T.pull.toFixed(2)}s ${EASE} both`}>
+                <path d={tabPath(LONG.x, LONG.y, BRIEF.tab)} class="tab" />
+                <text x={LONG.x + 12} y={LONG.y + 15} class="t0">{BRIEF.title}</text>
               </g>
-              <line x1="168" y1="250" x2="216" y2="250" class="ln d" pathLength="1" style={draw(T.write1 - 0.3, 0.5)} marker-end="url(#fh-ah)" />
+              <text x={LONG.x + LONG.w - 10} y={LONG.y + 15} class="t end" style={win(T.flow + 0.2, T.pull)}>revision 1</text>
+              <text x={BRIEF.x + BRIEF.w - 10} y={BRIEF.y + 15} class="t final end" style={win(T.pull + PULL)}>{BRIEF.note}</text>
 
-              <!-- flow.rs -->
-              <g class="t" style={win(T.write1, T.write2)}>
-                <rect x="220" y="84" width="610" height="332" rx="10" class="file nofile" />
-                <text x="232" y="104">no flow yet</text>
+              <!-- the wires to and from the agent blocks: the row's, then the regions', then each step's -->
+              <g class="t" style={`animation: fh-in 0.4s ${(T.flow + 0.7).toFixed(2)}s both, fh-out 0.2s ${T.pull.toFixed(2)}s forwards`}>
+                {baseWires.map((d) => (
+                  <path d={d} class="ln" />
+                ))}
               </g>
-              <g class="t final" style={win(T.write2)}>
-                <rect x="220" y="84" width="610" height="332" rx="10" class="file" />
-                <path d="M220 104 V94 a10 10 0 0 1 10 -10 H306 V104 z" class="tab" />
-                <text x="232" y="99" class="t0">flow.rs</text>
+              <g class="t" style={win(T.flow + 0.7, T.s1)}>
+                {blockLinks.map((l) => (
+                  <path d={l.d} class="ln" />
+                ))}
               </g>
-
-              {revs.map((rev) => (
+              {stepLinks.map((links, k) => (
+                <g class="t" style={win([T.s1, T.s2][k] + 0.7, [T.s2, T.s3][k])}>
+                  {links.map((l) => (
+                    <path d={l.d} class="ln" />
+                  ))}
+                </g>
+              ))}
+              <!-- the agent that had the whole job goes into one of the four blocks -->
+              <rect x={mainGlow.base.cx - mainGlow.base.w / 2} y={mainGlow.base.cy - mainGlow.base.h / 2} width={mainGlow.base.w} height={mainGlow.base.h} rx="40" fill="url(#fh-glow)" class="t" style={`transform-origin:${mainGlow.base.cx}px ${mainGlow.base.cy}px; ${win(DOCK_AT + 0.3, T.flow + 0.5)}, ${mainGlow.anim}`} />
+              <!-- the agent blocks, as the canvas draws them: one soft-edged surface, a header band and a body. Each is left with less at every step, and goes. -->
+              {[...stages.map((st) => ({ ...st, t0: T.flow + 0.3, t1: T.s3 + 0.2 })), ...sideLanes.map((g) => ({ ...g, t0: T.s1 + 0.5, t1: T.s2 + 0.75 }))].map((a) => (
+                <g class="t" filter="url(#fh-feather)" style={win(a.t0, a.t1)}>
+                  <rect x={a.cloud.base.cx - a.cloud.base.w / 2} y={a.cloud.base.cy - a.cloud.base.h / 2} width={a.cloud.base.w} height={a.cloud.base.h} rx="3" class="agentbody" style={`transform-origin:${a.cloud.base.cx}px ${a.cloud.base.cy}px; animation: ${a.cloud.anim}`} />
+                  <rect x={a.band.base.cx - a.band.base.w / 2} y={a.band.base.cy - a.band.base.h / 2} width={a.band.base.w} height={a.band.base.h} rx="3" class="agentband" style={`transform-origin:${a.band.base.cx}px ${a.band.base.cy}px; animation: ${a.band.anim}`} />
+                </g>
+              ))}
+              {stages.map((st) => (
+                <g class="t" style={win(T.flow + 0.5, T.s1)}>
+                  <text x={st.card.x + 8} y={st.card.y + 9.5} class="agenthead">{st.title}</text>
+                  {st.fields.map(([name, value], j) => (
+                    <>
+                      <text x={st.card.x + 12} y={st.card.y + 35 + j * 17} class="agentfield">{name}</text>
+                      <text x={st.card.x + 196} y={st.card.y + 35 + j * 17} class="agentfield end val">{value}</text>
+                    </>
+                  ))}
+                </g>
+              ))}
+              <g class="t" style={win(T.flow + 0.7, T.s1)}>
+                {blockPorts.map((pt) => (
+                  <circle cx={pt.x} cy={pt.y} r="3.5" class="port" />
+                ))}
+              </g>
+              {stepLinks.map((links, k) => (
+                <g class="t" style={win([T.s1, T.s2][k] + 0.7, [T.s2, T.s3][k])}>
+                  {links.flatMap((l) => l.ports).map((pt) => (
+                    <circle cx={pt.x} cy={pt.y} r="2.6" class="port" />
+                  ))}
+                </g>
+              ))}
+              <!-- each skill's region: first a stage of the agent's work, then an agent of its own in a row, then a region of the flow -->
+              {stages.map((st) => (
                 <>
-                  {rev.name && (
-                    <text x="820" y="99" class={cls("t end", rev.out)} style={win(rev.in, rev.out)}>{rev.name}</text>
-                  )}
-                  <g class={cls("t", rev.out)} style={win(rev.in + 0.25, rev.out)}>
-                    {rev.wires.map((d) => (
+                  <rect x={st.box.base.cx - st.box.base.w / 2} y={st.box.base.cy - st.box.base.h / 2} width={st.box.base.w} height={st.box.base.h} rx="26" class="t zone sheetmorph" style={`transform-origin:${st.box.base.cx}px ${st.box.base.cy}px; animation: fh-in 0.4s ${(T.skills + 0.9 + st.i * 0.1).toFixed(2)}s both, fh-out 0.4s ${(T.flow + 0.3).toFixed(2)}s forwards, ${st.box.anim}`} />
+                </>
+              ))}
+              {SKILLS.map((s) => (
+                <text x={s.chipX + 7} y={s.chipY} class="t skilltext zonetext" style={`--tx:${s.x + 14 - s.chipX - 7}px; --ty:${ZONE.y - 7 - s.chipY}px; animation: fh-in 0.15s ${(T.skills + 0.4 + s.i * 0.1).toFixed(2)}s both, fh-shift 0.8s ${(T.skills + 0.45 + s.i * 0.1).toFixed(2)}s ${EASE} both, fh-out 0.35s ${T.flow.toFixed(2)}s forwards`}>{s.name}</text>
+              ))}
+
+              <!-- a beam from each call to its module, behind everything -->
+              {MODS.map((m) => (
+                <path d={beam(m.call, homeBox(m))} class="t beam" style={win(T.pull + PULL + 0.1, T.tuck)} />
+              ))}
+              <path d={beam(PD.call, homeBox(PD))} class="t beam" style={win(T.open + 0.3, T.close)} />
+              <path d={beam(WE.call, { ...WE_OPEN, w: WE.w, h: WE.h })} class="t beam" style={win(T.mark - 0.2, T.settle + 0.2)} />
+
+              <!-- the wires that join the regions while the whole job is on one sheet; then the brief's own -->
+              {longWires.map((w) => (
+                <path d={w.d} class="t ln" style={`animation: fh-in 0.4s ${w.at.toFixed(2)}s both, fh-out 0.2s ${T.pull.toFixed(2)}s forwards`} />
+              ))}
+              {laneFan.map((d) => (
+                <path d={d} class="t ln" style={win(T.s1 + 0.5, T.s2)} />
+              ))}
+              <g class="t" style={`animation: fh-in 0.4s ${(T.s2 + 0.6).toFixed(2)}s both, fh-out 0.2s ${T.pull.toFixed(2)}s forwards`}>
+                <FlowNodes nodes={bigMap} />
+              </g>
+              <g class="t" style={`animation: fh-in 0.4s ${S(3, 0.1).toFixed(2)}s both, fh-out 0.2s ${T.pull.toFixed(2)}s forwards`}>
+                <FlowNodes nodes={stageRefine} />
+                <path d={stageLoop} class="ln" />
+              </g>
+              <g class="t final" style={win(T.pull + PULL - 0.1)}>
+                {briefWires.map((d) => (
+                  <path d={d} class="ln" />
+                ))}
+              </g>
+              <!-- what the brief gains when it is factored: a call for each module, and its jigs -->
+              <FlowNodes nodes={briefNew} cls="t final" styleAt={(i) => win(T.pull + PULL - 0.2 + i * 0.05)} />
+              <!-- the steps that stay in the brief: the same shapes, travelling from the whole-job sheet to their place in it -->
+              <FlowNodes nodes={keptNodes} cls="t final" styleAt={keptStyle} />
+              {sideDocs.map((doc) => (
+                <FlowNodes nodes={doc.nodes} cls="t" styleAt={() => doc.style} />
+              ))}
+              <g class="t final" style={win(T.pull + PULL + 0.1)}>
+                {briefPorts.map((p) => (
+                  <circle cx={p.x} cy={p.y} r="3.5" class="port" />
+                ))}
+              </g>
+              <path d={briefRun.before} class="d work" pathLength="1" style={draw(T.run3, briefRun.dur, T.look)} />
+              <path d={briefRun.after} class="d work done" pathLength="1" style={draw(T.run3 + briefRun.dur - 0.1, 0.45, T.look)} />
+              {branchWires.map((d, i) => (
+                <path d={d} class="d work done" pathLength="1" style={draw(T.run3 + briefRun.dur + 0.6 + i * 0.15, 0.3, T.look)} />
+              ))}
+
+              <!-- each module: a region of the whole-job sheet, written out there; then it travels, unchanged, to a sheet of its own -->
+              {MODS.map((m) => (
+                <g class="t" style={`--tx:${m.long.x - m.home.x}px; --ty:${m.long.y - m.home.y}px; animation: fh-in 0.4s ${m.boxAt.toFixed(2)}s both, fh-unshift ${PULL}s ${T.pull.toFixed(2)}s ${EASE} both, fh-out 0.35s ${T.tuck.toFixed(2)}s forwards`}>
+                  <g transform={`translate(${m.home.x} ${m.home.y})`}>
+                    <g class="t" style={win(T.pull + PULL - 0.1)}>
+                      <rect x="0" y="0" width={m.w} height={m.h} rx="10" class="file modfile" />
+                      <path d={tabPath(0, 0, m.tab)} class="tab" />
+                      <text x="12" y="15" class="t0">{m.title}</text>
+                      <text x={m.w - 10} y="15" class="end">module</text>
+                      {m.extraWires.map((d) => (
+                        <path d={d} class="ln" />
+                      ))}
+                      <FlowNodes nodes={m.extra} />
+                    </g>
+                    <g class="t" style={win(m.calloutAt, T.pull + PULL - 0.1)}>
+                      <rect x={m.callout.x} y={m.callout.y} width={m.callout.w} height={m.callout.h} rx="8" class="callout" />
+                      <text x={m.callout.x + 6} y={m.callout.y - 5} class="calltext">{m.label}</text>
+                    </g>
+                    {m.coreWires.map((d, i) => (
+                      <path d={d} class="t ln" style={win(m.wireT[i])} />
+                    ))}
+                    <FlowNodes nodes={m.core} cls="t" styleAt={(i) => win(m.coreT[i])} />
+                  </g>
+                </g>
+              ))}
+
+              <!-- a module open on its own beside the brief: Prepare data when it is looked into, Weigh evidence for the repeats -->
+              {opens.map((o) => (
+                <g class={o.cls} style={o.style}>
+                  <g transform={`translate(${o.at.x} ${o.at.y})`}>
+                    <rect x="0" y="0" width={o.m.w} height={o.m.h} rx="10" class="file modfile" />
+                    <path d={tabPath(0, 0, o.m.tab)} class="tab" />
+                    <text x="12" y="15" class="t0">{o.m.title}</text>
+                    <text x={o.m.w - 10} y="15" class="end">module</text>
+                    {[...o.m.coreWires, ...o.m.extraWires].map((d) => (
                       <path d={d} class="ln" />
                     ))}
-                  </g>
-                  <FlowNodes nodes={rev.nodes} cls={cls("t", rev.out)} styleAt={(i) => win(rev.in + i * 0.09, rev.out)} />
-                  <g class={cls("t", rev.out)} style={win(rev.in + 0.5, rev.out)}>
-                    {rev.ports.map((p) => (
-                      <circle cx={p.x} cy={p.y} r="3.5" class="port" />
+                    <FlowNodes nodes={[...o.m.core, ...o.m.extra]} />
+                    {o.m.ports.map((pt) => (
+                      <circle cx={pt.x} cy={pt.y} r="3.5" class="port" />
                     ))}
                   </g>
-                  {rev.flag && rev.flagAt != null && (
-                    <circle cx={rev.flag.x} cy={rev.flag.y} r="6" class="t flag" style={win(rev.flagAt, rev.out)} />
-                  )}
-                  <path d={rev.before} class={cls("d work", rev.out)} pathLength="1" style={draw(rev.run, 1.4, rev.out)} />
-                  {rev.after && (
-                    <path d={rev.after} class={cls("d work done", rev.out)} pathLength="1" style={draw(rev.run + 1.3, 0.45, rev.out)} />
-                  )}
-                  {rev.branch.map((d, i) => (
-                    <path d={d} class={cls("d work done", rev.out)} pathLength="1" style={draw(rev.run + 2.0 + i * 0.15, 0.3, rev.out)} />
+                </g>
+              ))}
+              <path d={`M 104 281 C 104 ${WE_OPEN.y + 56}, 118 ${WE_OPEN.y + 56}, 146 ${WE_OPEN.y + 56}`} class="ln d" pathLength="1" style={draw(T.mark - 0.2, 0.4, T.settle + 0.2)} marker-end="url(#fh-ah)" />
+              <g transform={`translate(${WE_OPEN.x} ${WE_OPEN.y})`}>
+                {lanes.map((lane) => (
+                  <path d={lane.inModule} class="d work rep" pathLength="1" style={`${draw(lane.t, RUN, T.settle + 0.2)}; --dim:${(0.55 + 0.45 * (lane.k / REPS)).toFixed(2)}`} />
+                ))}
+              </g>
+
+              <!-- reading the flow: a person goes from step to step -->
+              {lookRings.map((r) => (
+                <rect x={r.x - 4} y={r.y - 4} width={r.w + 8} height={r.h + 8} rx="11" class="t ring" style={win(r.t0, r.t1)} />
+              ))}
+              <g class="t you looker" style={`${win(T.look, T.close)}, fh-look ${T.end}s linear both`}>
+                <circle cx="0" cy="-8" r="4.5" />
+                <path d="M -8 7 a8 7.5 0 0 1 16 0" />
+              </g>
+
+              <!-- act 1: with no flow, the agent's work is a run of tool calls -->
+              <g class="t" style={win(T.agentIn + 0.3, T.flow)}>
+                <rect x="170" y="424" width="12" height="9" rx="1.5" class="k-source node square" />
+                <text x="187" y="432" class="k-source tc">sources</text>
+                <rect x="252" y="424" width="12" height="9" rx="1.5" class="k-egress node square" />
+                <text x="269" y="432" class="k-egress tc">effects</text>
+              </g>
+              {pool.map((spot, i) => (
+                <g class={`t ${spot.kind === "read" ? "k-source" : "k-egress"}`} style={win(T.agentIn + 0.2 + i * 0.03, T.flow + 0.1)}>
+                  <rect x={spot.x - 13} y={spot.y - 7.5} width="26" height="15" rx="1.5" class="node square dim" />
+                </g>
+              ))}
+              {freeRuns.map((run) => (
+                <>
+                  <path d={run.d} class="d work free" pathLength="1" style={draw(run.t, WANDER, run.out)} />
+                  {run.calls.map((c) => (
+                    <g class={`t ${c.spot.kind === "read" ? "k-source" : "k-egress"}`} style={win(c.t, run.out)}>
+                      <rect x={c.spot.x - 13} y={c.spot.y - 7.5} width="26" height="15" rx="1.5" class="node square" />
+                      <line x1={c.spot.x - 7} y1={c.spot.y} x2={c.spot.x + 5} y2={c.spot.y} class="wire rule" />
+                      <path d={c.d} class="wire call" marker-end={`url(#fh-ah-${c.spot.kind})`} />
+                    </g>
                   ))}
                 </>
               ))}
+
+              <!-- each agent's prompt, on the top edge of its region -->
+              {chips.map((c) => (
+                <text x={c.x} y={c.y} class="t agenthead" style={win(c.t0, c.t1)}>{c.text}</text>
+              ))}
+              <!-- the opening prompt once it has been read: its question, on the top edge of the agent's region -->
+              <g class="t" style={win(DOCK_AT + 0.6, T.flow)}>
+                <rect x="358" y={AGENT0.y - 26} width="284" height="46" rx="7" class="promptcard" />
+                <text x="372" y={AGENT0.y - 8} class="promptline">Write a research brief: what does a</text>
+                <text x="372" y={AGENT0.y + 8} class="promptline">four-day week do to output per hour? …</text>
+              </g>
+
+              <!-- the agent's name, over its run line -->
+              <text x="500" y="168" class="t mid t0 agentname" style={win(DOCK_AT + 0.6, T.flow)}>Agent</text>
+              <!-- skills: files beside the prompt -->
+              <text x="722" y="26" class="t k-accent tc" style={win(T.skills, T.flow)}>skills</text>
+              {SKILLS.map((s) => (
+                <g class="t" style={win(T.skills + s.i * 0.12, T.flow)}>
+                  <rect x={s.chipX} y={s.chipY - 11} width="90" height="16" rx="3" class="skillchip" />
+                  <text x={s.chipX + 7} y={s.chipY} class="skilltext">{s.name}</text>
+                </g>
+              ))}
+              <!-- and the rest of today's guidance: an AGENTS.md, and limits on which tools it may use -->
+              <text x="826" y="26" class="t k-accent tc" style={win(T.skills + 0.3, T.flow)}>rules</text>
+              {RULES.map((r) => (
+                <g class="t" style={win(T.skills + 0.4 + r.i * 0.12, T.flow)}>
+                  <rect x={r.x} y={r.y - 11} width="106" height="16" rx="3" class="skillchip" />
+                  <text x={r.x + 7} y={r.y} class="skilltext">{r.name}</text>
+                </g>
+              ))}
+              {denied.map((s) => (
+                <path d={`M ${s.spot.x - 6} ${s.spot.y - 6} L ${s.spot.x + 6} ${s.spot.y + 6} M ${s.spot.x + 6} ${s.spot.y - 6} L ${s.spot.x - 6} ${s.spot.y + 6}`} class="t deny" style={win(T.skills + 1.0 + s.i * 0.04, T.flow)} />
+              ))}
+              <!-- the prompt, written large, then pinned to the agent it is handed to -->
+              <g class="t" style={`--tx:${DOCK.x - PROMPT.x}px; --ty:${DOCK.y - PROMPT.y}px; --k:${PROMPT.k}; transform-origin:${PROMPT.x}px ${PROMPT.y}px; animation: fh-in 0.35s ${(T.ask + 0.2).toFixed(2)}s both, fh-pull 0.85s ${DOCK_AT.toFixed(2)}s ${EASE} both, fh-out 0.3s ${(DOCK_AT + 0.6).toFixed(2)}s forwards`}>
+                <rect x={PROMPT.x} y={PROMPT.y} width={PROMPT.w} height={PROMPT.h} rx="12" class="promptcard" />
+                <text x={PROMPT.x + 22} y={PROMPT.y + 30} class="prompthead">prompt</text>
+                {PROMPT.lines.map((line, i) => (
+                  <text x={PROMPT.x + 22} y={PROMPT.y + 62 + i * 24} class="t prompttext" style={win(T.ask + 0.4 + i * 0.16)}>{line}</text>
+                ))}
+              </g>
 
               <!-- Replicate goes round the judgement blocks -->
               <g class="t final k-jig" style={win(T.mark)}>
@@ -389,72 +1157,126 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
                 <text x={JIG.x + 20} y={JIG.y + 4} class="tc">Replicate, {REPS} times</text>
               </g>
 
-              <line x1="832" y1="250" x2="860" y2="250" class="ln d" pathLength="1" style={draw(T.run1 + 0.4, 0.4)} marker-end="url(#fh-ah)" />
+              <line x1="852" y1="250" x2="872" y2="250" class="ln d" pathLength="1" style={draw(T.agentIn + 1.0, 0.4, T.flow)} marker-end="url(#fh-ah)" />
+              <line x1="852" y1="250" x2="872" y2="250" class="ln d final" pathLength="1" style={draw(T.tuck, 0.4)} marker-end="url(#fh-ah)" />
 
-              <!-- results -->
-              <text x={RX} y="104" class="t t0" style={win(T.run1 + 0.5, T.lift)}>results</text>
-              {runs.map((run) =>
-                run.s.map((state, i) => (
+              <!-- before any flow: the job's three outputs, each drawn as what it is -->
+              {OUTS.map((o) => (
+                <text x={OX + OW + 8} y={o.y + o.h / 2 + 4} class="t" style={win(T.agentIn + 1.6, T.flow + 0.3)}>{o.label}</text>
+              ))}
+              {outRuns.map((run) =>
+                run.items.map((o, i) => (
                   <>
-                    <rect x={RX} y={rowY(i)} width="150" height="13" rx="3" class={`t row ${state}`} style={win(run.t + i * 0.07, run.out)} />
-                    {run.mark != null && state !== "ok" && (
-                      <rect x={RX - 5} y={rowY(i) - 5} width="160" height="23" rx="6" class="t ring" style={win(run.mark + i * 0.05, run.unmark)} />
+                    <g class={`t row ${o.state}`} style={win(run.t + i * 0.12, run.out)}>
+                      <path d={o.shape.sheet} />
+                      <path d={o.shape.marks} class="docmarks" />
+                      {o.shape.cells.map((c) => (
+                        <rect x={c.x} y={c.y} width={c.w} height={c.h} class="cellmark" />
+                      ))}
+                    </g>
+                    {run.mark != null && o.state === "diff" && (
+                      <rect x={OX - 5} y={o.y - 5} width={OW + 10} height={o.h + 10} rx="6" class="t ring" style={win(run.mark + i * 0.08, run.unmark)} />
                     )}
                   </>
                 )),
+              )}
+              <!-- results: one document each -->
+              {resultsShown.map(([t0, t1]) => (
+                <text x={RX} y={CY - 108} class="t t0" style={win(t0, t1)}>results</text>
+              ))}
+              {runs.map((run, r) =>
+                run.s.map((state, i) => {
+                  const d = docAt(i);
+                  const pg = page(d.x, d.y, d.w, d.h, state === "diff" ? 1 + ((r + i) % 2) : 0);
+                  return (
+                    <>
+                      <g class={`t row ${state}`} style={win(run.t + i * 0.07, run.out)}>
+                        <path d={pg.sheet} />
+                        <path d={pg.marks} class="docmarks" />
+                      </g>
+                      {run.mark != null && state !== "ok" && state !== "same" && (
+                        <rect x={d.x - 5} y={d.y - 5} width={d.w + 10} height={d.h + 10} rx="6" class="t ring" style={win(run.mark + i * 0.05, run.unmark)} />
+                      )}
+                    </>
+                  );
+                }),
               )}
 
               <!-- the loop closes -->
               {arcs.map((a) => (
                 <>
                   <path d={arcD} class="d arc" pathLength="1" style={draw(a.t, a.dur, a.out)} />
-                  <path d="M34 314 L40 302 L46 314 Z" class="t arrow-you" style={win(a.t + a.dur - 0.15, a.out)} />
+                  <path d="M28 314 L34 302 L40 314 Z" class="t arrow-you" style={win(a.t + a.dur - 0.15, a.out)} />
                 </>
               ))}
 
               <!-- one column of results per repeat -->
-              <text x={MX} y="124" class="t final t0" style={win(T.reps + 0.6)}>results, per repeat</text>
+              <text x={MX} y={CY - 108} class="t t0" style={win(T.reps + 0.6, T.deliver)}>results, per repeat</text>
               {Array.from({ length: REPS }, (_, j) =>
-                Array.from({ length: rowsN }, (_, i) => (
-                  <rect
-                    x={MX + j * 25}
-                    y={gridY(i)}
-                    width="20"
-                    height="13"
-                    rx="3"
-                    class={`t final row ${differs.has(`${i}:${j}`) ? "review" : "ok"}`}
-                    style={win(lanes[j].t + RUN + i * 0.03)}
-                  />
-                )),
+                Array.from({ length: rowsN }, (_, i) => {
+                  const pg = page(MX + j * 25, gridY(i) - 3, 17, 19);
+                  return (
+                    <g class={`t row ${differs.has(`${i}:${j}`) ? "review" : "ok"}`} style={win(lanes[j].t + RUN + i * 0.03, T.deliver)}>
+                      <path d={pg.sheet} />
+                      <path d={pg.marks} class="docmarks" />
+                    </g>
+                  );
+                }),
               )}
 
               <!-- how far the repeats agree, row by row -->
-              <text x="1008" y="124" class="t final t0" style={win(T.read)}>agree</text>
+              <text x="1016" y={CY - 108} class="t t0" style={win(T.read, T.deliver)}>agree</text>
               {Array.from({ length: rowsN }, (_, i) => (
                 <>
-                  <line x1={MX + REPS * 25 - 2} y1={gridY(i) + 6.5} x2="1004" y2={gridY(i) + 6.5} class="ln d final" pathLength="1" style={draw(T.read + i * 0.05, 0.3)} />
-                  <rect x="1008" y={gridY(i)} width={18 * agree(i)} height="13" rx="3" class={`t final row ${agree(i) === REPS ? "ok" : "review"}`} style={win(T.read + 0.3 + i * 0.05)} />
+                  <line x1={MX + REPS * 25 - 4} y1={gridY(i) + 6.5} x2="1012" y2={gridY(i) + 6.5} class="ln d" pathLength="1" style={draw(T.read + i * 0.05, 0.3, T.deliver)} />
+                  <rect x="1016" y={gridY(i)} width={18 * agree(i)} height="13" rx="3" class={`t row ${agree(i) === REPS ? "ok" : "review"}`} style={win(T.read + 0.3 + i * 0.05, T.deliver)} />
                   {agree(i) < REPS && (
-                    <rect x={MX - 5} y={gridY(i) - 5} width="258" height="23" rx="6" class="t final ring" style={win(T.read + 0.9 + i * 0.05)} />
+                    <rect x={MX - 5} y={gridY(i) - 6} width="236" height="25" rx="6" class="t ring" style={win(T.read + 0.9 + i * 0.05, T.deliver)} />
                   )}
                 </>
               ))}
-              <text x={MX} y="360" class="t final k-gate tc" style={win(T.read + 1.1)}>3 rows where the repeats disagree</text>
+              <text x={MX} y={CY + 116} class="t k-gate tc" style={win(T.read + 1.1, T.deliver)}>3 rows where the repeats disagree</text>
+
+              <!-- what is delivered: the same three outputs the job began with, now produced by a recorded run -->
+              <path d={briefRun.after} class="d work done final" pathLength="1" style={draw(T.deliver + 0.5, 0.45)} />
+              {branchWires.map((d, i) => (
+                <path d={d} class="d work done final" pathLength="1" style={draw(T.deliver + 0.9 + i * 0.15, 0.3)} />
+              ))}
+              <text x={RX} y={CY - 108} class="t final t0" style={win(T.deliver + 0.4)}>results</text>
+              {OUTS.map((o, i) => {
+                const shape = outShape(o.key, o.y, o.h, 0);
+                return (
+                  <>
+                    <g class="t final row ok" style={win(T.deliver + 1.2 + i * 0.2)}>
+                      <path d={shape.sheet} />
+                      <path d={shape.marks} class="docmarks" />
+                    </g>
+                    <text x={OX + OW + 8} y={o.y + o.h / 2 + 4} class="t final t0" style={win(T.deliver + 1.2 + i * 0.2)}>{o.label}</text>
+                    <path d={`M ${OX + OW - 13} ${o.y + o.h - 10} l 3.5 3.5 l 6.5 -8`} class="t final tick" style={win(T.deliver + 1.9 + i * 0.2)} />
+                  </>
+                );
+              })}
+              <text x={OX} y={OUTS[2].y + OUTS[2].h + 20} class="t final k-ok tc" style={win(T.deliver + 2.6)}>every step on the record</text>
 
               <!-- colleagues can use the stabilized flow too -->
-              <g class="t final you colleagues" style={win(T.read + 1.3)}>
-                <circle cx="26" cy="340" r="6" />
-                <path d="M15 361 a11 10 0 0 1 22 0" />
-                <circle cx="56" cy="340" r="6" />
-                <path d="M45 361 a11 10 0 0 1 22 0" />
-                <text x="41" y="384" class="mid t0">colleagues</text>
+              <g class="t final you colleagues" style={win(T.share)}>
+                <circle cx="22" cy="340" r="6" />
+                <path d="M11 361 a11 10 0 0 1 22 0" />
+                <circle cx="50" cy="340" r="6" />
+                <path d="M39 361 a11 10 0 0 1 22 0" />
+                <text x="38" y="384" class="mid t0">colleagues</text>
               </g>
-              <path d="M74 352 C 130 352, 150 338, 208 338" class="ln d final" pathLength="1" style={draw(T.read + 1.5, 0.4)} marker-end="url(#fh-ah)" />
+              <path d="M68 352 C 100 352, 110 338, 142 338" class="ln d final" pathLength="1" style={draw(T.share + 0.3, 0.4)} marker-end="url(#fh-ah)" />
             </svg>
 
+            <!-- each flow, as a card that turns over to show its source -->
+            {cards.map((card) => (
+              <FlowCard {...card} />
+            ))}
+
             <!-- the rails the lanes ride on -->
-            <div class="post" style={at(JIG.x, 250)}></div>
-            <div class="post" style={at(JIG.x + JIG.w, 250)}></div>
+            <div class="post" style={at(JIG.x, CY)}></div>
+            <div class="post" style={at(JIG.x + JIG.w, CY)}></div>
 
             <!-- one lane per repeat, lifted off the sheet -->
             {lanes.map((lane) => (
@@ -462,28 +1284,31 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
               <svg class="fig" viewBox={`0 0 ${W} ${H}`}>
                 <g class="t" style={win(T.lift, T.settle + SETTLE - 0.3)}>
                   <rect x={JIG.x} y={JIG.y} width={JIG.w} height={JIG.h} rx="4" class="lanecard" />
-                  {jigWires.map((d) => (
-                    <path d={d} class="ln" />
-                  ))}
-                  <FlowNodes nodes={jigNodes} />
-                  <circle cx={JIG.x} cy="250" r="3.5" class="port" />
-                  <circle cx={JIG.x + JIG.w} cy="250" r="3.5" class="port" />
-                  <text x={JIG.x + JIG.w - 8} y={JIG.y + 9} class="end replabel">repeat {lane.k}</text>
+                  {jigNodes.map((n) =>
+                    n.k === "block" ? (
+                      <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" class="ghostbox" />
+                    ) : n.k === "module" ? (
+                      <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="8" class="ghostbox" />
+                    ) : null,
+                  )}
+                  <circle cx={JIG.x} cy={CY} r="3" class="port" />
+                  <circle cx={JIG.x + JIG.w} cy={CY} r="3" class="port" />
                 </g>
-                <path d={lane.path} class="d work rep final" pathLength="1" style={draw(lane.t, RUN)} />
-                <rect
-                  x={JIG.x + JIG.w + 8}
-                  y="243"
-                  width="20"
-                  height="13"
-                  rx="3"
-                  class={`t row ${lane.odd ? "review" : "ok"}`}
-                  style={win(lane.t + RUN - 0.1, T.settle + 0.2)}
-                />
+                <path d={lane.path} class="d work rep" pathLength="1" style={`${draw(lane.t, RUN, T.hide)}; --dim:${(0.55 + 0.45 * (lane.k / REPS)).toFixed(2)}`} />
+                <g class={`t row ${lane.odd ? "review" : "ok"}`} style={win(lane.t + RUN - 0.1, T.settle + 0.2)}>
+                  <path d={page(JIG.x + JIG.w + 8, CY - 10, 17, 19).sheet} />
+                  <path d={page(JIG.x + JIG.w + 8, CY - 10, 17, 19).marks} class="docmarks" />
+                </g>
               </svg>
               </div>
             ))}
           </div>
+        </div>
+        <!-- subtitles: one per beat, centred in a band under the drawing -->
+        <div class="caps">
+          {captions.map((c) => (
+            <p class={cls("t cap", c.out)} style={`animation: fh-in 0.3s ${(c.t + 0.25).toFixed(2)}s both` + (c.out != null ? `, fh-out 0.2s ${c.out.toFixed(2)}s forwards` : "")}><span>{c.text}</span></p>
+          ))}
         </div>
       </div>
     </div>
@@ -562,10 +1387,54 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
       label();
     };
 
+    // When the figure is pinned inside a tall section, the scroll position
+    // sets the clock. It plays by itself until the reader first scrolls.
+    const section = stage.closest<HTMLElement>("[data-hero-scroll]");
+    const pin = section?.firstElementChild as HTMLElement | null;
+    const pinned = () => !!section && !!pin && getComputedStyle(pin).position === "sticky";
+    const travel = () => section!.offsetHeight - pin!.offsetHeight;
+    const pinTop = () => parseFloat(getComputedStyle(pin!).top) || 0;
+    const progress = () => Math.min(1, Math.max(0, (pinTop() - section!.getBoundingClientRect().top) / Math.max(1, travel())));
+    let following = false;
+    let target = 0;
+    const follow = () => {
+      if (playing) {
+        following = false;
+        return;
+      }
+      const gap = target - now;
+      seek(Math.abs(gap) < 8 ? target : now + gap * 0.18);
+      label();
+      if (now === target) {
+        following = false;
+        return;
+      }
+      requestAnimationFrame(follow);
+    };
+    const onScroll = () => {
+      if (!pinned()) return;
+      const p = progress();
+      // Stay with autoplay until the reader has actually moved the page.
+      if (playing && p < 0.004) return;
+      playing = false;
+      target = p * total;
+      if (!following) {
+        following = true;
+        requestAnimationFrame(follow);
+      }
+    };
+
     toggle.addEventListener("click", () => (playing ? pause() : play()));
     scrub.addEventListener("input", () => {
       pause();
-      seek(Number(scrub.value) * 1000);
+      const to = Number(scrub.value) * 1000;
+      if (pinned()) {
+        // Move the page, so the scroll position and the clock stay in step.
+        const top = section!.getBoundingClientRect().top + scrollY - pinTop();
+        scrollTo({ top: top + (to / total) * travel() });
+        return;
+      }
+      seek(to);
     });
 
     const frozen = new URLSearchParams(location.search).get("t");
@@ -575,6 +1444,8 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
       label();
     } else {
       play();
+      addEventListener("scroll", onScroll, { passive: true });
+      addEventListener("resize", onScroll);
     }
     (stage as HTMLElement & { hero?: unknown }).hero = { seek: (s: number) => (pause(), seek(s * 1000, true)), play, pause };
   }
@@ -609,6 +1480,45 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
     from { transform: translateZ(calc(var(--k) * var(--dz))); }
     to { transform: translateZ(0); }
   }
+  /* A card turns about its own middle, so it comes forward as it turns to stay clear of the sheet behind it. */
+  @keyframes fh-shift {
+    from { transform: translate(0px, 0px); }
+    to { transform: translate(var(--tx, 0px), var(--ty, 0px)); }
+  }
+  /* Drawn where it ends up; starts displaced, and travels home. */
+  @keyframes fh-unshift {
+    from { transform: translate(var(--tx, 0px), var(--ty, 0px)); }
+    to { transform: translate(0px, 0px); }
+  }
+  /* The long flow's sheet draws in to the brief's. */
+  @keyframes fh-sheet {
+    from { transform: translate(0px, 0px) scale(1, 1); }
+    to { transform: translate(0px, var(--ty)) scale(var(--kx), var(--ky)); }
+  }
+  /* A skill's region moves and resizes into its region of the flow. */
+  @keyframes fh-box {
+    from { transform: translate(0px, 0px) scale(1, 1); }
+    to { transform: translate(var(--tx), var(--ty)) scale(var(--kx), var(--ky)); }
+  }
+  /* A module opens out of the block that calls it. */
+  @keyframes fh-pop {
+    from { opacity: 0; transform: scale(0.1); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes fh-pull {
+    from { transform: translate(0px, 0px) scale(1); }
+    to { transform: translate(var(--tx), var(--ty)) scale(var(--k)); }
+  }
+  @keyframes fh-flip {
+    0% { transform: translateZ(1px) rotateY(0deg); animation-timing-function: ease-in; }
+    50% { transform: translateZ(34cqw) rotateY(90deg); animation-timing-function: ease-out; }
+    100% { transform: translateZ(1px) rotateY(180deg); }
+  }
+  @keyframes fh-unflip {
+    0% { transform: translateZ(1px) rotateY(180deg); animation-timing-function: ease-in; }
+    50% { transform: translateZ(34cqw) rotateY(270deg); animation-timing-function: ease-out; }
+    100% { transform: translateZ(1px) rotateY(360deg); }
+  }
   @keyframes fh-post {
     from { transform: rotateY(-90deg) scaleX(0); }
     to { transform: rotateY(-90deg) scaleX(1); }
@@ -624,14 +1534,14 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
     container-type: inline-size;
   }
   .fh .viewport {
-    perspective: 190cqw;
-    perspective-origin: 45% 35%;
+    perspective: 420cqw;
+    perspective-origin: 50% 45%;
     overflow: hidden;
   }
   .fh .world {
     position: relative;
     transform-style: preserve-3d;
-    transform-origin: 40.6% 52.5%;
+    transform-origin: 34.9% 50%;
   }
   .fh .layer {
     position: absolute;
@@ -652,20 +1562,204 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
     transform: rotateY(-90deg) scaleX(0);
   }
 
-  .fh .caps {
+  /* A flow as a two-faced card, and the blank it turns over on. */
+  .fh .cover,
+  .fh .card {
     position: absolute;
-    inset: 0.6cqw auto auto 1.2cqw;
-    z-index: 1;
+    pointer-events: none;
+  }
+  /* The blank a card turns over on. It reaches just past the sheet it hides, so no outline shows round the turning card. */
+  .fh .cover {
+    background: var(--fh-ground);
+    border-radius: 0.9cqw;
+    box-shadow: 0 0 0 0.35cqw var(--fh-ground);
+    transform: translateZ(0.4px);
+  }
+  .fh .sheetmorph {
+    vector-effect: non-scaling-stroke;
+  }
+  .fh .looker circle,
+  .fh .looker path {
+    stroke-width: 1.6;
+  }
+  .fh .card {
+    transform-style: preserve-3d;
+    transform: translateZ(1px);
+  }
+  .fh .face.t {
+    opacity: 0;
+  }
+  .fh .face {
+    position: absolute;
+    inset: 0;
+    border-radius: 0.9cqw;
+    background: var(--fh-ground);
+    backface-visibility: hidden;
+  }
+  .fh .face .fig {
+    height: 100%;
+  }
+  .fh .face.back {
+    transform: rotateY(180deg);
+  }
+  .fh .file.code {
+    fill: var(--bg-0);
+  }
+  .fh .fig text.src {
+    font-size: 8px;
+    font-weight: 400;
+    fill: var(--fg-1);
+    white-space: pre;
+  }
+  .fh .src .kw {
+    fill: var(--cat-agent);
+    font-weight: 600;
+  }
+  .fh .src .blk {
+    fill: var(--cat-synthesis);
+    font-weight: 600;
+  }
+  .fh .src .ty {
+    fill: var(--cat-source);
+  }
+  .fh .src .const {
+    fill: var(--jig);
+  }
+  .fh .src .fn {
+    fill: var(--accent-strong);
+    font-weight: 600;
+  }
+  .fh .src .mt {
+    fill: var(--fg-0);
+  }
+  .fh .src .pn {
+    fill: var(--fg-3);
+  }
+
+  /* Subtitles: centred in a band under the drawing, like a film's. */
+  .fh .caps {
+    display: grid;
+    place-items: center;
+    height: 7cqw;
   }
   .fh .cap {
-    position: absolute;
-    inset: 0 auto auto 0;
+    grid-area: 1 / 1;
     margin: 0;
-    white-space: nowrap;
+    max-width: 80cqw;
+    text-align: center;
+    text-wrap: balance;
     font-family: var(--font-ui);
-    font-size: clamp(13px, 1.52cqw, 17px);
-    font-weight: 500;
-    color: var(--fg-0);
+    font-size: clamp(14px, 1.85cqw, 28px);
+    font-weight: 600;
+    /* Tall enough that one line's background stops short of the next line's text. */
+    line-height: 1.6;
+    letter-spacing: -0.005em;
+    color: #fff;
+  }
+  /* A background per line, kept inside its own line so it never covers the line above. */
+  .fh .cap span {
+    padding: 0.1em 0.55em;
+    border-radius: 0.3em;
+    background: rgb(0 0 0 / 0.72);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  .fh .fig text.promptline {
+    font-size: 11.5px;
+    fill: var(--fg-0);
+  }
+  .fh .fig text.chiptext {
+    font-size: 8.5px;
+    fill: var(--fg-0);
+  }
+
+  /* The hero's canvas is darker than the other plates, so the drawing and the subtitles stand off it. */
+  .fh {
+    --fh-ground: color-mix(in srgb, var(--bg-0) 72%, #000);
+  }
+  .fh .ground {
+    background-color: var(--fh-ground);
+  }
+  .fh .agentglow {
+    transform-origin: 500px 250px;
+  }
+  /* An agent block, after the canvas: no outline, one surface that fades at its edges, a band for its header. */
+  .fh .agentbody {
+    fill: color-mix(in srgb, var(--cat-agent) 14%, #262d36);
+    opacity: 0.92;
+  }
+  .fh .agentband {
+    fill: color-mix(in srgb, var(--cat-agent) 58%, #262d36);
+  }
+  .fh .fig text.agenthead {
+    font-size: 8.5px;
+    font-weight: 700;
+    fill: #fff;
+  }
+  .fh .fig text.agentfield {
+    font-size: 8px;
+    fill: var(--fg-2);
+  }
+  .fh .fig text.agentfield.val {
+    fill: var(--fg-0);
+  }
+  .fh .promptcard {
+    fill: var(--bg-2);
+    stroke: var(--border-2);
+    stroke-width: 1.25;
+  }
+  .fh .promptrule {
+    fill: none;
+    stroke: var(--fg-2);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+  }
+  .fh .fig text.prompthead {
+    font-size: 12px;
+    fill: var(--fg-2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .fh .fig text.prompttext {
+    font-size: 16px;
+    fill: var(--fg-0);
+  }
+  .fh .skillchip {
+    fill: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+    stroke: var(--accent-muted);
+    stroke-width: 1;
+  }
+  .fh .fig text.skilltext {
+    font-size: 9.5px;
+    fill: var(--accent-strong);
+  }
+  .fh .authorfill {
+    fill: color-mix(in srgb, var(--cat-agent) 10%, var(--bg-2));
+  }
+  .fh .authorring {
+    fill: none;
+    stroke: var(--cat-agent);
+    stroke-width: 1.5;
+  }
+  .fh .authorring.inner {
+    stroke-width: 0.75;
+    opacity: 0.45;
+  }
+  .fh .fig text.authortext {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .fh .deny {
+    fill: none;
+    stroke: var(--fg-1);
+    stroke-width: 1.75;
+    stroke-linecap: round;
+  }
+  .fh .zone {
+    fill: color-mix(in srgb, var(--accent-strong) 6%, transparent);
+    stroke: color-mix(in srgb, var(--accent-strong) 45%, transparent);
+    stroke-width: 1.25;
   }
 
   .fh .t {
@@ -691,7 +1785,7 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
     stroke-width: 1.75;
   }
   .fh .file {
-    fill: color-mix(in srgb, var(--bg-0) 60%, transparent);
+    fill: color-mix(in srgb, var(--bg-1) 78%, transparent);
     stroke: var(--border-1);
   }
   .fh .colleagues circle,
@@ -704,6 +1798,10 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
   }
   .fh .dim {
     opacity: 0.35;
+  }
+  .fh .call {
+    stroke-width: 1;
+    opacity: 0.85;
   }
   .fh .rule {
     stroke-width: 1;
@@ -725,6 +1823,84 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
   .fh .modeldot {
     fill: #fff;
   }
+  .fh .module {
+    fill: color-mix(in srgb, var(--accent) 10%, var(--bg-2));
+    stroke: var(--accent-strong);
+    stroke-width: 1.25;
+  }
+  .fh .callout {
+    fill: color-mix(in srgb, var(--accent-strong) 7%, transparent);
+    stroke: var(--accent-strong);
+    stroke-width: 1.5;
+  }
+  .fh .fig text.calltext {
+    fill: var(--accent-strong);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  /* The Map as the canvas draws it. */
+  .fh .funnel {
+    fill: color-mix(in srgb, var(--jig) 24%, transparent);
+  }
+  .fh .mapbody {
+    fill: color-mix(in srgb, var(--jig) 7%, transparent);
+  }
+  .fh .mapline {
+    stroke: color-mix(in srgb, var(--jig) 70%, transparent);
+  }
+  .fh .maptitle {
+    font-weight: 700;
+  }
+  .fh .maprule {
+    opacity: 0.75;
+  }
+  .fh .rowsbox {
+    fill: var(--bg-2);
+    stroke: color-mix(in srgb, var(--cat-source) 75%, transparent);
+    stroke-width: 1.5;
+  }
+  .fh .fig text.rowstitle {
+    fill: #fff;
+    font-size: 9.5px;
+    font-weight: 600;
+  }
+  .fh .rowsline {
+    stroke: var(--border-0);
+    stroke-width: 1;
+  }
+  .fh .rowlit {
+    fill: color-mix(in srgb, var(--cat-source) 35%, transparent);
+  }
+  .fh .beam {
+    fill: color-mix(in srgb, var(--accent-strong) 5%, transparent);
+    stroke: color-mix(in srgb, var(--accent-strong) 22%, transparent);
+    stroke-width: 1;
+  }
+  .fh .fig text.small {
+    font-size: 9.5px;
+  }
+  .fh .chip {
+    fill: var(--bg-2);
+    stroke: color-mix(in srgb, var(--c) 70%, var(--border-1));
+    stroke-width: 1;
+  }
+  .fh .docmarks {
+    fill: none;
+    stroke: var(--bg-0);
+    stroke-width: 1;
+    opacity: 0.5;
+  }
+  .fh .modfile {
+    stroke: color-mix(in srgb, var(--accent-strong) 70%, var(--border-1));
+  }
+  .fh .arg {
+    fill: var(--bg-2);
+    stroke: var(--border-2);
+    stroke-width: 1;
+  }
+  .fh .tablehead {
+    fill: color-mix(in srgb, var(--cat-source) 45%, transparent);
+  }
   .fh .pill {
     fill: var(--bg-3);
     stroke: var(--border-2);
@@ -742,10 +1918,17 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
   .fh .jigfill.strong {
     fill: color-mix(in srgb, var(--jig) 9%, transparent);
   }
+  /* A lane is see-through, so the stack reads as the same blocks repeated. */
   .fh .lanecard {
-    fill: color-mix(in srgb, var(--bg-1) 88%, transparent);
-    stroke: color-mix(in srgb, var(--jig) 70%, transparent);
+    fill: color-mix(in srgb, var(--jig) 2%, transparent);
+    stroke: color-mix(in srgb, var(--jig) 75%, transparent);
     stroke-width: 1.25;
+  }
+  .fh .ghostbox {
+    fill: none;
+    fill: color-mix(in srgb, var(--bg-2) 30%, transparent);
+    stroke: color-mix(in srgb, var(--cat-synthesis) 60%, transparent);
+    stroke-width: 1;
   }
   .fh .bracket {
     stroke-width: 2;
@@ -765,15 +1948,58 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
     stroke-linecap: round;
     stroke-linejoin: round;
   }
+  .fh .work.again0 {
+    stroke: color-mix(in srgb, var(--cat-agent) 55%, var(--accent-fg));
+  }
+  .fh .work.again1 {
+    stroke: var(--cat-agent);
+  }
+  /* On a flow the run line is a trace over the drawing, so it sits back. */
+  .fh .work {
+    stroke-opacity: 0.3;
+    stroke-width: 1.3;
+  }
+  /* An agent's own path, where nothing is wired: a pale rose, the agent's colour taken toward white. */
+  .fh .work.free {
+    stroke: color-mix(in srgb, var(--cat-agent) 42%, #fff);
+    stroke-opacity: 1;
+    stroke-width: 1.5;
+  }
+  .fh .tick {
+    fill: none;
+    stroke: var(--bg-0);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* A label that sits over run lines keeps a dark edge, so the line passes behind it. */
+  .fh .fig text.agentname {
+    paint-order: stroke;
+    stroke: var(--fh-ground);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+  }
   .fh .work.done {
+    stroke-opacity: 0.9;
     stroke: var(--success);
     stroke-width: 2.25;
   }
   /* A repeat: one functionary's path through the judgement blocks. */
   .fh .work.rep {
     stroke: var(--cat-agent);
-    stroke-width: 1.3;
-    opacity: 0.8;
+    stroke-width: 1.1;
+    stroke-opacity: calc(var(--dim, 0.8) * 0.42);
+  }
+  .fh .cellmark {
+    fill: var(--bg-0);
+    opacity: 0.45;
+  }
+  /* Unjudged results: the same as last time, or different. */
+  .fh .row.same {
+    fill: color-mix(in srgb, var(--accent) 50%, var(--bg-1));
+  }
+  .fh .row.diff {
+    fill: color-mix(in srgb, var(--accent-strong) 88%, var(--bg-1));
   }
   .fh .row.ok {
     fill: color-mix(in srgb, var(--success) 55%, var(--bg-1));
@@ -863,6 +2089,12 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
     }
     .fh .t {
       opacity: 0;
+    }
+    .fh .sheetmorph {
+      transform: translate(0px, var(--ty)) scale(var(--kx), var(--ky));
+    }
+    .fh .tabmove {
+      transform: translate(0px, var(--ty));
     }
     .fh .d {
       stroke-dashoffset: 0;

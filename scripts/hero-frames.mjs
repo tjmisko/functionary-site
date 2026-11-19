@@ -5,6 +5,7 @@
  *   node scripts/hero-frames.mjs                 # a frame every 1.5 s
  *   node scripts/hero-frames.mjs 16.4 17 17.8    # these moments (seconds)
  *   node scripts/hero-frames.mjs --from 15 --to 25 --step 0.5
+ *   node scripts/hero-frames.mjs --beats         # one settled frame per beat
  *
  * Options:
  *   --url <url>      page to capture (default http://localhost:4392/hero-frame)
@@ -28,12 +29,15 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 
-const opts = { url: "http://localhost:4392/hero-frame", out: ".frames", width: "1280", height: "700", cols: "2", total: "25", clip: "", from: "", to: "", step: "" };
+const flags = { beats: false };
+const opts = { url: "http://localhost:4391/hero-frame", out: ".frames", width: "1280", height: "700", cols: "2", total: "25", clip: "", from: "", to: "", step: "" };
 const times = [];
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
   const arg = argv[i];
-  if (arg.startsWith("--")) {
+  if (arg.startsWith("--") && arg.slice(2) in flags) {
+    flags[arg.slice(2)] = true;
+  } else if (arg.startsWith("--")) {
     const key = arg.slice(2);
     if (!(key in opts)) throw new Error(`unknown option ${arg}`);
     opts[key] = argv[++i];
@@ -43,7 +47,7 @@ for (let i = 0; i < argv.length; i++) {
     throw new Error(`not a time in seconds: ${arg}`);
   }
 }
-if (times.length === 0) {
+if (times.length === 0 && !flags.beats) {
   const from = opts.from ? Number(opts.from) : 0;
   const to = opts.to ? Number(opts.to) : Number(opts.total);
   const step = opts.step ? Number(opts.step) : 1.5;
@@ -58,6 +62,14 @@ const probe = await fetch(opts.url).catch((error) => {
   throw new Error(`cannot reach ${opts.url}: ${error.message}. Is the dev server running?`);
 });
 if (!probe.ok) throw new Error(`${opts.url} answered ${probe.status}; fix the page before capturing`);
+
+// --beats: the figure lists its beats as [start, end]; take each one near its end, when it has settled.
+if (flags.beats) {
+  const found = (await probe.text()).match(/data-beats="([^"]+)"/);
+  if (!found) throw new Error("the page lists no beats (data-beats)");
+  const beats = JSON.parse(found[1].replaceAll("&quot;", '"').replaceAll("&#34;", '"'));
+  for (const [start, end] of beats) times.push(Math.round(Math.max(start, Math.min(end - 0.12, start + (end - start) * 0.9)) * 100) / 100);
+}
 
 const out = resolve(opts.out);
 await mkdir(out, { recursive: true });

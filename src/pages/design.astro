@@ -1,0 +1,296 @@
+---
+/**
+ * Design: how the product is built. The sections that used to sit under the
+ * home hero: the argument, the jobs, and one section per mechanism.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Button from "../components/Button.astro";
+import RunTwice from "../components/figures/RunTwice.astro";
+import SectionFigure from "../components/figures/SectionFigure.astro";
+import JobGlyph from "../components/figures/JobGlyph.astro";
+
+const tasks = [
+  {
+    job: "qc",
+    name: "Report QC",
+    what: "Open each cited source, find the passage behind the claim, and record any discrepancies.",
+  },
+  {
+    job: "validate",
+    name: "Source Validation",
+    what: "Check each source in a list or folder against a set of criteria and sort the results.",
+  },
+  {
+    job: "dataset",
+    name: "Dataset Assembly",
+    what: "Extract figures from filings and data tables, put them in a common format, and attach the source to each entry.",
+  },
+  {
+    job: "evidence",
+    name: "Evidence Collection",
+    what: "Search a document collection for passages about a claim. Group them by what they support or contradict, with links back to the documents.",
+  },
+  {
+    job: "market",
+    name: "Market Map",
+    what: "Compile a list of companies, collect the same facts about each, and arrange them in a comparison table.",
+  },
+  {
+    job: "revision",
+    name: "Document Revision",
+    what: "Match review comments and new information to the relevant passages in a draft. Prepare a redline with a reason for each change.",
+  },
+] as const;
+
+const sections = [
+  {
+    fig: "program",
+    title: "Program",
+    caption: "The checker stands between what the agent writes and what runs.",
+    paras: [
+      "The agent writes each job as a flow: a short program in a restricted subset of Rust. It chooses blocks, sets their settings, and connects outputs to inputs. A checker refuses everything else, so an improvised loop or a file read on the side never becomes a flow.",
+      "A conventional runtime executes the flow. The agent does not. The loops and branches that run are the ones written in the source, and the canvas is drawn from that same source, so what you read is what runs.",
+    ],
+  },
+  {
+    fig: "record",
+    title: "Run record",
+    caption: "A Test records every call. The Run reuses those records and performs only the write.",
+    paras: [
+      "A run pins what it will execute when it starts: the flow revision, the block versions, and the table revisions it reads. Each block call is recorded with its settings and its result, and each model call leaves a receipt. A source that failed to load stays in the results as a failed row with its cause.",
+      "Recorded results are reused. An interrupted run continues from its record, and model calls that finished are not made again. A Test executes the whole flow with its writes withheld; approve it, and those same recorded results are what get written.",
+    ],
+  },
+  {
+    fig: "bounds",
+    title: "Bounds",
+    caption: "Every model sits inside something that limits it.",
+    paras: [
+      "Each block does one job: summarize this page, pull the passages that bear on a question, fill these fields from this document. The model inside a block can only do what the block allows.",
+      "The agent that writes flows has no shell and no file access. Its changes are edits that must pass the checker. An agent placed inside a flow works with a closed set of tools in a sandbox, with the network off by default.",
+    ],
+  },
+  {
+    fig: "origin",
+    title: "Origin",
+    caption: "A model-written value stays marked until a check or a person clears it.",
+    paras: [
+      "Every value carries its origin: read from a source, computed, or written by a model. A model-written value stays marked through everything derived from it. Two things clear the mark: a deterministic check against the source text, or a person's review.",
+      "A review holds the run until a person answers. The approval is bound to the output it covered, and an agent cannot give it.",
+    ],
+  },
+  {
+    fig: "iteration",
+    title: "Iteration",
+    caption: "A correction is made once, in the flow, and holds for later runs.",
+    paras: [
+      "Describe the job. The agent writes the flow, runs it, reads the results, and revises it. You read the program and the results, change a setting or remove a block, and run again. A correction is an edit to the flow, so it holds for every later run.",
+      "When a flow starts to carry weight, add the controls you want: pin the tables it reads, put a review in the flow, require an approved revision before it runs unattended. Each one is opt-in. A flow can start on a schedule, a webhook or an inbound email.",
+    ],
+  },
+] as const;
+---
+
+<BaseLayout title="Design. Functionary" description="How Functionary gives agent work a fixed process: a program, a pinned run and a complete record.">
+  <section class="intro">
+    <div class="container">
+      <h1>Design</h1>
+      <p>
+        How Functionary gives agent work a fixed process: the program an agent
+        writes, the run that executes it, and the record a run leaves.
+      </p>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="container thesis">
+      <h2>Process, Trust, Reproducibility</h2>
+      <div class="cols">
+        <p>
+          To trust work you did not do, you need to know how it was done:
+          what it relied on, and how you would reproduce it. An agent working
+          freely leaves a transcript of the steps it happened to take on that
+          one occasion. Ask again and the process is different.
+        </p>
+        <p>
+          Functionary gives the work a fixed process. The procedure is a
+          program you can read, each run is pinned to the revision it
+          executed, and every model call and outside read or write is
+          recorded. That matters for a job you run once as much as for one
+          you run every week, because it is what lets another person check
+          the result.
+        </p>
+      </div>
+      <div class="thesis-fig">
+        <RunTwice />
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="container">
+      <div class="jobs-head">
+        <h2>Jobs</h2>
+        <p>
+          Much of the time spent on research goes to moving and organizing
+          information: opening documents, finding passages, copying figures,
+          checking references, and filling in tables. These jobs repeat the
+          same few operations across dozens or hundreds of sources. No single
+          operation is hard, and one skipped source spoils the result.
+        </p>
+      </div>
+      <ul class="tasks">
+        {tasks.map((t) => (
+          <li>
+            <JobGlyph job={t.job} />
+            <span class="task-name">{t.name}</span>
+            <p class="task-what">{t.what}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  {
+    sections.map((s) => (
+      <section class="band">
+        <div class="container row">
+          <div class="prose">
+            <h2>{s.title}</h2>
+            {s.paras.map((p) => (
+              <p>{p}</p>
+            ))}
+          </div>
+          <figure class="plate">
+            <div class="ground">
+              <SectionFigure name={s.fig} />
+            </div>
+            <figcaption>{s.caption}</figcaption>
+          </figure>
+        </div>
+      </section>
+    ))
+  }
+
+  <section class="band last">
+    <div class="container row">
+      <div class="prose">
+        <h2>Where it runs</h2>
+        <p>
+          Functionary runs on your machine as a local server, used from a
+          browser or a terminal. Flows, run records and results live in one
+          data directory. Model calls go to the provider you connect.
+        </p>
+        <div class="actions">
+          <Button href="/download" variant="primary">Download</Button>
+        </div>
+      </div>
+      <figure class="plate">
+        <div class="ground">
+          <SectionFigure name="machine" />
+        </div>
+        <figcaption>One directory on your machine. Model calls are what crosses the line.</figcaption>
+      </figure>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .intro {
+    padding-block: clamp(2.5rem, 6vh, 4rem) 0;
+  }
+  .intro p {
+    margin-top: var(--s-16);
+    max-width: var(--measure-prose);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-12);
+    margin-top: var(--s-24);
+  }
+
+  .band {
+    padding-block: clamp(3rem, 2rem + 4vw, 5rem);
+    border-top: 1px solid var(--border-0);
+  }
+  .band p {
+    margin-top: var(--s-16);
+  }
+
+  .thesis .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-40);
+  }
+  .thesis-fig {
+    margin-top: var(--s-40);
+  }
+  .thesis .cols p {
+    font-size: var(--ms-lead);
+    line-height: 1.55;
+  }
+
+  .jobs-head {
+    max-width: var(--measure-prose);
+  }
+  .tasks {
+    list-style: none;
+    margin: var(--s-32) 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-16);
+  }
+  .tasks li {
+    border: 1px solid var(--border-0);
+    border-radius: var(--r-8);
+    background: var(--bg-1);
+    padding: var(--s-16) var(--s-20) var(--s-20);
+    display: grid;
+    gap: var(--s-8);
+    align-content: start;
+  }
+  .task-name {
+    margin-top: var(--s-4);
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    font-weight: 700;
+    color: var(--fg-0);
+  }
+  .tasks .task-what {
+    margin: 0;
+    font-size: var(--ms-small);
+    color: var(--fg-1);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
+  }
+  .prose {
+    max-width: 32rem;
+  }
+
+  @media (max-width: 1000px) {
+    .tasks {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 860px) {
+    .row,
+    .thesis .cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .thesis .cols {
+      gap: 0;
+    }
+  }
+  @media (max-width: 600px) {
+    .tasks {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
