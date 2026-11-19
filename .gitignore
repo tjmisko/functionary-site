@@ -1,5 +1,8 @@
 # build output
 dist/
+# on the server: the build being installed, and the one it replaced
+dist.new/
+dist.prev/
 .astro/
 
 # dependencies
