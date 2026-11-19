@@ -27,13 +27,21 @@ install)
     rev="$2"
     root="$3"
     stage="$4"
-    git_root() { git -c "safe.directory=$root" -C "$root" "$@"; }
+    # The checkout's top directory and its .git have different owners, so git
+    # refuses it unless a *global* config trusts the path (the server's git
+    # ignores safe.directory given on the command line). Trust it for this
+    # run only, through a throwaway HOME.
+    githome="$(mktemp -d)"
+    trap 'rm -rf "$githome"' EXIT
+    printf '[safe]\n\tdirectory = %s\n' "$root" >"$githome/.gitconfig"
+    git_root() { HOME="$githome" XDG_CONFIG_HOME="$githome/.config" git -C "$root" "$@"; }
 
     [ -d "$root/.git" ] || die "$root is not a git checkout"
     [ -f "$stage/index.html" ] || die "no index.html in $stage"
     [ "$(cat "$stage/revision.txt" 2>/dev/null)" = "$rev" ] || die "the build in $stage is not revision $rev"
 
     # Check the checkout can move to REV before anything is changed.
+    git_root rev-parse --verify --quiet HEAD >/dev/null || die "git cannot read the checkout at $root"
     git_root diff --quiet HEAD || die "the checkout at $root has local changes; resolve them first"
     git_root fetch --quiet origin main
     git_root cat-file -e "$rev^{commit}" 2>/dev/null || die "revision $rev is not on origin/main"
