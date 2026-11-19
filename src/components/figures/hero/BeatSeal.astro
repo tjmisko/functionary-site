@@ -1,0 +1,251 @@
+---
+/**
+ * Hero beat: what the authoring agent may see and change; a model per block. An SVG group in the hero figure's coordinates
+ * (1120 x 500), shown from `t0` to `t1` on the figure's clock.
+ *
+ * Three small tables on one row grid in the band under the brief:
+ *   - the Test block's settings, each with its Agent access level (drawn first, under Test);
+ *   - what the authoring agent sees of them (nearer the agent): each row crosses over and lands in
+ *     its reduced form; the Opaque one closes into a sealed bar, the Hidden one stops short;
+ *   - which model connection each model block names (last, small).
+ */
+import { win } from "../../../lib/hero-time";
+import FlowNodes from "../FlowNodes.astro";
+
+interface Props {
+  t0: number;
+  t1: number;
+}
+const { t0, t1 } = Astro.props;
+
+const EASE = "cubic-bezier(0.6, 0, 0.2, 1)";
+const tabPath = (x: number, y: number, tab: number) => `M${x} ${y + 20} V${y + 10} a10 10 0 0 1 10 -10 H${x + tab} V${y + 20} z`;
+
+// ---- the grid -------------------------------------------------------------------
+// Every beat in the band under the brief shares the opened module's top and height (y 366, h 124).
+const Y = 366; // top of every panel
+const H = 124; // a four-row panel
+const ROW0 = 40; // first row's centre, from the panel's top
+const PITCH = 22;
+const rowY = (k: number) => ROW0 + k * PITCH;
+const GAP = 40;
+/** Columns inside a settings row: name, value. */
+const NAME_X = 12;
+const VALUE_X = 108;
+
+// A: the Test block's settings, under Test (x 548..598).
+const A = { x: 500, w: 320, tab: 120 };
+const TAG_W = 86;
+// B: what the authoring agent sees, on the side nearer the agent.
+// Wide enough for a card and its mark, with the same 6px inset on both sides.
+const B = { x: A.x - GAP - 230, w: 230, tab: 140 };
+// C: the model connection each model block names.
+// Same height as A and B: a header row (block, connection), then one row per model block.
+const C = { x: A.x + A.w + GAP, w: 180, tab: 116, h: H };
+const DX = A.x - B.x; // how far a row travels from A to B
+
+const settings = [
+  { name: "instruction", value: "Test the claim…", access: "Read and write" },
+  { name: "rubric", value: "evidence v3", access: "Read only" },
+  { name: "threshold", value: "0.8", access: "Opaque" },
+  { name: "reviewer notes", value: "…", access: "Hidden" },
+];
+const models = [
+  { block: "Grade", conn: "Claude" },
+  { block: "Test", conn: "GPT" },
+  { block: "Draft", conn: "local (Ollama)" },
+];
+
+// ---- the clock, from t0 ---------------------------------------------------------
+const at = (dt: number) => t0 + dt;
+const A_IN = at(0.2);
+const A_ROW = (k: number) => at(0.45 + k * 0.12);
+const B_IN = at(1.05);
+/** A row is picked up (its card shows over A's row), then slides across. */
+const PICK = (k: number) => at(1.35 + k * 0.3);
+const SLIDE = 0.55;
+const LAND = (k: number) => PICK(k) + 0.15 + SLIDE;
+const SHUT = 0.25; // the sealed bar closes
+const C_IN = at(3.0);
+const C_ROW = (k: number) => at(3.12 + k * 0.1);
+
+/** Where the hidden row stops: its card's left end just short of B's right edge. */
+const HIDDEN_STOP = B.w + 4 - 6;
+/** The card under a crossing row: name and value only, never the access tag. */
+const CARD = { x: 6, w: 202, h: 16 };
+const MARK_X = B.w - 6 - 5;
+
+const slide = (k: number) =>
+  `--tx:${DX}px; --ty:0px; animation: fh-in 0.15s ${PICK(k).toFixed(2)}s both, fh-unshift ${SLIDE}s ${(PICK(k) + 0.15).toFixed(2)}s ${EASE} both`;
+const stopShort = (k: number) =>
+  `--tx:${DX}px; --tx2:${HIDDEN_STOP}px; animation: fh-in 0.15s ${PICK(k).toFixed(2)}s both, bs-stop ${SLIDE * 0.7}s ${(PICK(k) + 0.15).toFixed(2)}s ${EASE} both, fh-out 0.3s ${(PICK(k) + 0.15 + SLIDE * 0.7 + 0.1).toFixed(2)}s forwards`;
+---
+
+<g style={`animation: fh-out 0.35s ${t1.toFixed(2)}s forwards`}>
+  <!-- A: the Test block's settings -->
+  <path d={`M 548 276 H 598 L ${A.x + A.tab} ${Y} H ${A.x} Z`} class="t beam" style={win(A_IN)} />
+  <g transform={`translate(${A.x} ${Y})`}>
+    <g class="t" style={win(A_IN)}>
+      <rect x="0" y="0" width={A.w} height={H} rx="10" class="file modfile" />
+      <path d={tabPath(0, 0, A.tab)} class="tab" />
+      <text x="12" y="15" class="t0">Test · settings</text>
+      <text x={A.w - 10} y="15" class="end bs-note">Agent access</text>
+    </g>
+    {settings.map((s, k) => (
+      <g class="t" style={win(A_ROW(k))}>
+        {k > 0 && <line x1="10" y1={rowY(k) - PITCH / 2} x2={A.w - 10} y2={rowY(k) - PITCH / 2} class="bs-rule" />}
+        <text x={NAME_X} y={rowY(k) + 3.5} class="bs-cell">{s.name}</text>
+        <text x={VALUE_X} y={rowY(k) + 3.5} class="bs-cell t0">{s.value}</text>
+        <rect x={A.w - 10 - TAG_W} y={rowY(k) - 7} width={TAG_W} height="14" rx="7" class:list={["bs-tag", { "bs-tag-hidden": s.access === "Hidden" }]} />
+        <text x={A.w - 10 - TAG_W / 2} y={rowY(k) + 3} class="mid bs-tagtext">{s.access}</text>
+      </g>
+    ))}
+  </g>
+
+  <!-- B: what the authoring agent sees, joined to the agent -->
+  <path d={`M 104 284 V ${Y + 2} Q 104 ${Y + 10} 112 ${Y + 10} H ${B.x}`} class="t ln bs-leader" style={win(B_IN)} />
+  <g transform={`translate(${B.x} ${Y})`}>
+    <g class="t" style={win(B_IN)}>
+      <rect x="0" y="0" width={B.w} height={H} rx="10" class="file bs-seen" />
+      <path d={tabPath(0, 0, B.tab)} class="tab" />
+      <text x="12" y="15" class="t0">What the agent sees</text>
+    </g>
+
+    <!-- rows 1 and 2 arrive as they are; row 1 can be changed, row 2 only read -->
+    {settings.slice(0, 2).map((s, k) => (
+      <g class="t" style={slide(k)}>
+        <rect x={CARD.x} y={rowY(k) - CARD.h / 2} width={CARD.w} height={CARD.h} rx="4" class="bs-card" />
+        <text x={NAME_X} y={rowY(k) + 3.5} class="bs-cell">{s.name}</text>
+        <text x={VALUE_X} y={rowY(k) + 3.5} class="bs-cell t0">{s.value}</text>
+      </g>
+    ))}
+    <g class="t bs-edit" style={win(LAND(0))}>
+      <path d={`M ${MARK_X - 4.5} ${rowY(0) + 4.5} L ${MARK_X - 3.5} ${rowY(0) + 1} L ${MARK_X + 2.5} ${rowY(0) - 5} L ${MARK_X + 5} ${rowY(0) - 2.5} L ${MARK_X - 1} ${rowY(0) + 3.5} Z`} />
+    </g>
+    <g class="t bs-lock" style={win(LAND(1))}>
+      <rect x={MARK_X - 4.5} y={rowY(1) - 1.5} width="9" height="7" rx="1.5" />
+      <path d={`M ${MARK_X - 2.75} ${rowY(1) - 1.5} V ${rowY(1) - 3.5} a 2.75 2.75 0 0 1 5.5 0 V ${rowY(1) - 1.5}`} />
+    </g>
+
+    <!-- row 3, Opaque: arrives, then closes into a sealed bar with no name and no value -->
+    <g class="t" style={`${slide(2)}, fh-out 0.15s ${(LAND(2) + SHUT).toFixed(2)}s forwards`}>
+      <rect x={CARD.x} y={rowY(2) - CARD.h / 2} width={CARD.w} height={CARD.h} rx="4" class="bs-card" />
+      <text x={NAME_X} y={rowY(2) + 3.5} class="bs-cell">{settings[2].name}</text>
+      <text x={VALUE_X} y={rowY(2) + 3.5} class="bs-cell t0">{settings[2].value}</text>
+    </g>
+    <g class="t" style={win(LAND(2) - 0.4)}>
+      <rect x={CARD.x} y={rowY(2) - CARD.h / 2} width={CARD.w / 2} height={CARD.h} class="bs-seal bs-shut-l" style={`animation: bs-shut ${SHUT}s ${LAND(2).toFixed(2)}s ${EASE} both`} />
+      <rect x={CARD.x + CARD.w / 2} y={rowY(2) - CARD.h / 2} width={CARD.w / 2} height={CARD.h} class="bs-seal bs-shut-r" style={`animation: bs-shut ${SHUT}s ${LAND(2).toFixed(2)}s ${EASE} both`} />
+    </g>
+    <g class="t" style={win(LAND(2) + SHUT - 0.05)}>
+      <rect x={CARD.x} y={rowY(2) - CARD.h / 2} width={CARD.w} height={CARD.h} rx="4" class="bs-sealbar" />
+      <text x={CARD.x + CARD.w / 2} y={rowY(2) + 3.5} class="mid bs-cell bs-sealtext">sealed</text>
+    </g>
+
+    <!-- row 4, Hidden: leaves A, stops short of B's edge, and never arrives -->
+    <g class="t" style={stopShort(3)}>
+      <rect x={CARD.x} y={rowY(3) - CARD.h / 2} width={CARD.w} height={CARD.h} rx="4" class="bs-card" />
+      <text x={NAME_X} y={rowY(3) + 3.5} class="bs-cell">{settings[3].name}</text>
+      <text x={VALUE_X} y={rowY(3) + 3.5} class="bs-cell t0">{settings[3].value}</text>
+    </g>
+  </g>
+
+  <!-- C: each model block names its own connection -->
+  <g transform={`translate(${C.x} ${Y})`}>
+    <g class="t" style={win(C_IN)}>
+      <rect x="0" y="0" width={C.w} height={C.h} rx="10" class="file" />
+      <path d={tabPath(0, 0, C.tab)} class="tab" />
+      <text x="12" y="15" class="t0">Model per block</text>
+      <text x="12" y={rowY(0) + 3.5} class="bs-note">block</text>
+      <text x="78" y={rowY(0) + 3.5} class="bs-note">connection</text>
+      {[1, 2, 3].map((k) => (
+        <line x1="10" y1={rowY(k) - PITCH / 2} x2={C.w - 10} y2={rowY(k) - PITCH / 2} class="bs-rule" />
+      ))}
+    </g>
+    {models.map((m, i) => (
+      <g class="t" style={win(C_ROW(i))}>
+        <FlowNodes nodes={[{ k: "chip", tone: "model", label: m.block, x: 10, y: rowY(i + 1) - 8, w: 56, h: 16 }]} />
+        <text x="78" y={rowY(i + 1) + 3.5} class="bs-cell t0">{m.conn}</text>
+      </g>
+    ))}
+  </g>
+</g>
+
+<style is:global>
+  @keyframes bs-stop {
+    from { transform: translate(var(--tx), 0px); }
+    to { transform: translate(var(--tx2), 0px); }
+  }
+  @keyframes bs-shut {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  .fh .fig text.bs-cell {
+    font-size: 10px;
+  }
+  .fh .fig text.bs-note {
+    font-size: 9.5px;
+    fill: var(--fg-3);
+  }
+  .fh .fig text.bs-tagtext {
+    font-size: 9px;
+    fill: var(--fg-1);
+  }
+  .fh .bs-rule {
+    stroke: var(--border-0);
+    stroke-width: 1;
+  }
+  .fh .bs-tag {
+    fill: var(--bg-2);
+    stroke: var(--border-2);
+    stroke-width: 1;
+  }
+  .fh .bs-tag-hidden {
+    fill: none;
+    stroke-dasharray: 3 2.5;
+  }
+  .fh .bs-seen {
+    stroke: color-mix(in srgb, var(--cat-agent) 60%, var(--border-1));
+  }
+  .fh .bs-leader {
+    stroke: color-mix(in srgb, var(--cat-agent) 55%, var(--border-2));
+    stroke-dasharray: 3 4;
+  }
+  .fh .bs-card {
+    fill: var(--bg-2);
+    stroke: var(--border-1);
+    stroke-width: 1;
+  }
+  .fh .bs-seal,
+  .fh .bs-sealbar {
+    fill: var(--bg-3);
+  }
+  .fh .bs-sealbar {
+    stroke: var(--border-2);
+    stroke-width: 1;
+  }
+  .fh .bs-shut-l {
+    transform-box: fill-box;
+    transform-origin: 0% 50%;
+  }
+  .fh .bs-shut-r {
+    transform-box: fill-box;
+    transform-origin: 100% 50%;
+  }
+  .fh .fig text.bs-sealtext {
+    fill: var(--fg-2);
+    letter-spacing: 0.06em;
+  }
+  .fh .bs-edit path {
+    fill: none;
+    stroke: var(--success);
+    stroke-width: 1.25;
+    stroke-linejoin: round;
+  }
+  .fh .bs-lock rect,
+  .fh .bs-lock path {
+    fill: none;
+    stroke: var(--fg-1);
+    stroke-width: 1.25;
+  }
+</style>

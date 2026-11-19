@@ -1,0 +1,233 @@
+---
+/**
+ * Hero beat: what happens inside one block. An SVG group in the hero figure's coordinates
+ * (1120 x 500), shown from `t0` to `t1` on the figure's clock.
+ *
+ * The Test block opens into a sheet under the brief. Inside it, the Model block's own
+ * pipeline: the model proposes a value and a supporting quote for each field; code checks
+ * that each quote is exact text from the source, then that the result fits the declared
+ * type. A quote that is not found gets one repair call and is checked again; a field that
+ * still fails is kept and marked failed.
+ */
+import { win, draw, meander, seg } from "../../../lib/hero-time";
+import type { P } from "../../../lib/draw";
+
+interface Props {
+  t0: number;
+  t1: number;
+}
+const { t0, t1 } = Astro.props;
+/** A moment in the beat, in seconds after it starts. */
+const at = (s: number) => t0 + s;
+
+// The block being opened, in the brief.
+const TEST = { x: 548, y: 226, w: 50, h: 48 };
+// Its sheet, in the band under the brief.
+// Every beat in this band shares the opened module's top and height (Prepare data: y 366, h 124).
+const SHEET = { x: 150, y: 366, w: 700, h: 124, tab: 56 };
+const beam = `M ${TEST.x + 8} ${TEST.y + TEST.h} L ${SHEET.x + 10} ${SHEET.y} H ${SHEET.x + SHEET.w - 10} L ${TEST.x + TEST.w - 8} ${TEST.y + TEST.h} Z`;
+const tabPath = (x: number, y: number, tab: number) => `M${x} ${y + 20} V${y + 10} a10 10 0 0 1 10 -10 H${x + tab} V${y + 20} z`;
+
+/** The main row: wires join at ROW; inside a block the run keeps to LANE, under the label. */
+const ROW = 410;
+const CH = 34;
+const CTOP = ROW - CH / 2;
+const LANE = CTOP + 24;
+type Chip = { label: string; tone: "model" | "check"; x: number; y: number; w: number };
+const propose: Chip = { label: "Propose value + quote", tone: "model", x: 240, y: CTOP, w: 164 };
+const quote: Chip = { label: "Quote in source?", tone: "check", x: 432, y: CTOP, w: 140 };
+const fits: Chip = { label: "Fits type?", tone: "check", x: 596, y: CTOP, w: 96 };
+// The repair path, under the quote check: its wires join at RROW.
+const RROW = 461;
+const repair: Chip = { label: "Repair, once", tone: "model", x: 451, y: RROW - CH / 2, w: 102 };
+const RLANE = repair.y + 24;
+const claims = { label: "Claims", x: 166, w: 56, h: 18 };
+const finding = { label: "Finding", x: 710, w: 64, h: 18 };
+const end = (c: { x: number; w: number }) => c.x + c.w;
+
+const wires = [
+  `M ${end(claims)} ${ROW} H ${propose.x}`,
+  `M ${end(propose)} ${ROW} H ${quote.x}`,
+  `M ${end(quote)} ${ROW} H ${fits.x}`,
+  `M ${end(fits)} ${ROW} H ${finding.x}`,
+];
+const ports: P[] = [end(claims), propose.x, end(propose), quote.x, end(quote), fits.x, end(fits), finding.x].map((x) => ({ x, y: ROW }));
+// The repair loop: out of the quote check, round under it through the repair call, and back in at its left edge.
+const LR = end(quote) + 12;
+const LL = quote.x - 14;
+const loopOut = `M ${end(quote)} ${ROW} H ${LR - 10} Q ${LR} ${ROW} ${LR} ${ROW + 10} V ${RROW - 10} Q ${LR} ${RROW} ${LR - 10} ${RROW} H ${end(repair)}`;
+const loopBack = `M ${repair.x} ${RROW} H ${LL + 10} Q ${LL} ${RROW} ${LL} ${RROW - 10} V ${ROW + 10} Q ${LL} ${ROW} ${LL + 10} ${ROW} H ${quote.x}`;
+const chevron = `M ${LL - 4} ${ROW + 26} L ${LL} ${ROW + 21} L ${LL + 4} ${ROW + 26}`;
+
+// The run: uneven inside a model call, straight inside a check.
+const through = (c: Chip, lane = LANE, row = ROW) =>
+  `L ${c.x} ${row} C ${c.x + 5} ${row}, ${c.x + 5} ${lane}, ${c.x + 11} ${lane} H ${end(c) - 11} C ${end(c) - 5} ${lane}, ${end(c) - 5} ${row}, ${end(c)} ${row}`;
+const wander = (x0: number, x1: number, lane: number, seed: number, row: number, back = false) => {
+  const pts = meander(x0 + 6, x1 - 6, lane, 6, seed);
+  if (back) pts.reverse();
+  const [a, b] = back ? [x1, x0] : [x0, x1];
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  return `L ${a} ${row} C ${(a + first.x) / 2} ${row}, ${(a + first.x) / 2} ${lane}, ${first.x} ${lane}${seg(pts)} C ${(b + last.x) / 2} ${lane}, ${(b + last.x) / 2} ${row}, ${b} ${row}`;
+};
+const run1 = `M ${end(claims)} ${ROW} ${wander(propose.x, end(propose), LANE, 91, ROW)} L ${quote.x} ${ROW} ${through(quote)}`;
+const run2 =
+  `M ${end(quote)} ${ROW} H ${LR - 10} Q ${LR} ${ROW} ${LR} ${ROW + 10} V ${RROW - 10} Q ${LR} ${RROW} ${LR - 10} ${RROW} ` +
+  `${wander(repair.x, end(repair), RLANE, 94, RROW, true)} H ${LL + 10} Q ${LL} ${RROW} ${LL} ${RROW - 10} V ${ROW + 10} Q ${LL} ${ROW} ${LL + 10} ${ROW} ` +
+  `${through(quote)}`;
+const run3 = `M ${end(quote)} ${ROW} ${through(fits)} L ${finding.x} ${ROW}`;
+
+// The finding's fields, as the checks leave them: one quote was repaired.
+const BOX = { x: 704, y: 426, w: 132, h: 54 };
+const fields = ["verdict", "effect", "caveat"].map((label, i) => ({ label, cy: BOX.y + 14 + i * 13, repaired: i === 1 }));
+const SQ = 9;
+const sqX = BOX.x + BOX.w - 10 - SQ;
+
+/** Marks inside a status badge or square, centred on (cx, cy). */
+const tickAt = (cx: number, cy: number, s = 1) => `M ${cx - 2.6 * s} ${cy + 0.1 * s} l ${1.8 * s} ${1.8 * s} l ${3.4 * s} ${-3.8 * s}`;
+const crossAt = (cx: number, cy: number, s = 1) => `M ${cx - 2 * s} ${cy - 2 * s} l ${4 * s} ${4 * s} m 0 ${-4 * s} l ${-4 * s} ${4 * s}`;
+const badge = (c: Chip) => ({ cx: end(c) - 11, cy: c.y + 11 });
+const qb = badge(quote);
+const fb = badge(fits);
+
+// When each part shows, in seconds after the beat starts.
+const NODE = 0.35;
+const RUN1 = { t: 0.9, dur: 0.8 };
+const FAIL = 1.7;
+const LOOP = 1.8;
+const RUN2 = { t: 2.0, dur: 0.95 };
+const FIX = RUN2.t + RUN2.dur;
+const RUN3 = { t: FIX + 0.1, dur: 0.4 };
+const PASS = RUN3.t + RUN3.dur - 0.08;
+const DONE = PASS + 0.12;
+---
+
+<g class="bi">
+  <!-- the opened block: a faint beam from Test to its sheet, the sheet behind everything in it -->
+  <path d={beam} class="t beam" style={win(at(0.2), t1)} />
+  <g class="t" style={win(at(0.2), t1)}>
+    <rect x={SHEET.x} y={SHEET.y} width={SHEET.w} height={SHEET.h} rx="10" class="file modfile" />
+    <path d={tabPath(SHEET.x, SHEET.y, SHEET.tab)} class="tab" />
+    <text x={SHEET.x + 12} y={SHEET.y + 15} class="t0">Test</text>
+    <text x={SHEET.x + SHEET.w - 10} y={SHEET.y + 15} class="end">block</text>
+  </g>
+
+  <!-- the pipeline, left to right -->
+  <g class="t" style={win(at(NODE + 0.25), t1)}>
+    {wires.map((d) => (
+      <path d={d} class="ln" />
+    ))}
+    {ports.map((p) => (
+      <circle cx={p.x} cy={p.y} r="3.5" class="port" />
+    ))}
+  </g>
+  <g class="t" style={win(at(NODE), t1)}>
+    <rect x={claims.x} y={ROW - claims.h / 2} width={claims.w} height={claims.h} rx={claims.h / 2} class="arg" />
+    <text x={claims.x + claims.w / 2} y={ROW + 4} class="mid">{claims.label}</text>
+  </g>
+  {[propose, quote, fits].map((c, i) => (
+    <g class:list={["t", c.tone === "model" ? "k-block" : "k-ok"]} style={win(at(NODE + 0.08 * (i + 1)), t1)}>
+      <rect x={c.x} y={c.y} width={c.w} height={CH} rx="6" class="chip" />
+      <rect x={c.x} y={c.y + 3} width="3" height={CH - 6} rx="1.5" class="solid" />
+      <text x={c.x + 9} y={c.y + 15} class="t0">{c.label}</text>
+      {c.tone === "model" && <circle cx={end(c) - 10} cy={c.y + 11} r="2.4" class="modeldot" />}
+    </g>
+  ))}
+  <g class="t" style={win(at(NODE + 0.32), t1)}>
+    <rect x={finding.x} y={ROW - finding.h / 2} width={finding.w} height={finding.h} rx={finding.h / 2} class="arg" />
+    <text x={finding.x + finding.w / 2} y={ROW + 4} class="mid">{finding.label}</text>
+  </g>
+
+  <!-- the finding's fields -->
+  <g class="t" style={win(at(NODE + 0.45), t1)}>
+    <path d={`M ${finding.x + finding.w / 2} ${ROW + finding.h / 2} V ${BOX.y}`} class="ln" />
+    <rect x={BOX.x} y={BOX.y} width={BOX.w} height={BOX.h} rx="5" class="arg" />
+    {fields.map((f) => (
+      <>
+        <text x={BOX.x + 10} y={f.cy + 3.5} class="t0 small">{f.label}</text>
+        <rect x={sqX} y={f.cy - SQ / 2} width={SQ} height={SQ} rx="2" class="bi-empty" />
+      </>
+    ))}
+  </g>
+
+  <!-- the run: through the model call, straight into the quote check -->
+  <path d={run1} class="d work" pathLength="1" style={draw(at(RUN1.t), RUN1.dur, t1)} />
+
+  <!-- one quote is not in the source -->
+  <circle cx={qb.cx} cy={qb.cy} r="5" class="t bi-badge" style={`${win(at(FAIL), t1)}, bi-fix 0.35s ${at(FIX).toFixed(2)}s both`} />
+  <path d={crossAt(qb.cx, qb.cy, 0.85)} class="t bi-mark" style={win(at(FAIL), at(FIX))} />
+  <path d={tickAt(qb.cx, qb.cy, 0.85)} class="t bi-mark" style={win(at(FIX + 0.1), t1)} />
+  {fields.map((f, i) => (
+    <>
+      <rect x={sqX} y={f.cy - SQ / 2} width={SQ} height={SQ} rx="2" class="t bi-sq" style={f.repaired ? `${win(at(FAIL + 0.05 * i), t1)}, bi-fixsq 0.35s ${at(FIX).toFixed(2)}s both` : win(at(FAIL + 0.05 * i), t1)} />
+      {f.repaired ? (
+        <>
+          <path d={crossAt(sqX + SQ / 2, f.cy, 0.75)} class="t bi-mark" style={win(at(FAIL + 0.05 * i), at(FIX))} />
+          <path d={tickAt(sqX + SQ / 2, f.cy, 0.75)} class="t bi-mark" style={win(at(FIX + 0.1), t1)} />
+          <text x={sqX - 6} y={f.cy + 3.5} class="t end small" style={win(at(FIX + 0.15), t1)}>repaired</text>
+        </>
+      ) : (
+        <path d={tickAt(sqX + SQ / 2, f.cy, 0.75)} class="t bi-mark" style={win(at(FAIL + 0.05 * i), t1)} />
+      )}
+    </>
+  ))}
+
+  <!-- one repair call, then the check again -->
+  <path d={loopOut} class="ln d" pathLength="1" style={draw(at(LOOP), 0.25, t1)} />
+  <g class="t k-block" style={win(at(LOOP + 0.1), t1)}>
+    <rect x={repair.x} y={repair.y} width={repair.w} height={CH} rx="6" class="chip" />
+    <rect x={repair.x} y={repair.y + 3} width="3" height={CH - 6} rx="1.5" class="solid" />
+    <text x={repair.x + 9} y={repair.y + 15} class="t0">{repair.label}</text>
+    <circle cx={end(repair) - 10} cy={repair.y + 11} r="2.4" class="modeldot" />
+  </g>
+  <path d={loopBack} class="ln d" pathLength="1" style={draw(at(LOOP + 0.2), 0.25, t1)} />
+  <path d={chevron} class="t ln" style={win(at(LOOP + 0.4), t1)} />
+  <g class="t" style={win(at(LOOP + 0.2), t1)}>
+    <circle cx={end(repair)} cy={RROW} r="3.5" class="port" />
+    <circle cx={repair.x} cy={RROW} r="3.5" class="port" />
+  </g>
+  <g class="t" style={win(at(LOOP + 0.45), t1)}>
+    <text x={LL - 12} y={RROW - 2} class="end small">still failing:</text>
+    <text x={LL - 12} y={RROW + 11} class="end small">field marked failed</text>
+  </g>
+  <path d={run2} class="d work" pathLength="1" style={draw(at(RUN2.t), RUN2.dur, t1)} />
+
+  <!-- it passes; straight through the type check and out -->
+  <path d={run3} class="d work" pathLength="1" style={draw(at(RUN3.t), RUN3.dur, t1)} />
+  <g class="t k-ok" style={win(at(PASS), t1)}>
+    <circle cx={fb.cx} cy={fb.cy} r="5" class="solid" />
+  </g>
+  <path d={tickAt(fb.cx, fb.cy, 0.85)} class="t bi-mark" style={win(at(PASS), t1)} />
+  {wires.map((d, i) => (
+    <path d={d} class="d work done" pathLength="1" style={draw(at(DONE + i * 0.08), 0.2, t1)} />
+  ))}
+</g>
+
+<style is:global>
+  @keyframes bi-fix {
+    from { fill: var(--danger); }
+    to { fill: var(--success); }
+  }
+  @keyframes bi-fixsq {
+    from { fill: color-mix(in srgb, var(--danger) 70%, var(--bg-1)); }
+    to { fill: color-mix(in srgb, var(--success) 55%, var(--bg-1)); }
+  }
+  .fh .bi-badge {
+    fill: var(--success);
+  }
+  .fh .bi-sq {
+    fill: color-mix(in srgb, var(--success) 55%, var(--bg-1));
+  }
+  .fh .bi-empty {
+    fill: none;
+    stroke: var(--border-2);
+    stroke-width: 1;
+  }
+  .fh .bi-mark {
+    fill: none;
+    stroke: var(--bg-0);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>

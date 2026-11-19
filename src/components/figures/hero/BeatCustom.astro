@@ -1,0 +1,245 @@
+---
+/**
+ * Hero beat: blocks come from a palette, and a coding agent writes a missing one against the block contract.
+ * An SVG group in the hero figure's coordinates (1120 x 500), shown from `t0` to `t1` on the figure's clock.
+ *
+ * Left to right in the band under the brief, so every wire runs left to right:
+ *   coding agent -> cite_check.rs -> block contract -> block palette
+ * The palette shows first. The agent writes the source; the contract ticks its three terms; the new block
+ * leaves the contract and slides into the empty slot in the palette's checks column.
+ */
+import { win, draw } from "../../../lib/hero-time";
+
+interface Props {
+  t0: number;
+  t1: number;
+}
+const { t0, t1 } = Astro.props;
+/** A moment in the beat, in seconds after `t0`. */
+const at = (d: number) => t0 + d;
+const EASE = "cubic-bezier(0.6, 0, 0.2, 1)";
+
+// The band every beat under the brief shares: the opened module's top and height (y 366, h 124).
+const TOP = 366;
+const BOT = 490;
+const H = BOT - TOP;
+const tabPath = (x: number, y: number, tab: number) => `M${x} ${y + 20} V${y + 10} a10 10 0 0 1 10 -10 H${x + tab} V${y + 20} z`;
+const hex = (cx: number, cy: number, r: number) => {
+  const h = r * 0.87;
+  return `M ${cx - r} ${cy} L ${cx - r / 2} ${cy - h} L ${cx + r / 2} ${cy - h} L ${cx + r} ${cy} L ${cx + r / 2} ${cy + h} L ${cx - r / 2} ${cy + h} Z`;
+};
+
+// ---- the four objects, left to right, 18 apart; the first starts on the band's left edge (x 150) ----
+const AGENT = { x: 150, y: 396, w: 62, h: 48 };
+const CODE = { x: 230, y: TOP, w: 286, h: H, tab: 110 };
+const GATE = { x: 534, y: TOP, w: 124, h: H };
+const PAL = { x: 676, y: TOP, w: 410, h: H, tab: 110 };
+
+// ---- the palette: one column per kind ----
+const CHIP_H = 18;
+const ROWS = [TOP + 42, TOP + 66, TOP + 90];
+type Kind = "k-ok" | "k-block" | "k-source" | "k-transform" | "k-jig" | "k-egress";
+const KINDS: { kind: Kind; head: string; w: number; names: (string | null)[]; model?: boolean }[] = [
+  // the checks column sits next to the contract, so the new block has a short way to go
+  { kind: "k-ok", head: "checks", w: 66, names: ["Check", "Review", null] },
+  { kind: "k-block", head: "model", w: 55, names: ["Draft", "Search", "Quote"], model: true },
+  { kind: "k-source", head: "sources", w: 46, names: ["File", "Url", "Table"] },
+  { kind: "k-transform", head: "transforms", w: 62, names: ["Filter", "Join", "Reshape"] },
+  { kind: "k-jig", head: "jigs", w: 66, names: ["Map", "Refine", "Replicate"] },
+  { kind: "k-egress", head: "outputs", w: 50, names: ["Write", "Commit", "Notify"] },
+];
+const COL_GAP = 8;
+const cols: { x: number; k: (typeof KINDS)[number] }[] = [];
+{
+  let x = PAL.x + 12;
+  for (const k of KINDS) {
+    cols.push({ x, k });
+    x += k.w + COL_GAP;
+  }
+}
+const SLOT = { x: cols[0].x, y: ROWS[2], w: KINDS[0].w, h: CHIP_H };
+
+// ---- the contract ----
+const TERMS = ["typed input", "typed output", "declared reach"];
+const TERM_Y = [GATE.y + 38, GATE.y + 54, GATE.y + 70];
+const TITLE_W = 12 + 5 + 14 * 5.7;
+const TITLE_X = GATE.x + (GATE.w - TITLE_W) / 2;
+/** Where the new block waits in the contract: centred, on the palette's third row. */
+const LANE = { x: GATE.x + (GATE.w - SLOT.w) / 2, y: SLOT.y };
+
+// ---- the source the coding agent writes ----
+const SOURCE = [
+  "impl Block for CiteCheck {",
+  "  type Input = Claims;",
+  "  type Output = Checked;",
+  "  const DESTINATION: Reach = Reach::LocalOnly;",
+  "  fn run(&self, c: Claims) -> Done<Checked> {…}",
+  "}",
+];
+const LINE = 14;
+type Tok = "" | "kw" | "ty" | "blk" | "const" | "fn" | "pn";
+function tokens(line: string): { text: string; kind: Tok }[] {
+  const out: { text: string; kind: Tok }[] = [];
+  const re = /\b(impl|for|type|const|fn|self)\b|\b([A-Z][A-Z0-9_]+)\b|\b([A-Z][A-Za-z0-9]*)\b(?=::)|\b([A-Z][A-Za-z0-9]*)\b|\b([a-z_][a-z0-9_]*)(?=\()|([{}()<>:;,.=&\-]+)/g;
+  let last = 0;
+  for (const m of line.matchAll(re)) {
+    const i = m.index!;
+    if (i > last) out.push({ text: line.slice(last, i), kind: "" });
+    const kind: Tok = m[1] ? "kw" : m[2] ? "const" : m[3] ? "blk" : m[4] ? "ty" : m[5] ? "fn" : "pn";
+    out.push({ text: m[0], kind });
+    last = i + m[0].length;
+  }
+  if (last < line.length) out.push({ text: line.slice(last), kind: "" });
+  return out;
+}
+
+// ---- timing, seconds after t0 ----
+const D = {
+  palette: 0.2,
+  col: (c: number) => 0.35 + c * 0.08,
+  slot: 0.85,
+  agent: 1.0,
+  code: 1.15,
+  line: (i: number) => 1.3 + i * 0.15,
+  gate: 1.6,
+  toGate: 2.15,
+  term: (i: number) => 2.3 + i * 0.2,
+  block: 2.85,
+  toPal: 3.0,
+  move: 3.1,
+  ring: 3.6,
+};
+const MOVE = 0.55;
+const fade = (d: number) => win(at(d));
+---
+
+<g class="t" style={win(at(0.2), t1)}>
+  <!-- the coding agent: a terminal, outside Functionary -->
+  <g class="t" style={fade(D.agent)}>
+    <rect x={AGENT.x} y={AGENT.y} width={AGENT.w} height={AGENT.h} rx="6" class="file code bc-term" />
+    <path d={`M${AGENT.x} ${AGENT.y + 12} V${AGENT.y + 6} a6 6 0 0 1 6 -6 H${AGENT.x + AGENT.w - 6} a6 6 0 0 1 6 6 V${AGENT.y + 12} z`} class="tab" />
+    {[0, 1, 2].map((i) => <circle cx={AGENT.x + 9 + i * 7} cy={AGENT.y + 6} r="1.8" class="bc-dot" />)}
+    <path d={`M${AGENT.x + 20} ${AGENT.y + 23} l7 6 l-7 6`} class="bc-prompt" />
+    <path d={`M${AGENT.x + 33} ${AGENT.y + 36} h12`} class="bc-prompt" />
+    <text x={AGENT.x + AGENT.w / 2} y={AGENT.y + AGENT.h + 16} class="mid small">Coding agent</text>
+  </g>
+  <path d={`M${AGENT.x + AGENT.w} ${AGENT.y + AGENT.h / 2} H${CODE.x - 2}`} class="ln d" pathLength="1" style={draw(at(D.code), 0.25)} marker-end="url(#fh-ah)" />
+
+  <!-- the source it writes -->
+  <g class="t" style={fade(D.code)}>
+    <rect x={CODE.x} y={CODE.y} width={CODE.w} height={CODE.h} rx="10" class="file code" />
+    <path d={tabPath(CODE.x, CODE.y, CODE.tab)} class="tab" />
+    <text x={CODE.x + 12} y={CODE.y + 15} class="t0">cite_check.rs</text>
+    <text x={CODE.x + CODE.w - 10} y={CODE.y + 15} class="end">block SDK</text>
+  </g>
+  {SOURCE.map((line, i) => (
+    <text
+      x={CODE.x + 12}
+      y={CODE.y + 38 + i * LINE}
+      class="src bc-code"
+      xml:space="preserve"
+      style={`animation: fh-type ${(0.08 + line.length * 0.004).toFixed(2)}s ${at(D.line(i)).toFixed(2)}s steps(${line.length}, end) both`}
+    >
+      {tokens(line).map((tk) => <tspan class={tk.kind}>{tk.text}</tspan>)}
+    </text>
+  ))}
+
+  <!-- the block contract: a gate with three terms -->
+  <g class="t k-ok" style={fade(D.gate)}>
+    <rect x={GATE.x} y={GATE.y} width={GATE.w} height={GATE.h} rx="10" class="bc-gate" />
+    <path d={hex(TITLE_X + 6, GATE.y + 15, 6)} class="hexa" />
+    <text x={TITLE_X + 17} y={GATE.y + 18.5} class="small tc">Block contract</text>
+    <line x1={GATE.x + 10} y1={GATE.y + 27} x2={GATE.x + GATE.w - 10} y2={GATE.y + 27} class="bc-rule" />
+    {TERMS.map((term, i) => (
+      <g>
+        <rect x={GATE.x + 14} y={TERM_Y[i] - 5} width="10" height="10" rx="2" class="bc-box" />
+        <text x={GATE.x + 30} y={TERM_Y[i] + 3.5} class="small t0">{term}</text>
+      </g>
+    ))}
+  </g>
+  {TERMS.map((_, i) => (
+    <g class="t k-ok" style={fade(D.term(i))}>
+      <rect x={GATE.x + 14} y={TERM_Y[i] - 5} width="10" height="10" rx="2" class="solid" />
+      <path d={`M${GATE.x + 16.5} ${TERM_Y[i]} l2 2.2 l3.8 -4.4`} class="tick bc-tick" />
+    </g>
+  ))}
+  <!-- the lane the new block takes: from the source, through the contract, into the palette -->
+  <path d={`M${CODE.x + CODE.w} ${LANE.y + CHIP_H / 2} H${GATE.x - 2}`} class="ln d" pathLength="1" style={draw(at(D.toGate), 0.2)} marker-end="url(#fh-ah)" />
+  <path d={`M${GATE.x + GATE.w} ${LANE.y + CHIP_H / 2} H${PAL.x - 2}`} class="ln d" pathLength="1" style={draw(at(D.toPal), 0.2)} marker-end="url(#fh-ah)" />
+
+  <!-- the palette -->
+  <g class="t" style={fade(D.palette)}>
+    <rect x={PAL.x} y={PAL.y} width={PAL.w} height={PAL.h} rx="10" class="file modfile" />
+    <path d={tabPath(PAL.x, PAL.y, PAL.tab)} class="tab" />
+    <text x={PAL.x + 12} y={PAL.y + 15} class="t0">Block palette</text>
+  </g>
+  {cols.map((c, ci) => (
+    <g class={`t ${c.k.kind}`} style={fade(D.col(ci))}>
+      <text x={c.x} y={PAL.y + 32} class="small tc">{c.k.head}</text>
+      {c.k.names.map((name, ri) =>
+        name ? (
+          <g>
+            <rect x={c.x} y={ROWS[ri]} width={c.k.w} height={CHIP_H} rx="5" class="chip" />
+            <rect x={c.x} y={ROWS[ri] + 3} width="3" height={CHIP_H - 6} rx="1.5" class="solid" />
+            <text x={c.x + 8} y={ROWS[ri] + 12.5} class="small t0">{name}</text>
+            {c.k.model && <circle cx={c.x + c.k.w - 6} cy={ROWS[ri] + 5.5} r="2" class="modeldot" />}
+          </g>
+        ) : null,
+      )}
+    </g>
+  ))}
+  <rect x={SLOT.x} y={SLOT.y} width={SLOT.w} height={SLOT.h} rx="5" class="t bc-slot" style={fade(D.slot)} />
+
+  <!-- the new block: drawn in its slot; it shows in the contract, then slides home -->
+  <g
+    class="t k-ok"
+    style={`--tx:${LANE.x - SLOT.x}px; --ty:0px; animation: fh-in 0.3s ${at(D.block).toFixed(2)}s both, fh-unshift ${MOVE}s ${at(D.move).toFixed(2)}s ${EASE} both`}
+  >
+    <rect x={SLOT.x} y={SLOT.y} width={SLOT.w} height={CHIP_H} rx="5" class="chip" />
+    <rect x={SLOT.x} y={SLOT.y + 3} width="3" height={CHIP_H - 6} rx="1.5" class="solid" />
+    <text x={SLOT.x + 8} y={SLOT.y + 12.5} class="small t0">CiteCheck</text>
+  </g>
+  <rect x={SLOT.x - 4} y={SLOT.y - 4} width={SLOT.w + 8} height={CHIP_H + 8} rx="8" class="t ring" style={win(at(D.ring), at(D.ring + 0.9))} />
+</g>
+
+<style is:global>
+  .fh .bc-term {
+    stroke: var(--border-2);
+  }
+  .fh .bc-dot {
+    fill: var(--fg-3);
+  }
+  .fh .bc-prompt {
+    fill: none;
+    stroke: var(--accent-strong);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .fh .fig text.src.bc-code {
+    font-size: 9px;
+  }
+  .fh .bc-gate {
+    fill: color-mix(in srgb, var(--success) 6%, var(--bg-1));
+    stroke: color-mix(in srgb, var(--success) 75%, var(--border-1));
+    stroke-width: 1.25;
+  }
+  .fh .bc-rule {
+    stroke: color-mix(in srgb, var(--success) 35%, transparent);
+    stroke-width: 1;
+  }
+  .fh .bc-box {
+    fill: var(--bg-2);
+    stroke: color-mix(in srgb, var(--success) 70%, var(--border-1));
+    stroke-width: 1;
+  }
+  .fh .bc-tick {
+    stroke-width: 1.6;
+  }
+  .fh .bc-slot {
+    fill: none;
+    stroke: var(--fg-3);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+</style>
