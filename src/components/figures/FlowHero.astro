@@ -864,7 +864,7 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
 
 <figure class="plate fh">
   <style is:inline set:html={css}></style>
-  <div data-hero-stage data-total={T.end} data-beats={JSON.stringify(captions.map((c) => [c.t, c.out ?? T.end]))}>
+  <div data-hero-stage data-total={T.end} data-beats={JSON.stringify(captions.map((c) => [c.t, c.out ?? T.end]))} data-beat-times={captions.slice(1).map((c) => c.t).join(",")}>
     <div class="ground scroll">
       <div class="frame" style={`--dz:${DZ}cqw; --reps:${REPS}`}>
         <div class="viewport">
@@ -1435,6 +1435,39 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
         return;
       }
       seek(to);
+    });
+
+    // Keyboard: Space play/pause, Home/End, Left/Right by beat, 0-9 by
+    // proportion (0 = start, 9 = 90%). Up/Down are left to the scrubber.
+    const beats = (stage.dataset.beatTimes ?? "")
+      .split(",")
+      .map((s) => Number(s) * 1000)
+      .filter((n) => Number.isFinite(n))
+      .sort((x, y) => x - y);
+    const EPS = 50;
+    const jump = (ms: number) => {
+      pause();
+      seek(ms);
+    };
+    const inView = () => {
+      const r = stage.getBoundingClientRect();
+      return r.bottom > 0 && r.top < innerHeight;
+    };
+    document.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(TEXTAREA|SELECT|A|BUTTON)$/.test(el.tagName))) return;
+      if (el && el.tagName === "INPUT" && el !== scrub) return;
+      if (!inView()) return;
+      let handled = true;
+      if (e.key === " ") (playing ? pause() : play());
+      else if (e.key === "Home") jump(0);
+      else if (e.key === "End") jump(total);
+      else if (e.key === "ArrowLeft") jump([...beats].reverse().find((b) => b < now - EPS) ?? 0);
+      else if (e.key === "ArrowRight") jump(beats.find((b) => b > now + EPS) ?? total);
+      else if (/^[0-9]$/.test(e.key)) jump((Number(e.key) / 10) * total);
+      else handled = false;
+      if (handled) e.preventDefault();
     });
 
     const frozen = new URLSearchParams(location.search).get("t");
