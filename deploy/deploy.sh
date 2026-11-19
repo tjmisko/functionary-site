@@ -42,6 +42,11 @@ die() {
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
+# The install and the rollback ask for a sudo password on the server, which needs a terminal.
+if [ "$mode" != "dry-run" ] && ! [ -t 0 ]; then
+    die "run this from a terminal: sudo on the server has to ask for your password (stdin is not a terminal)"
+fi
+
 for tool in git npm npx rsync ssh curl; do
     command -v "$tool" >/dev/null || die "$tool is not installed"
 done
