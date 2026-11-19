@@ -37,6 +37,30 @@ const isActive = (href: string) =>
 </header>
 
 <style>
+  /* Header scale: 1 on laptops and phones, growing in steps on big monitors so the bar keeps its proportion to the page. */
+  header {
+    --hs: 1;
+  }
+  @media (min-width: 1800px) {
+    header {
+      --hs: 1.25;
+    }
+  }
+  @media (min-width: 2400px) {
+    header {
+      --hs: 1.6;
+    }
+  }
+  @media (min-width: 3200px) {
+    header {
+      --hs: 2.1;
+    }
+  }
+  @media (min-width: 4400px) {
+    header {
+      --hs: 2.8;
+    }
+  }
   header {
     position: sticky;
     top: 0;
@@ -52,36 +76,36 @@ const isActive = (href: string) =>
   .bar {
     display: flex;
     align-items: center;
-    gap: var(--s-24);
-    height: 56px;
+    gap: calc(var(--s-24) * var(--hs));
+    height: calc(56px * var(--hs));
   }
   .wordmark-link {
     display: inline-flex;
     align-items: center;
-    gap: var(--s-8);
+    gap: calc(var(--s-8) * var(--hs));
   }
   .wm {
     font-family: var(--font-mono);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 2px;
-    font-size: var(--fs-15);
+    font-size: calc(var(--fs-15) * var(--hs));
     color: var(--accent-strong);
   }
   .mark {
     display: block;
-    width: 26px;
-    height: 26px;
+    width: calc(26px * var(--hs));
+    height: calc(26px * var(--hs));
     flex-shrink: 0;
   }
   nav {
     display: flex;
-    gap: var(--s-20);
+    gap: calc(var(--s-20) * var(--hs));
     margin-right: auto;
   }
   .navlink {
     font-family: var(--font-mono);
-    font-size: var(--fs-12);
+    font-size: calc(var(--fs-12) * var(--hs));
     color: var(--fg-2);
     transition: color var(--t-medium);
   }
@@ -90,6 +114,10 @@ const isActive = (href: string) =>
   }
   .navlink.active {
     color: var(--accent-strong);
+  }
+  header :global(.btn.sm) {
+    font-size: calc(var(--fs-12) * var(--hs));
+    padding: calc(0.4rem * var(--hs)) calc(0.8rem * var(--hs));
   }
   @media (max-width: 680px) {
     nav {
