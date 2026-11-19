@@ -1425,16 +1425,21 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
     };
 
     toggle.addEventListener("click", () => (playing ? pause() : play()));
-    scrub.addEventListener("input", () => {
+    // Pause and move the clock to `to`. When pinned, move the page, so the
+    // scroll position and the clock stay in step.
+    const moveTo = (to: number) => {
       pause();
-      const to = Number(scrub.value) * 1000;
       if (pinned()) {
-        // Move the page, so the scroll position and the clock stay in step.
         const top = section!.getBoundingClientRect().top + scrollY - pinTop();
-        scrollTo({ top: top + (to / total) * travel() });
+        scrollTo({ top: top + (Math.min(total, Math.max(0, to)) / total) * travel(), behavior: "instant" });
+        target = to;
+        seek(to);
         return;
       }
       seek(to);
+    };
+    scrub.addEventListener("input", () => {
+      moveTo(Number(scrub.value) * 1000);
     });
 
     // Keyboard: Space play/pause, Home/End, Left/Right by beat, 0-9 by
@@ -1445,10 +1450,7 @@ const at = (x: number, y: number) => `left:${((x / W) * 100).toFixed(3)}%; top:$
       .filter((n) => Number.isFinite(n))
       .sort((x, y) => x - y);
     const EPS = 50;
-    const jump = (ms: number) => {
-      pause();
-      seek(ms);
-    };
+    const jump = moveTo;
     const inView = () => {
       const r = stage.getBoundingClientRect();
       return r.bottom > 0 && r.top < innerHeight;
